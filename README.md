@@ -13,11 +13,13 @@ Claude Code ↔ [MCP-nREPL Proxy] ↔ [Joyride nREPL] ↔ [VS Code APIs]
 ## ⚡ Features
 
 - **Pure Babashka implementation** - Fast startup (~200ms) and low memory usage (~50MB)
-- **Native nREPL integration** - Uses `babashka.nrepl.client` for seamless Clojure communication
+- **Custom nREPL client** - Babashka-compatible socket-based nREPL communication
 - **Auto-discovery** - Automatically finds and connects to Joyride's nREPL server via `.nrepl-port` file
 - **MCP compliant** - Full Model Context Protocol support with tools and resources
-- **Session management** - Track and manage nREPL evaluation sessions
-- **Command history** - Access recent evaluations through MCP resources
+- **Session management** - Track and manage isolated nREPL evaluation sessions
+- **Joyride/Calva integration** - Full support for VS Code API calls and Calva middleware
+- **Enhanced testing** - Comprehensive test suite with mock Joyride server
+- **Workspace operations** - File listing, document operations, and notification support
 
 ## 🚀 Quick Start
 
@@ -63,9 +65,9 @@ Add to your Claude Code MCP configuration:
 Connect to Joyride's nREPL server (usually auto-discovered).
 
 ### `nrepl-eval`
-Evaluate Clojure code in the nREPL session.
+Evaluate Clojure code in the nREPL session with full Joyride/Calva support.
 
-**Example:**
+**Examples:**
 ```clojure
 ;; Simple evaluation
 (+ 1 2 3)
@@ -74,7 +76,14 @@ Evaluate Clojure code in the nREPL session.
 (joyride.core/execute-command "workbench.action.quickOpen")
 
 ;; Access VS Code APIs
-(-> js/vscode.window.activeTextEditor .document .fileName)
+(-> js/vscode.window.activeTextEditor .-document .-fileName)
+
+;; Workspace operations
+(joyride/workspace-root)
+(joyride/workspace-files "**/*.clj")
+
+;; VS Code notifications
+(vscode.window.showInformationMessage "Hello from Claude!")
 ```
 
 ### `nrepl-status`
@@ -109,8 +118,17 @@ Once configured, Claude Code can directly manipulate VS Code:
 # Start in debug mode
 bb dev
 
-# Run tests
-bb test
+# Run basic integration tests
+bb -cp src run-integration-test.clj
+
+# Run enhanced Joyride integration tests
+bb -cp src test-joyride-integration.clj
+
+# Start test nREPL server
+bb test-nrepl-server
+
+# Start enhanced Joyride mock server
+bb joyride-mock-server
 
 # Start development REPL
 bb repl
@@ -121,11 +139,13 @@ bb build
 
 ## 🏗️ Architecture
 
-- **Single-file implementation** in `src/mcp_nrepl_proxy/core.clj`
-- **Babashka native** - no JVM startup penalty
-- **Built-in nREPL client** - leverages `babashka.nrepl.client`
-- **MCP resources** - Recent command history accessible via `nrepl://commands/*` URIs
+- **Core MCP server** in `src/mcp_nrepl_proxy/core.clj` - JSON-RPC 2.0 compliant
+- **Custom nREPL client** in `src/mcp_nrepl_proxy/nrepl_client.clj` - Socket-based for Babashka compatibility
+- **Babashka native** - no JVM startup penalty, fast iteration
 - **Auto-discovery** - Finds Joyride nREPL via `.nrepl-port` file
+- **Test infrastructure** - Mock servers for comprehensive testing
+- **Session isolation** - Supports multiple concurrent nREPL sessions
+- **Error handling** - Graceful degradation and connection management
 
 ## 📚 References
 

@@ -24,7 +24,23 @@
   
   build
   {:doc "Build standalone executable"
-   :task (shell "bb" "uberjar" "mcp-nrepl-proxy.jar" "-m" "mcp-nrepl-proxy.core")}}
+   :task (shell "bb" "uberjar" "mcp-nrepl-proxy.jar" "-m" "mcp-nrepl-proxy.core")}
+  
+  test-nrepl-server
+  {:doc "Start simple test nREPL server for development"
+   :task (exec "./test-nrepl-server.clj")}
+  
+  joyride-mock-server
+  {:doc "Start enhanced Joyride/Calva mock nREPL server"
+   :task (exec "./joyride-mock-server.clj")}
+  
+  test-integration
+  {:doc "Test MCP proxy with test nREPL server"
+   :task (do
+           (println "🧪 Starting integration test...")
+           (println "1. Start test nREPL server: bb test-nrepl-server")
+           (println "2. In another terminal, start MCP server: bb mcp-server") 
+           (println "3. Test with: echo '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\"}' | bb mcp-server"))}}
  
  :aliases
  {:test {:extra-paths ["test"]
