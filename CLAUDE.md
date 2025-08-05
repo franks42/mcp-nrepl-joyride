@@ -65,11 +65,17 @@ bb joyride-mock-server
    - Problem: Forward references in mock server
    - Solution: Careful ordering of function definitions
 
+5. **🚨 CRITICAL: Documentation Preservation**
+   - Problem: Accidentally deleted original planning documents during cleanup
+   - Solution: Reconstructed from memory and implemented strict protection policy
+   - **LESSON**: NEVER DELETE planning/design/todo documents - they are valuable project history
+
 ### Architecture Insights
 - **Babashka is excellent for this use case** - Fast startup, good library support
 - **Socket-based nREPL works well** - Simpler than full protocol implementations
 - **Mock servers are essential** - Enable comprehensive testing without VS Code dependency
 - **JSON-RPC 2.0 is straightforward** - Clean protocol for MCP implementation
+- **Documentation preservation is critical** - All planning documents must be protected
 
 ## 🔄 Development Workflow
 
@@ -109,6 +115,17 @@ bb joyride-mock-server
 - `joyride-mock-server.clj` - Enhanced Joyride/Calva mock server
 - `run-integration-test.clj` - Basic integration test suite
 - `test-joyride-integration.clj` - Comprehensive Joyride test suite
+
+### Original Planning Documents (RECOVERED)
+- `docs/babashka_mcp_nrepl_implementation_plan.md` - Core implementation strategy
+- `docs/claude_implementation_guide_ai_mcp_nrepl_vscode.md` - Technical integration guide
+- `docs/claude_vscode_use_cases.md` - Comprehensive use case analysis
+- `docs/comprehensive_clojure_mcp_analysis.md` - Technical ecosystem analysis
+
+### Implementation Documentation
+- `docs/lessons-learned.md` - Technical insights and best practices
+- `docs/test-results.md` - Integration test documentation
+- `docs/vscode-test-cases.md` - VS Code testing specifications
 
 ### Configuration
 - `bb.edn` - Babashka project configuration with tasks
