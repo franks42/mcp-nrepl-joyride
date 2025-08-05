@@ -16,6 +16,15 @@ pom.xml.asc
 # Claude Code directory
 .claude/
 
-# Original documentation files (duplicates)
-docs/*_2.md
-docs/*_3.md
+# IMPORTANT: NEVER DELETE PLANNING/DESIGN/TODO DOCUMENTS
+# Keep all documentation files - they are valuable project history
+# Only ignore temporary/generated files
+
+# Temporary files
+*.tmp
+*.bak
+*~
+
+# OS generated files
+.DS_Store
+Thumbs.db
