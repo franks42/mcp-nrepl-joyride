@@ -62,15 +62,20 @@
       (:status response) (update :status #(map base64-decode %)))))
 
 (defn- discover-nrepl-port
-  "Discover nREPL port from .nrepl-port file in workspace"
+  "Discover nREPL port from .nrepl-port file in workspace or .joyride subdirectory"
   [workspace-path]
-  (let [port-file (fs/file workspace-path ".nrepl-port")]
-    (when (fs/exists? port-file)
-      (try
-        (Integer/parseInt (str/trim (slurp port-file)))
-        (catch Exception e
-          (log :warn "Could not parse .nrepl-port file:" (.getMessage e))
-          nil)))))
+  (let [port-files [(fs/file workspace-path ".nrepl-port")
+                    (fs/file workspace-path ".joyride" ".nrepl-port")]]
+    (some (fn [port-file]
+            (when (fs/exists? port-file)
+              (try
+                (let [port (Integer/parseInt (str/trim (slurp port-file)))]
+                  (log :info "Found nREPL port" port "in" (str port-file))
+                  port)
+                (catch Exception e
+                  (log :warn "Could not parse .nrepl-port file:" (.getMessage e))
+                  nil))))
+          port-files)))
 
 (defn- heartbeat-test
   "Simple heartbeat test using nREPL describe operation"
@@ -140,7 +145,7 @@
 (defn- cache-command
   "Cache a command and its result for resource access"
   [code result]
-  (let [max-cached (get-in @state [:config :max-cached-commands])
+  (let [max-cached (or (get-in @state [:config :max-cached-commands]) 10)
         command {:code code
                  :result result
                  :timestamp (str (java.time.Instant/now))}]
@@ -262,8 +267,10 @@
                :namespace (:ns result)})))
         (catch Exception e
           (log :error "nREPL eval failed:" (.getMessage e))
+          (log :error "Exception type:" (type e))
+          (log :error "Stack trace:" (with-out-str (.printStackTrace e)))
           {:content [{:type "text"
-                     :text (str "❌ Evaluation failed: " (.getMessage e))}]
+                     :text (str "❌ Evaluation failed: " (.getMessage e) " (type: " (type e) ")")}]
            :isError true}))
       {:content [{:type "text"
                  :text (str "❌ No nREPL connection: " (:error conn-result))}]
