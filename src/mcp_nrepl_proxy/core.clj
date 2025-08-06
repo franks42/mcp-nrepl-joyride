@@ -146,7 +146,7 @@
                  :timestamp (str (java.time.Instant/now))}]
     (swap! state update :recent-commands
            (fn [commands]
-             (take max-cached (cons command commands))))))
+             (vec (take max-cached (cons command commands)))))))
 
 ;; Helper functions for Calva introspection
 
