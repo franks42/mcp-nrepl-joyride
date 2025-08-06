@@ -9,7 +9,8 @@
             [mcp-nrepl-proxy.nrepl-client :as nrepl]
             [babashka.fs :as fs]
             [clojure.string :as str]
-            [org.httpkit.server :as httpkit])
+            [org.httpkit.server :as httpkit]
+            [babashka.nrepl.server :as nrepl-server])
   (:import [java.util Base64]))
 
 (def ^:private state
@@ -21,10 +22,12 @@
                         :last-heartbeat nil
                         :heartbeat-failures 0
                         :last-test-results nil}
+         :babashka-nrepl-server nil
          :config {:debug false
                   :workspace nil
                   :max-cached-commands 10
-                  :heartbeat-interval-ms 45000}}))
+                  :heartbeat-interval-ms 45000
+                  :babashka-nrepl-port 7889}}))
 
 (defn- log
   "Log to stderr (stdout reserved for MCP protocol)"
@@ -144,6 +147,40 @@
     (swap! state update :recent-commands
            (fn [commands]
              (take max-cached (cons command commands))))))
+
+;; Helper functions for Calva introspection
+
+(defn get-server-state
+  "Get current server state for introspection"
+  []
+  @state)
+
+(defn get-joyride-connection
+  "Get current Joyride nREPL connection details"
+  []
+  (when-let [conn (:nrepl-conn @state)]
+    {:host (:host conn)
+     :port (:port conn)
+     :connected true}))
+
+(defn get-mcp-stats
+  "Get MCP server statistics"
+  []
+  {:sessions (count (:sessions @state))
+   :recent-commands (count (:recent-commands @state))
+   :health (:health-status @state)
+   :transport (get-in @state [:config :transport])
+   :debug (get-in @state [:config :debug])})
+
+(defn eval-in-joyride
+  "Evaluate code in connected Joyride nREPL (for Calva convenience)"
+  [code]
+  (if-let [conn (:nrepl-conn @state)]
+    (try
+      (nrepl/eval-code conn code)
+      (catch Exception e
+        {:error (.getMessage e)}))
+    {:error "No Joyride nREPL connection"}))
 
 ;; MCP Tool Implementations
 
@@ -621,7 +658,9 @@
                 :workspace (or (System/getenv "JOYRIDE_WORKSPACE")
                               (System/getProperty "user.dir"))
                 :transport (if use-http :http :stdio)
-                :http-port port}]
+                :http-port port
+                :babashka-nrepl-port (or (some->> (System/getenv "BABASHKA_NREPL_PORT") Integer/parseInt)
+                                        7889)}]
     (swap! state assoc :config config)
     
     (log :info "🔧 MCP-nREPL Proxy Configuration:")
@@ -630,9 +669,21 @@
     (log :info "   Transport:" (:transport config))
     (when (= :http (:transport config))
       (log :info "   HTTP port:" (:http-port config)))
+    (log :info "   Babashka nREPL port:" (:babashka-nrepl-port config))
     
     ;; Start heartbeat monitor
     (start-heartbeat-monitor)
+    
+    ;; Start Babashka nREPL server for Calva introspection
+    (when-let [bb-nrepl-port (:babashka-nrepl-port config)]
+      (try
+        (log :info "🔧 Starting Babashka nREPL server on port:" bb-nrepl-port)
+        (let [server (nrepl-server/start-server! {:port bb-nrepl-port})]
+          (swap! state assoc :babashka-nrepl-server server)
+          (log :info "✅ Babashka nREPL server started - connect Calva to localhost:" bb-nrepl-port)
+          (spit ".nrepl-port-babashka" bb-nrepl-port))
+        (catch Exception e
+          (log :warn "⚠️  Failed to start Babashka nREPL server:" (.getMessage e)))))
     
     ;; Try to auto-discover and connect to Joyride nREPL
     (when-let [nrepl-port (or (some->> (System/getenv "NREPL_PORT") Integer/parseInt)
