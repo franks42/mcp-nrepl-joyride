@@ -243,3 +243,86 @@ python3 mcp_nrepl_client.py --interactive
 ```
 
 💡 **Pro Tip**: Always check memory for "mcp-client" or "tool-usage" tags for detailed usage patterns and automation examples.
+
+## 🌳 Tree-sitter Integration for Enhanced Coding
+
+**IMPORTANT**: Always leverage tree-sitter tools for semantic code analysis before making changes!
+
+### Available Tree-sitter Tools
+- `mcp__tree_sitter__get_symbols()` - Find functions, classes, imports
+- `mcp__tree_sitter__find_usage()` - Track symbol usage across files
+- `mcp__tree_sitter__get_ast()` - Parse syntax trees for deep analysis
+- `mcp__tree_sitter__run_query()` - Custom AST queries
+- `mcp__tree_sitter__analyze_complexity()` - Code complexity metrics
+- `mcp__tree_sitter__find_similar_code()` - Find code patterns
+
+### Supported Languages (Full Template Support)
+✅ **Python, JavaScript, TypeScript, Go, Rust, C, C++, Swift, Java, Kotlin, Julia**
+⚠️ **Clojure** - Parser available, templates pending (see integration plan)
+
+### Enhanced Workflow: Think Before You Code
+
+**Instead of just reading files:**
+```python
+# ❌ Old approach
+# "Let me read the file to understand the structure..."
+
+# ✅ New approach - Semantic analysis first
+symbols = mcp__tree_sitter__get_symbols(
+    project="mcp-nrepl-joyride",
+    file_path="mcp_nrepl_client.py", 
+    symbol_types=["functions", "classes"]
+)
+
+# Find usage patterns
+usage = mcp__tree_sitter__find_usage(
+    project="mcp-nrepl-joyride",
+    symbol="eval_code",
+    language="python"
+)
+
+# Analyze complexity before refactoring
+complexity = mcp__tree_sitter__analyze_complexity(
+    project="mcp-nrepl-joyride",
+    file_path="mcp_nrepl_client.py"
+)
+```
+
+### When to Use Tree-sitter Analysis
+
+**Always use BEFORE:**
+- Refactoring functions or classes
+- Understanding unfamiliar codebases
+- Making architectural changes
+- Finding code patterns to follow
+- Analyzing dependencies and imports
+
+**Proactive Analysis Steps:**
+1. **Map the codebase** - Get symbols and structure
+2. **Find patterns** - Look for similar implementations  
+3. **Understand dependencies** - Check imports and usage
+4. **Assess complexity** - Understand what you're changing
+5. **Then implement** - With full context and understanding
+
+### Example: Enhanced Implementation Process
+
+```python
+# Step 1: Understand the existing codebase
+symbols = mcp__tree_sitter__get_symbols(...)
+similar = mcp__tree_sitter__find_similar_code(...)
+
+# Step 2: Analyze patterns  
+ast = mcp__tree_sitter__get_ast(...)
+
+# Step 3: Implement with full semantic understanding
+# Now write better, more consistent code
+```
+
+**Benefits:**
+- **Faster comprehension** of complex codebases
+- **Consistent patterns** following existing code style
+- **Better refactoring** with semantic understanding
+- **Fewer bugs** from better contextual awareness
+- **More maintainable code** following project conventions
+
+**Remember**: Tree-sitter gives you IDE-level understanding without an IDE!
