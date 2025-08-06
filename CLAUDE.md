@@ -202,3 +202,44 @@ Before considering the project complete, ensure:
 - [x] Documentation is up to date
 
 The project is fully functional and ready for production use.
+
+## 📸 Snapshot Command
+
+When I say **"snapshot!"**, it means:
+1. **commit** - Commit current changes with descriptive message
+2. **push** - Push changes to remote repository  
+3. **tag** - Create version tag with detailed changelog
+4. **memory** - Store achievement in memory for future reference
+
+This creates a complete milestone checkpoint of our progress.
+
+**Recent Snapshots:**
+- **v0.5.2** (2025-01-06) - Complete Joyride auto-discovery and fix nrepl-eval bug
+- **v0.5.1** (2025-01-06) - Fix nrepl-status NPE by ensuring recent-commands is always a vector  
+- **v0.5.0** (2025-01-06) - The Polyglot Stack milestone
+
+## 🛠️ Enhanced MCP Client
+
+**Never use curl again!** Use the enhanced Python MCP client for all server interactions.
+
+**Quick Reference:**
+- `python3 mcp_nrepl_client.py --help` - Full usage guide
+- **Check memory** for complete usage patterns and examples
+- **See docs/ENHANCED-MCP-CLIENT.md** for comprehensive documentation
+
+**Most Common Commands:**
+```bash
+# Direct evaluation
+python3 mcp_nrepl_client.py --eval "(+ 1 2 3)"
+
+# Health check  
+python3 mcp_nrepl_client.py --status --quiet
+
+# Full testing
+python3 mcp_nrepl_client.py --test-nrepl --summary
+
+# Interactive mode
+python3 mcp_nrepl_client.py --interactive
+```
+
+💡 **Pro Tip**: Always check memory for "mcp-client" or "tool-usage" tags for detailed usage patterns and automation examples.

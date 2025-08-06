@@ -1,0 +1,362 @@
+[info] 🔧 MCP-nREPL Proxy Configuration:
+[info]    Debug mode:true
+[info]    Workspace:/Users/franksiebenlist/Development/mcp-nrepl-joyride
+[info]    Transport::http
+[info]    HTTP port:3000
+[info]    Babashka nREPL port:7889
+[info] Starting nREPL heartbeat monitor
+[info] 🔧 Starting Babashka nREPL server on port:7889
+Started nREPL server at 0.0.0.0:7889
+[info] ✅ Babashka nREPL server started - connect Calva to localhost:7889
+[info] Found nREPL port62577in/Users/franksiebenlist/Development/mcp-nrepl-joyride/.joyride/.nrepl-port
+[info] 🔍 Found nREPL port:62577
+[info] Connecting to nREPL atlocalhost:62577
+[info] Connected to nREPL successfully
+[info] ✅ Auto-connected to Joyride nREPL
+[info] 🚀 MCP-nREPL proxy server starting (HTTP)
+[info] 📡 Listening for HTTP MCP requests on port3000
+[info] 🔗 MCP endpoint: http://localhost:3000/mcp
+[info] 💚 Health check: http://localhost:3000/health
+[info] ✅ HTTP server started on port3000
+[debug] 📥 HTTP request::post/mcp
+[debug] Handling request:initialize
+[debug] 📤 HTTP response for method:initialize
+[debug] 📥 HTTP request::post/mcp
+[debug] Handling request:tools/list
+[debug] 📤 HTTP response for method:tools/list
+[debug] 📥 HTTP request::post/mcp
+[debug] Handling request:tools/call
+[debug] Calling tool:nrepl-statuswith args:{}
+[debug] 📤 HTTP response for method:tools/call
+[debug] 📥 HTTP request::post/mcp
+[debug] Handling request:tools/call
+[debug] Calling tool:nrepl-evalwith args:{:code "(+ 1 2 3)"}
+[nREPL] 📤 Sending: {:op "eval", :code "(+ 1 2 3)", :id "e5e6adbf-809d-49ed-8b34-23efdecb27ae"}
+[nREPL] 📥 Received response: {:id e5e6adbf-809d-49ed-8b34-23efdecb27ae, :ns user-activate, :value 6}
+[nREPL] 📥 Received response: {:id e5e6adbf-809d-49ed-8b34-23efdecb27ae, :status [done]}
+[nREPL] 📥 Final merged response: {:value 6, :ns user-activate, :status [done]}
+[debug] nREPL result:{:value "6", :ns "user-activate", :status ["done"]}
+[debug] Result keys:(:value :ns :status)
+[debug] Value field exists?true
+[debug] Value field content:"6"
+[debug] Output field content:nil
+[debug] Response decision: has-meaningful-value=true has-output= has-error=
+[debug] 📤 HTTP response for method:tools/call
+[debug] 📥 HTTP request::post/mcp
+[debug] Handling request:initialize
+[debug] 📤 HTTP response for method:initialize
+[debug] 📥 HTTP request::post/mcp
+[debug] Handling request:tools/list
+[debug] 📤 HTTP response for method:tools/list
+[debug] 📥 HTTP request::post/mcp
+[debug] Handling request:tools/call
+[debug] Calling tool:nrepl-evalwith args:{:code "(+ 1 2 3)"}
+[nREPL] 📤 Sending: {:op "eval", :code "(+ 1 2 3)", :id "a9442bdf-1a99-4ef6-a163-2ae3bd463b94"}
+[nREPL] 📥 Received response: {:id a9442bdf-1a99-4ef6-a163-2ae3bd463b94, :ns user-activate, :value 6}
+[nREPL] 📥 Received response: {:id a9442bdf-1a99-4ef6-a163-2ae3bd463b94, :status [done]}
+[nREPL] 📥 Final merged response: {:value 6, :ns user-activate, :status [done]}
+[debug] nREPL result:{:value "6", :ns "user-activate", :status ["done"]}
+[debug] Result keys:(:value :ns :status)
+[debug] Value field exists?true
+[debug] Value field content:"6"
+[debug] Output field content:nil
+[debug] Response decision: has-meaningful-value=true has-output= has-error=
+[debug] 📤 HTTP response for method:tools/call
+[debug] 📥 HTTP request::post/mcp
+[debug] Handling request:initialize
+[debug] 📤 HTTP response for method:initialize
+[debug] 📥 HTTP request::post/mcp
+[debug] Handling request:tools/list
+[debug] 📤 HTTP response for method:tools/list
+[debug] 📥 HTTP request::post/mcp
+[debug] Handling request:tools/call
+[debug] Calling tool:nrepl-statuswith args:{}
+[debug] 📤 HTTP response for method:tools/call
+[debug] 📥 HTTP request::post/mcp
+[debug] Handling request:initialize
+[debug] 📤 HTTP response for method:initialize
+[debug] 📥 HTTP request::post/mcp
+[debug] Handling request:tools/list
+[debug] 📤 HTTP response for method:tools/list
+[debug] 📥 HTTP request::post/mcp
+[debug] Handling request:initialize
+[debug] 📤 HTTP response for method:initialize
+[debug] 📥 HTTP request::post/mcp
+[debug] Handling request:tools/list
+[debug] 📤 HTTP response for method:tools/list
+[debug] 📥 HTTP request::post/mcp
+[debug] Handling request:initialize
+[debug] 📤 HTTP response for method:initialize
+[debug] 📥 HTTP request::post/mcp
+[debug] Handling request:tools/list
+[debug] 📤 HTTP response for method:tools/list
+[debug] 📥 HTTP request::post/mcp
+[debug] Handling request:tools/call
+[debug] Calling tool:nrepl-statuswith args:{}
+[debug] 📤 HTTP response for method:tools/call
+[debug] 📥 HTTP request::post/mcp
+[debug] Handling request:tools/call
+[debug] Calling tool:nrepl-evalwith args:{:code "(+ 1 2 3)"}
+[nREPL] 📤 Sending: {:op "eval", :code "(+ 1 2 3)", :id "828d0ad7-a315-4451-a782-9b65b25bf00d"}
+[nREPL] 📥 Received response: {:id 828d0ad7-a315-4451-a782-9b65b25bf00d, :ns user-activate, :value 6}
+[nREPL] 📥 Received response: {:id 828d0ad7-a315-4451-a782-9b65b25bf00d, :status [done]}
+[nREPL] 📥 Final merged response: {:value 6, :ns user-activate, :status [done]}
+[debug] nREPL result:{:value "6", :ns "user-activate", :status ["done"]}
+[debug] Result keys:(:value :ns :status)
+[debug] Value field exists?true
+[debug] Value field content:"6"
+[debug] Output field content:nil
+[debug] Response decision: has-meaningful-value=true has-output= has-error=
+[debug] 📤 HTTP response for method:tools/call
+[debug] 📥 HTTP request::post/mcp
+[debug] Handling request:tools/call
+[debug] Calling tool:nrepl-evalwith args:{:code "(str \"Hello\" \" \" \"World\")"}
+[nREPL] 📤 Sending: {:op "eval", :code "(str \"Hello\" \" \" \"World\")", :id "472e8276-3a24-4b06-91c3-c1e46f5bff08"}
+[nREPL] 📥 Received response: {:id 472e8276-3a24-4b06-91c3-c1e46f5bff08, :ns user-activate, :value "Hello World"}
+[nREPL] 📥 Received response: {:id 472e8276-3a24-4b06-91c3-c1e46f5bff08, :status [done]}
+[nREPL] 📥 Final merged response: {:value "Hello World", :ns user-activate, :status [done]}
+[debug] nREPL result:{:value "\"Hello World\"", :ns "user-activate", :status ["done"]}
+[debug] Result keys:(:value :ns :status)
+[debug] Value field exists?true
+[debug] Value field content:"\"Hello World\""
+[debug] Output field content:nil
+[debug] Response decision: has-meaningful-value=true has-output= has-error=
+[debug] 📤 HTTP response for method:tools/call
+[debug] 📥 HTTP request::post/mcp
+[debug] Handling request:tools/call
+[debug] Calling tool:nrepl-evalwith args:{:code "(count [1 2 3 4 5])"}
+[nREPL] 📤 Sending: {:op "eval", :code "(count [1 2 3 4 5])", :id "a20fd3e6-4b36-4d59-ac20-988d7cdbdfaf"}
+[nREPL] 📥 Received response: {:id a20fd3e6-4b36-4d59-ac20-988d7cdbdfaf, :ns user-activate, :value 5}
+[nREPL] 📥 Received response: {:id a20fd3e6-4b36-4d59-ac20-988d7cdbdfaf, :status [done]}
+[nREPL] 📥 Final merged response: {:value 5, :ns user-activate, :status [done]}
+[debug] nREPL result:{:value "5", :ns "user-activate", :status ["done"]}
+[debug] Result keys:(:value :ns :status)
+[debug] Value field exists?true
+[debug] Value field content:"5"
+[debug] Output field content:nil
+[debug] Response decision: has-meaningful-value=true has-output= has-error=
+[debug] 📤 HTTP response for method:tools/call
+[debug] 📥 HTTP request::post/mcp
+[debug] Handling request:tools/call
+[debug] Calling tool:nrepl-evalwith args:{:code "(defn test-fn [x] (* x 2))"}
+[nREPL] 📤 Sending: {:op "eval", :code "(defn test-fn [x] (* x 2))", :id "4c02b57c-ad92-4992-8d9b-f19648c68964"}
+[nREPL] 📥 Received response: {:id 4c02b57c-ad92-4992-8d9b-f19648c68964, :ns user-activate, :value #'user-activate/test-fn}
+[nREPL] 📥 Received response: {:id 4c02b57c-ad92-4992-8d9b-f19648c68964, :status [done]}
+[nREPL] 📥 Final merged response: {:value #'user-activate/test-fn, :ns user-activate, :status [done]}
+[debug] nREPL result:{:value "#'user-activate/test-fn", :ns "user-activate", :status ["done"]}
+[debug] Result keys:(:value :ns :status)
+[debug] Value field exists?true
+[debug] Value field content:"#'user-activate/test-fn"
+[debug] Output field content:nil
+[debug] Response decision: has-meaningful-value=true has-output= has-error=
+[debug] 📤 HTTP response for method:tools/call
+[debug] 📥 HTTP request::post/mcp
+[debug] Handling request:tools/call
+[debug] Calling tool:nrepl-evalwith args:{:code "(test-fn 21)"}
+[nREPL] 📤 Sending: {:op "eval", :code "(test-fn 21)", :id "c35cf2e8-00c1-42fc-8233-5c278219996c"}
+[nREPL] 📥 Received response: {:id c35cf2e8-00c1-42fc-8233-5c278219996c, :ns user-activate, :value 42}
+[nREPL] 📥 Received response: {:id c35cf2e8-00c1-42fc-8233-5c278219996c, :status [done]}
+[nREPL] 📥 Final merged response: {:value 42, :ns user-activate, :status [done]}
+[debug] nREPL result:{:value "42", :ns "user-activate", :status ["done"]}
+[debug] Result keys:(:value :ns :status)
+[debug] Value field exists?true
+[debug] Value field content:"42"
+[debug] Output field content:nil
+[debug] Response decision: has-meaningful-value=true has-output= has-error=
+[debug] 📤 HTTP response for method:tools/call
+[debug] 📥 HTTP request::post/mcp
+[debug] Handling request:tools/call
+[debug] Calling tool:nrepl-testwith args:{}
+[info] Running nREPL health tests...
+[nREPL] 📤 Sending: {:op "describe", :id "907bb112-f1c3-4e08-8339-5be0a7556da3"}
+[nREPL] 📥 Received response: {:aux {}, :id 907bb112-f1c3-4e08-8339-5be0a7556da3, :ops {:clone {}, :close {}, :complete {}, :describe {}, :eval {}, :load-file {}}, :status [done], :versions {:nbb-nrepl {:major TODO, :version-string TODO}, :node {:incremental 1, :major v22, :minor 15, :version-string v22.15.1}}}
+[nREPL] 📥 Final merged response: {:status [done], :ops {:clone {}, :close {}, :complete {}, :describe {}, :eval {}, :load-file {}}, :versions {:nbb-nrepl {:major TODO, :version-string TODO}, :node {:incremental 1, :major v22, :minor 15, :version-string v22.15.1}}, :aux {}}
+[nREPL] 📤 Sending: {:op "eval", :code "(+ 2 3)", :id "857f563f-989e-460e-9a86-c770de10182c"}
+[nREPL] 📥 Received response: {:id 857f563f-989e-460e-9a86-c770de10182c, :ns user-activate, :value 5}
+[nREPL] 📥 Received response: {:id 857f563f-989e-460e-9a86-c770de10182c, :status [done]}
+[nREPL] 📥 Final merged response: {:value 5, :ns user-activate, :status [done]}
+[nREPL] 📤 Sending: {:op "eval", :code "(str \"hello\" \" \" \"world\")", :id "b3e986ac-8c0f-4487-91d1-b3b195de75d8"}
+[nREPL] 📥 Received response: {:id b3e986ac-8c0f-4487-91d1-b3b195de75d8, :ns user-activate, :value "hello world"}
+[nREPL] 📥 Received response: {:id b3e986ac-8c0f-4487-91d1-b3b195de75d8, :status [done]}
+[nREPL] 📥 Final merged response: {:value "hello world", :ns user-activate, :status [done]}
+[nREPL] 📤 Sending: {:op "eval", :code "(count [1 2 3 4 5])", :id "407c91e7-781b-4ef0-bd19-404ecdab7288"}
+[nREPL] 📥 Received response: {:id 407c91e7-781b-4ef0-bd19-404ecdab7288, :ns user-activate, :value 5}
+[nREPL] 📥 Received response: {:id 407c91e7-781b-4ef0-bd19-404ecdab7288, :status [done]}
+[nREPL] 📥 Final merged response: {:value 5, :ns user-activate, :status [done]}
+[nREPL] 📤 Sending: {:op "eval", :code "(println \"test-output\")", :id "e273330a-d8e6-48d3-ba82-75ec06b19d7c"}
+[nREPL] 📥 Received response: {:id e273330a-d8e6-48d3-ba82-75ec06b19d7c, :out test-output}
+[nREPL] 📥 Received response: {:id e273330a-d8e6-48d3-ba82-75ec06b19d7c, :out 
+}
+[nREPL] 📥 Received response: {:id e273330a-d8e6-48d3-ba82-75ec06b19d7c, :ns user-activate, :value nil}
+[nREPL] 📥 Received response: {:id e273330a-d8e6-48d3-ba82-75ec06b19d7c, :status [done]}
+[nREPL] 📥 Final merged response: {:out test-output
+, :value nil, :ns user-activate, :status [done]}
+[debug] 📤 HTTP response for method:tools/call
+[debug] 📥 HTTP request::post/mcp
+[debug] Handling request:initialize
+[debug] 📤 HTTP response for method:initialize
+[debug] 📥 HTTP request::post/mcp
+[debug] Handling request:tools/list
+[debug] 📤 HTTP response for method:tools/list
+[debug] 📥 HTTP request::post/mcp
+[debug] Handling request:tools/call
+[debug] Calling tool:nrepl-statuswith args:{}
+[debug] 📤 HTTP response for method:tools/call
+[debug] 📥 HTTP request::post/mcp
+[debug] Handling request:tools/call
+[debug] Calling tool:nrepl-evalwith args:{:code "(+ 1 2 3)"}
+[nREPL] 📤 Sending: {:op "eval", :code "(+ 1 2 3)", :id "dc618878-6870-48cd-b547-b2342bc21141"}
+[nREPL] 📥 Received response: {:id dc618878-6870-48cd-b547-b2342bc21141, :ns user-activate, :value 6}
+[nREPL] 📥 Received response: {:id dc618878-6870-48cd-b547-b2342bc21141, :status [done]}
+[nREPL] 📥 Final merged response: {:value 6, :ns user-activate, :status [done]}
+[debug] nREPL result:{:value "6", :ns "user-activate", :status ["done"]}
+[debug] Result keys:(:value :ns :status)
+[debug] Value field exists?true
+[debug] Value field content:"6"
+[debug] Output field content:nil
+[debug] Response decision: has-meaningful-value=true has-output= has-error=
+[debug] 📤 HTTP response for method:tools/call
+[debug] 📥 HTTP request::post/mcp
+[debug] Handling request:tools/call
+[debug] Calling tool:nrepl-evalwith args:{:code "(str \"Hello\" \" \" \"World\")"}
+[nREPL] 📤 Sending: {:op "eval", :code "(str \"Hello\" \" \" \"World\")", :id "ffdf96ad-074a-4032-9875-aba1da1a172f"}
+[nREPL] 📥 Received response: {:id ffdf96ad-074a-4032-9875-aba1da1a172f, :ns user-activate, :value "Hello World"}
+[nREPL] 📥 Received response: {:id ffdf96ad-074a-4032-9875-aba1da1a172f, :status [done]}
+[nREPL] 📥 Final merged response: {:value "Hello World", :ns user-activate, :status [done]}
+[debug] nREPL result:{:value "\"Hello World\"", :ns "user-activate", :status ["done"]}
+[debug] Result keys:(:value :ns :status)
+[debug] Value field exists?true
+[debug] Value field content:"\"Hello World\""
+[debug] Output field content:nil
+[debug] Response decision: has-meaningful-value=true has-output= has-error=
+[debug] 📤 HTTP response for method:tools/call
+[debug] 📥 HTTP request::post/mcp
+[debug] Handling request:tools/call
+[debug] Calling tool:nrepl-evalwith args:{:code "(count [1 2 3 4 5])"}
+[nREPL] 📤 Sending: {:op "eval", :code "(count [1 2 3 4 5])", :id "0d1f0e79-860c-4bd4-990f-eb3100924756"}
+[nREPL] 📥 Received response: {:id 0d1f0e79-860c-4bd4-990f-eb3100924756, :ns user-activate, :value 5}
+[nREPL] 📥 Received response: {:id 0d1f0e79-860c-4bd4-990f-eb3100924756, :status [done]}
+[nREPL] 📥 Final merged response: {:value 5, :ns user-activate, :status [done]}
+[debug] nREPL result:{:value "5", :ns "user-activate", :status ["done"]}
+[debug] Result keys:(:value :ns :status)
+[debug] Value field exists?true
+[debug] Value field content:"5"
+[debug] Output field content:nil
+[debug] Response decision: has-meaningful-value=true has-output= has-error=
+[debug] 📤 HTTP response for method:tools/call
+[debug] 📥 HTTP request::post/mcp
+[debug] Handling request:tools/call
+[debug] Calling tool:nrepl-evalwith args:{:code "(defn test-fn [x] (* x 2))"}
+[nREPL] 📤 Sending: {:op "eval", :code "(defn test-fn [x] (* x 2))", :id "4d1d201b-db4d-40b1-873c-1f03cecffb9d"}
+[nREPL] 📥 Received response: {:id 4d1d201b-db4d-40b1-873c-1f03cecffb9d, :ns user-activate, :value #'user-activate/test-fn}
+[nREPL] 📥 Received response: {:id 4d1d201b-db4d-40b1-873c-1f03cecffb9d, :status [done]}
+[nREPL] 📥 Final merged response: {:value #'user-activate/test-fn, :ns user-activate, :status [done]}
+[debug] nREPL result:{:value "#'user-activate/test-fn", :ns "user-activate", :status ["done"]}
+[debug] Result keys:(:value :ns :status)
+[debug] Value field exists?true
+[debug] Value field content:"#'user-activate/test-fn"
+[debug] Output field content:nil
+[debug] Response decision: has-meaningful-value=true has-output= has-error=
+[debug] 📤 HTTP response for method:tools/call
+[debug] 📥 HTTP request::post/mcp
+[debug] Handling request:tools/call
+[debug] Calling tool:nrepl-evalwith args:{:code "(test-fn 21)"}
+[nREPL] 📤 Sending: {:op "eval", :code "(test-fn 21)", :id "9f9a5703-5888-486b-af34-8a9be4015d0a"}
+[nREPL] 📥 Received response: {:id 9f9a5703-5888-486b-af34-8a9be4015d0a, :ns user-activate, :value 42}
+[nREPL] 📥 Received response: {:id 9f9a5703-5888-486b-af34-8a9be4015d0a, :status [done]}
+[nREPL] 📥 Final merged response: {:value 42, :ns user-activate, :status [done]}
+[debug] nREPL result:{:value "42", :ns "user-activate", :status ["done"]}
+[debug] Result keys:(:value :ns :status)
+[debug] Value field exists?true
+[debug] Value field content:"42"
+[debug] Output field content:nil
+[debug] Response decision: has-meaningful-value=true has-output= has-error=
+[debug] 📤 HTTP response for method:tools/call
+[debug] 📥 HTTP request::post/mcp
+[debug] Handling request:tools/call
+[debug] Calling tool:nrepl-testwith args:{}
+[info] Running nREPL health tests...
+[nREPL] 📤 Sending: {:op "describe", :id "edb972ba-e2e8-4390-abce-7394210f339c"}
+[nREPL] 📥 Received response: {:aux {}, :id edb972ba-e2e8-4390-abce-7394210f339c, :ops {:clone {}, :close {}, :complete {}, :describe {}, :eval {}, :load-file {}}, :status [done], :versions {:nbb-nrepl {:major TODO, :version-string TODO}, :node {:incremental 1, :major v22, :minor 15, :version-string v22.15.1}}}
+[nREPL] 📥 Final merged response: {:status [done], :ops {:clone {}, :close {}, :complete {}, :describe {}, :eval {}, :load-file {}}, :versions {:nbb-nrepl {:major TODO, :version-string TODO}, :node {:incremental 1, :major v22, :minor 15, :version-string v22.15.1}}, :aux {}}
+[nREPL] 📤 Sending: {:op "eval", :code "(+ 2 3)", :id "0e99823a-82ed-4e9b-9d75-9d85835e10a5"}
+[nREPL] 📥 Received response: {:id 0e99823a-82ed-4e9b-9d75-9d85835e10a5, :ns user-activate, :value 5}
+[nREPL] 📥 Received response: {:id 0e99823a-82ed-4e9b-9d75-9d85835e10a5, :status [done]}
+[nREPL] 📥 Final merged response: {:value 5, :ns user-activate, :status [done]}
+[nREPL] 📤 Sending: {:op "eval", :code "(str \"hello\" \" \" \"world\")", :id "f436200c-1ab7-42de-93db-7e61eef85d96"}
+[nREPL] 📥 Received response: {:id f436200c-1ab7-42de-93db-7e61eef85d96, :ns user-activate, :value "hello world"}
+[nREPL] 📥 Received response: {:id f436200c-1ab7-42de-93db-7e61eef85d96, :status [done]}
+[nREPL] 📥 Final merged response: {:value "hello world", :ns user-activate, :status [done]}
+[nREPL] 📤 Sending: {:op "eval", :code "(count [1 2 3 4 5])", :id "f9184560-c383-47ca-b1e3-f963d3347643"}
+[nREPL] 📥 Received response: {:id f9184560-c383-47ca-b1e3-f963d3347643, :ns user-activate, :value 5}
+[nREPL] 📥 Received response: {:id f9184560-c383-47ca-b1e3-f963d3347643, :status [done]}
+[nREPL] 📥 Final merged response: {:value 5, :ns user-activate, :status [done]}
+[nREPL] 📤 Sending: {:op "eval", :code "(println \"test-output\")", :id "2c9a05e4-6e30-42dd-96c8-31071b6396a3"}
+[nREPL] 📥 Received response: {:id 2c9a05e4-6e30-42dd-96c8-31071b6396a3, :out test-output}
+[nREPL] 📥 Received response: {:id 2c9a05e4-6e30-42dd-96c8-31071b6396a3, :out 
+}
+[nREPL] 📥 Received response: {:id 2c9a05e4-6e30-42dd-96c8-31071b6396a3, :ns user-activate, :value nil}
+[nREPL] 📥 Received response: {:id 2c9a05e4-6e30-42dd-96c8-31071b6396a3, :status [done]}
+[nREPL] 📥 Final merged response: {:out test-output
+, :value nil, :ns user-activate, :status [done]}
+[debug] 📤 HTTP response for method:tools/call
+[debug] 📥 HTTP request::post/mcp
+[debug] Handling request:initialize
+[debug] 📤 HTTP response for method:initialize
+[debug] 📥 HTTP request::post/mcp
+[debug] Handling request:tools/list
+[debug] 📤 HTTP response for method:tools/list
+[debug] 📥 HTTP request::post/mcp
+[debug] Handling request:tools/call
+[debug] Calling tool:nrepl-evalwith args:{:code "(* 6 7)"}
+[nREPL] 📤 Sending: {:op "eval", :code "(* 6 7)", :id "557e07c4-1319-4f40-a8e1-6d59f26acf77"}
+[nREPL] 📥 Received response: {:id 557e07c4-1319-4f40-a8e1-6d59f26acf77, :ns user-activate, :value 42}
+[nREPL] 📥 Received response: {:id 557e07c4-1319-4f40-a8e1-6d59f26acf77, :status [done]}
+[nREPL] 📥 Final merged response: {:value 42, :ns user-activate, :status [done]}
+[debug] nREPL result:{:value "42", :ns "user-activate", :status ["done"]}
+[debug] Result keys:(:value :ns :status)
+[debug] Value field exists?true
+[debug] Value field content:"42"
+[debug] Output field content:nil
+[debug] Response decision: has-meaningful-value=true has-output= has-error=
+[debug] 📤 HTTP response for method:tools/call
+[debug] 📥 HTTP request::post/mcp
+[debug] Handling request:initialize
+[debug] 📤 HTTP response for method:initialize
+[debug] 📥 HTTP request::post/mcp
+[debug] Handling request:tools/list
+[debug] 📤 HTTP response for method:tools/list
+[debug] 📥 HTTP request::post/mcp
+[debug] Handling request:tools/call
+[debug] Calling tool:nrepl-evalwith args:{:code "(str \"Enhanced client works: \" (+ 20 22))"}
+[nREPL] 📤 Sending: {:op "eval", :code "(str \"Enhanced client works: \" (+ 20 22))", :id "e776c051-5cee-4063-950a-a28bfacc2856"}
+[nREPL] 📥 Received response: {:id e776c051-5cee-4063-950a-a28bfacc2856, :ns user-activate, :value "Enhanced client works: 42"}
+[nREPL] 📥 Received response: {:id e776c051-5cee-4063-950a-a28bfacc2856, :status [done]}
+[nREPL] 📥 Final merged response: {:value "Enhanced client works: 42", :ns user-activate, :status [done]}
+[debug] nREPL result:{:value "\"Enhanced client works: 42\"", :ns "user-activate", :status ["done"]}
+[debug] Result keys:(:value :ns :status)
+[debug] Value field exists?true
+[debug] Value field content:"\"Enhanced client works: 42\""
+[debug] Output field content:nil
+[debug] Response decision: has-meaningful-value=true has-output= has-error=
+[debug] 📤 HTTP response for method:tools/call
+[debug] 📥 HTTP request::post/mcp
+[debug] Handling request:initialize
+[debug] 📤 HTTP response for method:initialize
+[debug] 📥 HTTP request::post/mcp
+[debug] Handling request:tools/list
+[debug] 📤 HTTP response for method:tools/list
+[debug] 📥 HTTP request::post/mcp
+[debug] Handling request:tools/call
+[debug] Calling tool:nrepl-evalwith args:{:code "(* 7 6)"}
+[nREPL] 📤 Sending: {:op "eval", :code "(* 7 6)", :id "4700ff4b-9121-4b3f-9bba-03a60ff2c16b"}
+[nREPL] 📥 Received response: {:id 4700ff4b-9121-4b3f-9bba-03a60ff2c16b, :ns user-activate, :value 42}
+[nREPL] 📥 Received response: {:id 4700ff4b-9121-4b3f-9bba-03a60ff2c16b, :status [done]}
+[nREPL] 📥 Final merged response: {:value 42, :ns user-activate, :status [done]}
+[debug] nREPL result:{:value "42", :ns "user-activate", :status ["done"]}
+[debug] Result keys:(:value :ns :status)
+[debug] Value field exists?true
+[debug] Value field content:"42"
+[debug] Output field content:nil
+[debug] Response decision: has-meaningful-value=true has-output= has-error=
+[debug] 📤 HTTP response for method:tools/call
