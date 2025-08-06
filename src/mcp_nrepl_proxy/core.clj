@@ -3,12 +3,14 @@
 (ns mcp-nrepl-proxy.core
   "Babashka MCP server bridging Claude Code with Joyride nREPL.
    
-   Pure Babashka implementation using native nREPL client capabilities."
+   Pure Babashka implementation using native nREPL client capabilities.
+   Supports both stdio and HTTP transports."
   (:require [cheshire.core :as json]
             [mcp-nrepl-proxy.nrepl-client :as nrepl]
             [babashka.fs :as fs]
-            [clojure.java.io :as io]
-            [clojure.string :as str]))
+            [clojure.string :as str]
+            [org.httpkit.server :as httpkit])
+  (:import [java.util Base64]))
 
 (def ^:private state
   "Server state: nREPL connections, sessions, and configuration"
@@ -26,6 +28,30 @@
             (get-in @state [:config :debug]))
     (binding [*out* *err*]
       (println (str "[" (name level) "] " (apply str args))))))
+
+(defn- base64-decode
+  "Decode base64 string to regular string, or return as-is if not base64 or not a string"
+  [value]
+  (cond
+    (nil? value) nil
+    (not (string? value)) (str value)  ; Convert non-strings to strings
+    :else
+    (try
+      (String. (.decode (Base64/getDecoder) value))
+      (catch Exception e
+        (log :debug "Not base64 encoded, returning as string:" value)
+        value))))
+
+(defn- decode-nrepl-response
+  "Decode base64-encoded values and byte arrays in nREPL response"
+  [response]
+  (when response
+    (cond-> response
+      (:value response) (update :value base64-decode)
+      (:ns response) (update :ns base64-decode)
+      (:out response) (update :out base64-decode)
+      (:err response) (update :err base64-decode)
+      (:status response) (update :status #(map base64-decode %)))))
 
 (defn- discover-nrepl-port
   "Discover nREPL port from .nrepl-port file in workspace"
@@ -98,16 +124,58 @@
     (if (:success conn-result)
       (try
         (let [conn (:connection conn-result)
-              eval-opts (cond-> {}
-                          session (assoc :session session)
-                          ns (assoc :ns ns))
               result (nrepl/eval-code conn code 
                                     :session session 
                                     :ns ns)]
           (cache-command code result)
-          (log :debug "nREPL eval result:" result)
-          {:content [{:type "text"
-                     :text (json/generate-string result {:pretty true})}]})
+          (log :debug "nREPL result:" result)
+          
+          ;; Store session info if provided in response
+          (when-let [response-session (:session result)]
+            (swap! state assoc-in [:sessions response-session] 
+                   {:created (System/currentTimeMillis)
+                    :last-used (System/currentTimeMillis)}))
+          
+          ;; Format clean response for MCP client
+          (let [value-field (:value result)
+                output-field (:out result)
+                has-meaningful-value (and value-field 
+                                         (not= "" value-field)
+                                         (not= "nil" value-field))
+                has-output (and output-field (not= "" (str/trim output-field)))
+                has-error (:ex result)]
+            (log :debug "Result keys:" (keys result))
+            (log :debug "Value field exists?" (contains? result :value))
+            (log :debug "Value field content:" (pr-str value-field))
+            (log :debug "Output field content:" (pr-str output-field))
+            (log :debug "Response decision: has-meaningful-value=" has-meaningful-value " has-output=" has-output " has-error=" has-error)
+            (cond
+              ;; Error in evaluation
+              has-error
+              {:content [{:type "text"
+                         :text (str "❌ " (:ex result))}]
+               :isError true}
+              
+              ;; Output (prefer output over nil values)
+              has-output
+              {:content [{:type "text"
+                         :text (str/trim (:out result))}]
+               :session (:session result)
+               :namespace (:ns result)}
+              
+              ;; Meaningful value (non-nil)
+              has-meaningful-value
+              {:content [{:type "text"
+                         :text (str (:value result))}]
+               :session (:session result)
+               :namespace (:ns result)}
+              
+              ;; Just status or nil value
+              :else
+              {:content [{:type "text"
+                         :text "✅ Executed successfully"}]
+               :session (:session result)
+               :namespace (:ns result)})))
         (catch Exception e
           (log :error "nREPL eval failed:" (.getMessage e))
           {:content [{:type "text"
@@ -283,10 +351,10 @@
      :error {:code -32601
              :message "Method not found"}}))
 
-(defn- server-loop
-  "Main MCP server loop: stdin → process → stdout"
+(defn- stdio-server-loop
+  "MCP server loop for stdin/stdout transport"
   []
-  (log :info "🚀 MCP-nREPL proxy server starting")
+  (log :info "🚀 MCP-nREPL proxy server starting (stdio)")
   (log :info "📡 Listening for MCP messages on stdin")
   
   (try
@@ -313,27 +381,113 @@
     (catch Exception e
       (log :error "💥 Server loop error:" (.getMessage e)))))
 
+(defn- http-handler
+  "HTTP handler for MCP JSON-RPC requests"
+  [request]
+  (try
+    (log :debug "📥 HTTP request:" (:request-method request) (:uri request))
+    
+    (cond
+      ;; Handle MCP JSON-RPC POST requests
+      (and (= (:request-method request) :post)
+           (= (:uri request) "/mcp"))
+      (let [body-str (slurp (:body request))
+            mcp-request (json/parse-string body-str true)
+            response (handle-request mcp-request)]
+        (log :debug "📤 HTTP response for method:" (:method mcp-request))
+        {:status 200
+         :headers {"Content-Type" "application/json"
+                   "Access-Control-Allow-Origin" "*"
+                   "Access-Control-Allow-Methods" "POST, OPTIONS"
+                   "Access-Control-Allow-Headers" "Content-Type"}
+         :body (json/generate-string response)})
+      
+      ;; Handle CORS preflight
+      (and (= (:request-method request) :options)
+           (= (:uri request) "/mcp"))
+      {:status 200
+       :headers {"Access-Control-Allow-Origin" "*"
+                 "Access-Control-Allow-Methods" "POST, OPTIONS"
+                 "Access-Control-Allow-Headers" "Content-Type"}}
+      
+      ;; Health check endpoint
+      (= (:uri request) "/health")
+      {:status 200
+       :headers {"Content-Type" "application/json"}
+       :body (json/generate-string {:status "ok"
+                                    :nrepl-connected (not (nil? (:nrepl-conn @state)))
+                                    :timestamp (System/currentTimeMillis)})}
+      
+      ;; Not found
+      :else
+      {:status 404
+       :headers {"Content-Type" "application/json"}
+       :body (json/generate-string {:error "Not found"})})
+    
+    (catch Exception e
+      (log :error "❌ HTTP handler error:" (.getMessage e))
+      {:status 500
+       :headers {"Content-Type" "application/json"}
+       :body (json/generate-string {:error "Internal server error"
+                                    :message (.getMessage e)})})))
+
+(defn- start-http-server
+  "Start HTTP server for MCP requests"
+  [port]
+  (log :info "🚀 MCP-nREPL proxy server starting (HTTP)")
+  (log :info "📡 Listening for HTTP MCP requests on port" port)
+  (log :info "🔗 MCP endpoint: http://localhost:" port "/mcp")
+  (log :info "💚 Health check: http://localhost:" port "/health")
+  
+  (try
+    (let [server (httpkit/run-server http-handler {:port port})]
+      (log :info "✅ HTTP server started on port" port)
+      (.addShutdownHook (Runtime/getRuntime)
+                        (Thread. #(do
+                                    (log :info "🛑 Shutting down HTTP server...")
+                                    (server))))
+      ;; Keep the main thread alive
+      (loop []
+        (Thread/sleep 1000)
+        (recur)))
+    (catch Exception e
+      (log :error "💥 HTTP server error:" (.getMessage e)))))
+
 (defn -main
   "Main entry point for Babashka MCP-nREPL proxy"
-  [& _args]
-  (let [config {:debug (= "true" (System/getenv "MCP_DEBUG"))
+  [& args]
+  (let [http-port (some->> args first Integer/parseInt)
+        use-http (or http-port (System/getenv "MCP_HTTP_PORT"))
+        port (or http-port 
+                 (some->> (System/getenv "MCP_HTTP_PORT") Integer/parseInt)
+                 3000)
+        config {:debug (= "true" (System/getenv "MCP_DEBUG"))
                 :workspace (or (System/getenv "JOYRIDE_WORKSPACE")
-                              (System/getProperty "user.dir"))}]
+                              (System/getProperty "user.dir"))
+                :transport (if use-http :http :stdio)
+                :http-port port}]
     (swap! state assoc :config config)
     
     (log :info "🔧 MCP-nREPL Proxy Configuration:")
     (log :info "   Debug mode:" (:debug config))
     (log :info "   Workspace:" (:workspace config))
+    (log :info "   Transport:" (:transport config))
+    (when (= :http (:transport config))
+      (log :info "   HTTP port:" (:http-port config)))
     
     ;; Try to auto-discover and connect to Joyride nREPL
-    (when-let [port (discover-nrepl-port (:workspace config))]
-      (log :info "🔍 Found .nrepl-port file, port:" port)
-      (let [result (connect-to-nrepl "localhost" port)]
+    (when-let [nrepl-port (or (some->> (System/getenv "NREPL_PORT") Integer/parseInt)
+                              (discover-nrepl-port (:workspace config)))]
+      (log :info "🔍 Found nREPL port:" nrepl-port)
+      (let [result (connect-to-nrepl "localhost" nrepl-port)]
         (if (:success result)
           (log :info "✅ Auto-connected to Joyride nREPL")
           (log :warn "⚠️  Auto-connection failed, use nrepl-connect tool"))))
     
-    (server-loop)))
+    ;; Start appropriate server
+    (if (= :http (:transport config))
+      (start-http-server (:http-port config))
+      (stdio-server-loop))))
 
 ;; Enable direct script execution with shebang
 (when (= *file* (System/getProperty "babashka.file"))

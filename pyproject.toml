@@ -1,0 +1,18 @@
+[project]
+name = "mcp-nrepl-joyride"
+version = "0.1.0"
+description = "Babashka MCP server bridging Claude Code with Joyride nREPL"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "httpx>=0.28.1",
+]
+
+[project.scripts]
+# Python entry points
+test-mcp-client = "simple_mcp_client:main"
+test-mcp-stdio = "test_mcp_stdio:main"
+dev-scripts = "scripts:main"
+
+[tool.uv]
+dev-dependencies = []
