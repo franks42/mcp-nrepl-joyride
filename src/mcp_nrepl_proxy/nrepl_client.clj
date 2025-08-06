@@ -85,6 +85,11 @@
         final-session (last (keep :session responses))
         final-status (:status (last responses))
         
+        ;; For describe operation, preserve ops and versions from first response
+        ops (some :ops responses)
+        versions (some :versions responses)
+        aux (some :aux responses)
+        
         ;; Build the merged response
         merged (cond-> {}
                  (not-empty all-out) (assoc :out all-out)
@@ -93,7 +98,10 @@
                  final-ex (assoc :ex final-ex)
                  final-ns (assoc :ns final-ns)
                  final-session (assoc :session final-session)
-                 final-status (assoc :status final-status))]
+                 final-status (assoc :status final-status)
+                 ops (assoc :ops ops)
+                 versions (assoc :versions versions)
+                 aux (assoc :aux aux))]
     merged))
 
 (defn send-message

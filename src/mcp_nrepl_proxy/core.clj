@@ -17,9 +17,14 @@
   (atom {:nrepl-conn nil
          :sessions {}
          :recent-commands []
+         :health-status {:connected false
+                        :last-heartbeat nil
+                        :heartbeat-failures 0
+                        :last-test-results nil}
          :config {:debug false
                   :workspace nil
-                  :max-cached-commands 10}}))
+                  :max-cached-commands 10
+                  :heartbeat-interval-ms 45000}}))
 
 (defn- log
   "Log to stderr (stdout reserved for MCP protocol)"
@@ -64,17 +69,59 @@
           (log :warn "Could not parse .nrepl-port file:" (.getMessage e))
           nil)))))
 
+(defn- heartbeat-test
+  "Simple heartbeat test using nREPL describe operation"
+  [conn]
+  (try
+    (let [result (nrepl/describe-server conn)]
+      (contains? result :ops))
+    (catch Exception e
+      (log :debug "Heartbeat failed:" (.getMessage e))
+      false)))
+
+(defn- start-heartbeat-monitor
+  "Start background heartbeat monitoring"
+  []
+  (log :info "Starting nREPL heartbeat monitor")
+  (future
+    (loop []
+      (Thread/sleep (get-in @state [:config :heartbeat-interval-ms]))
+      (when-let [conn (:nrepl-conn @state)]
+        (let [heartbeat-success (heartbeat-test conn)
+              now (System/currentTimeMillis)]
+          (if heartbeat-success
+            (do
+              (swap! state update-in [:health-status] assoc
+                     :connected true
+                     :last-heartbeat now
+                     :heartbeat-failures 0)
+              (log :debug "Heartbeat successful"))
+            (do
+              (swap! state update-in [:health-status] 
+                     (fn [health]
+                       (assoc health
+                              :connected false
+                              :heartbeat-failures (inc (:heartbeat-failures health)))))
+              (log :warn "Heartbeat failed, failure count:" 
+                   (get-in @state [:health-status :heartbeat-failures]))))))
+      (recur))))
+
 (defn- connect-to-nrepl
-  "Connect to nREPL server with connection pooling"
+  "Connect to nREPL server with connection pooling and heartbeat monitoring"
   [host port]
   (try
     (log :info "Connecting to nREPL at" (str host ":" port))
     (let [conn (nrepl/connect host port)]
       (swap! state assoc :nrepl-conn conn)
+      (swap! state update-in [:health-status] assoc
+             :connected true
+             :last-heartbeat (System/currentTimeMillis)
+             :heartbeat-failures 0)
       (log :info "Connected to nREPL successfully")
       {:success true :connection conn})
     (catch Exception e
       (log :error "nREPL connection failed:" (.getMessage e))
+      (swap! state update-in [:health-status] assoc :connected false)
       {:success false :error (.getMessage e)})))
 
 (defn- ensure-nrepl-connection
@@ -186,17 +233,25 @@
        :isError true})))
 
 (defn- tool-nrepl-status
-  "Get nREPL connection and session status"
+  "Get nREPL connection and session status with health information"
   [_args]
   (let [conn (:nrepl-conn @state)
-        sessions (:sessions @state)]
+        sessions (:sessions @state)
+        health (:health-status @state)
+        last-test (:last-test-results health)]
     {:content [{:type "text"
                :text (json/generate-string
                       {:connected (some? conn)
-                       :host "localhost"
+                       :host (when conn (:host conn))
+                       :port (when conn (:port conn))
                        :workspace (get-in @state [:config :workspace])
                        :sessions (count sessions)
-                       :recent-commands (count (:recent-commands @state))}
+                       :recent-commands (count (:recent-commands @state))
+                       :health {:heartbeat-connected (:connected health)
+                               :last-heartbeat (:last-heartbeat health)
+                               :heartbeat-failures (:heartbeat-failures health)
+                               :last-test-passed (when last-test (:all-passed last-test))
+                               :last-test-timestamp (when last-test (:timestamp last-test))}}
                       {:pretty true})}]}))
 
 (defn- tool-nrepl-new-session
@@ -225,6 +280,102 @@
                  :text (str "❌ No nREPL connection: " (:error conn-result))}]
        :isError true})))
 
+(defn- run-health-test
+  "Run comprehensive nREPL health tests"
+  [conn]
+  (let [tests [
+               {:name "Server Description"
+                :test-fn (fn [] 
+                          (let [result (nrepl/describe-server conn)]
+                            {:success (contains? result :ops)
+                             :result (if (contains? result :ops)
+                                      (str "✅ Server alive with " (count (:ops result)) " operations")
+                                      (str "❌ Invalid describe response: " result))}))}
+               
+               {:name "Basic Arithmetic"
+                :test-fn (fn []
+                          (let [result (nrepl/eval-code conn "(+ 2 3)")]
+                            {:success (= "5" (:value result))
+                             :result (if (= "5" (:value result))
+                                      "✅ Basic arithmetic: (+ 2 3) → 5"
+                                      (str "❌ Expected '5', got: " (:value result)))}))}
+               
+               {:name "String Operations"
+                :test-fn (fn []
+                          (let [result (nrepl/eval-code conn "(str \"hello\" \" \" \"world\")")]
+                            {:success (= "\"hello world\"" (:value result))
+                             :result (if (= "\"hello world\"" (:value result))
+                                      "✅ String ops: (str ...) → \"hello world\""
+                                      (str "❌ Expected '\"hello world\"', got: " (:value result)))}))}
+               
+               {:name "Data Structures"
+                :test-fn (fn []
+                          (let [result (nrepl/eval-code conn "(count [1 2 3 4 5])")]
+                            {:success (= "5" (:value result))
+                             :result (if (= "5" (:value result))
+                                      "✅ Data structures: (count [1 2 3 4 5]) → 5"
+                                      (str "❌ Expected '5', got: " (:value result)))}))}
+               
+               {:name "Output Handling"
+                :test-fn (fn []
+                          (let [result (nrepl/eval-code conn "(println \"test-output\")")]
+                            {:success (and (:out result) (str/includes? (:out result) "test-output"))
+                             :result (if (and (:out result) (str/includes? (:out result) "test-output"))
+                                      "✅ Output handling: println captured correctly"
+                                      (str "❌ Output not captured, got: " (:out result)))}))}]]
+    
+    (reduce (fn [acc test]
+              (try
+                (let [start-time (System/currentTimeMillis)
+                      test-result ((:test-fn test))
+                      duration (- (System/currentTimeMillis) start-time)]
+                  (conj acc (assoc test-result 
+                                  :test-name (:name test)
+                                  :duration-ms duration)))
+                (catch Exception e
+                  (conj acc {:test-name (:name test)
+                            :success false
+                            :result (str "❌ " (:name test) " failed: " (.getMessage e))
+                            :duration-ms 0}))))
+            [] tests)))
+
+(defn- tool-nrepl-test
+  "Run comprehensive nREPL health tests"
+  [_args]
+  (if-let [conn (:nrepl-conn @state)]
+    (try
+      (log :info "Running nREPL health tests...")
+      (let [start-time (System/currentTimeMillis)
+            test-results (run-health-test conn)
+            total-duration (- (System/currentTimeMillis) start-time)
+            passed-tests (count (filter :success test-results))
+            total-tests (count test-results)
+            all-passed (= passed-tests total-tests)]
+        
+        ;; Store results in state
+        (swap! state assoc-in [:health-status :last-test-results] 
+               {:timestamp (System/currentTimeMillis)
+                :passed passed-tests
+                :total total-tests
+                :all-passed all-passed
+                :duration-ms total-duration})
+        
+        (let [summary (str (if all-passed "✅" "❌") " Health Test Results: " 
+                          passed-tests "/" total-tests " tests passed"
+                          " (took " total-duration "ms)")
+              details (str/join "\n" (map :result test-results))]
+          {:content [{:type "text"
+                     :text (str summary "\n\n" details)}]
+           :isError (not all-passed)}))
+      (catch Exception e
+        (log :error "Health test failed:" (.getMessage e))
+        {:content [{:type "text"
+                   :text (str "❌ Health test failed: " (.getMessage e))}]
+         :isError true}))
+    {:content [{:type "text"
+               :text "❌ No nREPL connection available for testing"}]
+     :isError true}))
+
 ;; MCP Protocol Handlers
 
 (def tool-definitions
@@ -248,6 +399,10 @@
    
    {:name "nrepl-new-session"
     :description "Create new nREPL session"
+    :inputSchema {:type "object"}}
+
+   {:name "nrepl-test"
+    :description "Run comprehensive nREPL health and functionality tests"
     :inputSchema {:type "object"}}])
 
 (defn- call-tool 
@@ -258,6 +413,7 @@
     "nrepl-eval" (tool-nrepl-eval args)
     "nrepl-status" (tool-nrepl-status args)
     "nrepl-new-session" (tool-nrepl-new-session args)
+    "nrepl-test" (tool-nrepl-test args)
     {:content [{:type "text" :text (str "❌ Unknown tool: " tool-name)}]
      :isError true}))
 
@@ -474,6 +630,9 @@
     (log :info "   Transport:" (:transport config))
     (when (= :http (:transport config))
       (log :info "   HTTP port:" (:http-port config)))
+    
+    ;; Start heartbeat monitor
+    (start-heartbeat-monitor)
     
     ;; Try to auto-discover and connect to Joyride nREPL
     (when-let [nrepl-port (or (some->> (System/getenv "NREPL_PORT") Integer/parseInt)
