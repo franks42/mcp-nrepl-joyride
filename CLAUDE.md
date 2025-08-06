@@ -46,6 +46,40 @@ bb joyride-mock-server
 - ✅ MCP proxy functionality
 - ✅ Error handling and connection management
 
+### 🐍 MCP Test Client (`mcp_test_client.py`)
+**Python-based MCP protocol client for testing and automation**
+
+#### Key Capabilities
+- **Session Management**: Persistent MCP session handling with automatic recovery
+- **Interactive Mode**: Command-line interface for testing MCP servers
+- **Tool Discovery**: Automatically lists available MCP tools and parameters
+- **Direct Tool Calling**: Execute MCP tools with JSON arguments
+- **REST API Comparison**: Compare MCP vs REST endpoint results
+- **Session Persistence**: Saves session IDs across invocations for stable testing
+
+#### Usage Commands
+```bash
+# Interactive mode
+python3 mcp_test_client.py --mcp-url http://localhost:3000/mcp -i
+
+# Predefined tests
+python3 mcp_test_client.py --mcp-url http://localhost:3000/mcp -t
+
+# Programmatic usage
+from mcp_test_client import MCPTestClient
+client = MCPTestClient('http://localhost:3000/mcp')
+await client.call_tool('nrepl-eval', {'code': '(+ 1 2 3)'})
+```
+
+#### Interactive Commands
+- `list` - List available tools
+- `call <tool_name> <json_args>` - Call a tool
+- `rest <endpoint> <json_args>` - Call REST API
+- `compare <tool_name> <rest_endpoint> <json_args>` - Compare MCP vs REST
+- `quit` - Exit
+
+**Essential for testing MCP-nREPL bridge and VS Code integration without curl commands.**
+
 ## 📚 Lessons Learned
 
 ### Technical Challenges Solved
@@ -115,6 +149,7 @@ bb joyride-mock-server
 - `joyride-mock-server.clj` - Enhanced Joyride/Calva mock server
 - `run-integration-test.clj` - Basic integration test suite
 - `test-joyride-integration.clj` - Comprehensive Joyride test suite
+- `mcp_test_client.py` - Python MCP protocol client for testing and automation
 
 ### Original Planning Documents (RECOVERED)
 - `docs/babashka_mcp_nrepl_implementation_plan.md` - Core implementation strategy
