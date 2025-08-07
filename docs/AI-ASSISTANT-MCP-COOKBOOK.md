@@ -7,18 +7,27 @@ This cookbook is designed specifically for **AI assistants** (Claude, GPT, etc.)
 ## Key Differences for AI Assistants
 
 **❌ What AI Assistants DON'T Have:**
-- No access to `python3 ./mcp_nrepl_client.py` command-line tool
+- No access to `uv run python mcp_nrepl_client.py` command-line tool
+- No access to `uv run python mcp_server_manager.py` server management script
 - No direct terminal/shell access to the development environment
 - No ability to run bash commands or access local filesystems directly
 
 **✅ What AI Assistants DO Have:**
-- Direct access to all 14 MCP function calls through the protocol
+- Direct access to all 16 MCP function calls through the protocol
 - Ability to call functions with JSON parameters
 - Full access to nREPL evaluation and introspection capabilities
 - Session management and error handling through MCP tools
 - Comprehensive system diagnostics and health monitoring
 
+> **📝 Setup Note:** While AI assistants use MCP functions directly, human developers can now use the streamlined `uv run python mcp_server_manager.py` script for server management. See the [Human Developer Cookbook](HUMAN-DEVELOPER-MCP-COOKBOOK.md) for terminal-based workflows.
+
 ## Available MCP Functions
+
+### Essential Starting Function
+```javascript
+// MANDATORY FIRST CALL - Get complete context and usage guide
+get-mcp-nrepl-context()
+```
 
 ### Core nREPL Functions
 ```javascript
@@ -68,27 +77,37 @@ nrepl-health-check({include_performance: false, verbose: true})
 
 ## AI Assistant Development Workflows
 
-### Phase 1: Environment Discovery
+### Phase 1: Essential Context (MANDATORY FIRST STEP)
+
+**Goal:** Get comprehensive context before using any other functions
+
+```javascript
+// 1. ALWAYS START HERE - Get complete context and roadmap
+get-mcp-nrepl-context()
+// This returns the full context document explaining all functions and workflows
+```
+
+### Phase 2: Environment Discovery  
 
 **Goal:** Understand the current nREPL environment and capabilities
 
-```javascript
-// 1. Run comprehensive health check first
+```javascript  
+// 2. Run comprehensive health check
 nrepl-health-check()
 
-// 2. Check connection status
+// 3. Check connection status
 nrepl-status()
 
-// 3. Test basic functionality
+// 4. Test basic functionality  
 nrepl-test()
 
-// 4. Discover current namespace and environment
+// 5. Discover current namespace and environment
 nrepl-eval({code: "*ns*"})
 nrepl-eval({code: "(clojure-version)"})
 nrepl-eval({code: "(keys (ns-publics *ns*))"})
 ```
 
-### Phase 2: Symbol and Function Discovery
+### Phase 3: Symbol and Function Discovery
 
 **Goal:** Find relevant functions and understand their usage
 

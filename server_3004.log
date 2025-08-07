@@ -28,10 +28,21 @@ Started nREPL server at 0.0.0.0:7889
 [debug] 📤 HTTP response for method:tools/list
 [debug] 📥 HTTP request::post/mcp
 [debug] Handling request:tools/call
+[debug] Calling tool:get-mcp-nrepl-contextwith args:{}
+[debug] 📤 HTTP response for method:tools/call
+[debug] 📥 HTTP request::get/health
+[debug] 📥 HTTP request::post/mcp
+[debug] Handling request:initialize
+[debug] 📤 HTTP response for method:initialize
+[debug] 📥 HTTP request::post/mcp
+[debug] Handling request:tools/list
+[debug] 📤 HTTP response for method:tools/list
+[debug] 📥 HTTP request::post/mcp
+[debug] Handling request:tools/call
 [debug] Calling tool:nrepl-evalwith args:{:code "(+ 2 3)"}
-[nREPL] 📤 Sending: {:op "eval", :code "(+ 2 3)", :id "77605884-827a-4d7d-a9f4-8c46e9ebcb46"}
-[nREPL] 📥 Received response: {:id 77605884-827a-4d7d-a9f4-8c46e9ebcb46, :ns test.example, :value 5}
-[nREPL] 📥 Received response: {:id 77605884-827a-4d7d-a9f4-8c46e9ebcb46, :status [done]}
+[nREPL] 📤 Sending: {:op "eval", :code "(+ 2 3)", :id "9d5d9e12-07c2-483c-9324-996fc35b7812"}
+[nREPL] 📥 Received response: {:id 9d5d9e12-07c2-483c-9324-996fc35b7812, :ns test.example, :value 5}
+[nREPL] 📥 Received response: {:id 9d5d9e12-07c2-483c-9324-996fc35b7812, :status [done]}
 [nREPL] 📥 Final merged response: {:value 5, :ns test.example, :status [done]}
 [debug] nREPL result:{:value "5", :ns "test.example", :status ["done"]}
 [debug] Result keys:(:value :ns :status)
@@ -49,9 +60,9 @@ Started nREPL server at 0.0.0.0:7889
 [debug] 📥 HTTP request::post/mcp
 [debug] Handling request:tools/call
 [debug] Calling tool:nrepl-evalwith args:{:code "(str \"hello\" \" \" \"world\")"}
-[nREPL] 📤 Sending: {:op "eval", :code "(str \"hello\" \" \" \"world\")", :id "0a34407d-4677-4bc8-ab82-3afd5d5f4c4d"}
-[nREPL] 📥 Received response: {:id 0a34407d-4677-4bc8-ab82-3afd5d5f4c4d, :ns test.example, :value "hello world"}
-[nREPL] 📥 Received response: {:id 0a34407d-4677-4bc8-ab82-3afd5d5f4c4d, :status [done]}
+[nREPL] 📤 Sending: {:op "eval", :code "(str \"hello\" \" \" \"world\")", :id "6d2e56da-6952-4f8c-9d33-d94c706ac0c7"}
+[nREPL] 📥 Received response: {:id 6d2e56da-6952-4f8c-9d33-d94c706ac0c7, :ns test.example, :value "hello world"}
+[nREPL] 📥 Received response: {:id 6d2e56da-6952-4f8c-9d33-d94c706ac0c7, :status [done]}
 [nREPL] 📥 Final merged response: {:value "hello world", :ns test.example, :status [done]}
 [debug] nREPL result:{:value "\"hello world\"", :ns "test.example", :status ["done"]}
 [debug] Result keys:(:value :ns :status)
@@ -69,141 +80,4 @@ Started nREPL server at 0.0.0.0:7889
 [debug] 📥 HTTP request::post/mcp
 [debug] Handling request:tools/call
 [debug] Calling tool:nrepl-statuswith args:{}
-[debug] 📤 HTTP response for method:tools/call
-[debug] 📥 HTTP request::get/health
-[debug] 📥 HTTP request::post/mcp
-[debug] Handling request:initialize
-[debug] 📤 HTTP response for method:initialize
-[debug] 📥 HTTP request::post/mcp
-[debug] Handling request:tools/list
-[debug] 📤 HTTP response for method:tools/list
-[debug] 📥 HTTP request::post/mcp
-[debug] Handling request:tools/call
-[debug] Calling tool:nrepl-health-checkwith args:{}
-[info] Running comprehensive health check...
-[nREPL] 📤 Sending: {:op "describe", :id "84be67eb-364a-42d7-b251-47aa438aead2"}
-[nREPL] 📥 Received response: {:aux {}, :id 84be67eb-364a-42d7-b251-47aa438aead2, :ops {:clone {}, :close {}, :complete {}, :describe {}, :eval {}, :load-file {}}, :status [done], :versions {:nbb-nrepl {:major TODO, :version-string TODO}, :node {:incremental 1, :major v22, :minor 15, :version-string v22.15.1}}}
-[nREPL] 📥 Final merged response: {:status [done], :ops {:clone {}, :close {}, :complete {}, :describe {}, :eval {}, :load-file {}}, :versions {:nbb-nrepl {:major TODO, :version-string TODO}, :node {:incremental 1, :major v22, :minor 15, :version-string v22.15.1}}, :aux {}}
-[nREPL] 📤 Sending: {:op "eval", :code "(+ 2 3)", :id "fe4b5456-1d0c-4c7a-bcd8-3b92ad9a6326"}
-[nREPL] 📥 Received response: {:id fe4b5456-1d0c-4c7a-bcd8-3b92ad9a6326, :ns test.example, :value 5}
-[nREPL] 📥 Received response: {:id fe4b5456-1d0c-4c7a-bcd8-3b92ad9a6326, :status [done]}
-[nREPL] 📥 Final merged response: {:value 5, :ns test.example, :status [done]}
-[nREPL] 📤 Sending: {:op "eval", :code "(str \"hello\" \" \" \"world\")", :id "afbfcfb2-05b3-4318-846b-9b703a468919"}
-[nREPL] 📥 Received response: {:id afbfcfb2-05b3-4318-846b-9b703a468919, :ns test.example, :value "hello world"}
-[nREPL] 📥 Received response: {:id afbfcfb2-05b3-4318-846b-9b703a468919, :status [done]}
-[nREPL] 📥 Final merged response: {:value "hello world", :ns test.example, :status [done]}
-[nREPL] 📤 Sending: {:op "eval", :code "(count [1 2 3 4 5])", :id "45229d0e-bb44-4746-88c9-14165955d50d"}
-[nREPL] 📥 Received response: {:id 45229d0e-bb44-4746-88c9-14165955d50d, :ns test.example, :value 5}
-[nREPL] 📥 Received response: {:id 45229d0e-bb44-4746-88c9-14165955d50d, :status [done]}
-[nREPL] 📥 Final merged response: {:value 5, :ns test.example, :status [done]}
-[nREPL] 📤 Sending: {:op "eval", :code "(resolve 'map)", :id "ba1fe181-3b2f-4dd1-bb86-5f55e535afec"}
-[nREPL] 📥 Received response: {:id ba1fe181-3b2f-4dd1-bb86-5f55e535afec, :ns test.example, :value #'clojure.core/map}
-[nREPL] 📥 Received response: {:id ba1fe181-3b2f-4dd1-bb86-5f55e535afec, :status [done]}
-[nREPL] 📥 Final merged response: {:value #'clojure.core/map, :ns test.example, :status [done]}
-[nREPL] 📤 Sending: {:op "eval", :code "(str *ns*)", :id "e62f8d46-1a37-4b3a-bc66-0bb0eb957f9e"}
-[nREPL] 📥 Received response: {:id e62f8d46-1a37-4b3a-bc66-0bb0eb957f9e, :ns test.example, :value "test.example"}
-[nREPL] 📥 Received response: {:id e62f8d46-1a37-4b3a-bc66-0bb0eb957f9e, :status [done]}
-[nREPL] 📥 Final merged response: {:value "test.example", :ns test.example, :status [done]}
-[nREPL] 📤 Sending: {:op "clone", :id "bddd32f0-1a68-4998-b8a6-150af9a8bb23"}
-[nREPL] 📥 Received response: {:id bddd32f0-1a68-4998-b8a6-150af9a8bb23, :new-session 8c2edce1-fb26-47d4-a376-60a0c2942088, :status [done]}
-[nREPL] 📥 Final merged response: {:status [done]}
-[nREPL] 📤 Sending: {:op "info", :symbol "map", :id "44897612-f49b-4b24-91ff-4945d933276a"}
-[nREPL] 📥 Received response: {:id 44897612-f49b-4b24-91ff-4945d933276a, :status [error unknown-op done]}
-[nREPL] 📥 Final merged response: {:status [error unknown-op done]}
-[nREPL] 📤 Sending: {:op "completions", :prefix "ma", :id "02772dc5-80c4-4789-bc69-f2a4ceb1ceef"}
-[nREPL] 📥 Received response: {:id 02772dc5-80c4-4789-bc69-f2a4ceb1ceef, :status [error unknown-op done]}
-[nREPL] 📥 Final merged response: {:status [error unknown-op done]}
-[nREPL] 📤 Sending: {:op "apropos", :query "map", :id "cc2986da-18eb-420d-a2a6-5d9b5acdc667"}
-[nREPL] 📥 Received response: {:id cc2986da-18eb-420d-a2a6-5d9b5acdc667, :status [error unknown-op done]}
-[nREPL] 📥 Final merged response: {:status [error unknown-op done]}
-[nREPL] 📤 Sending: {:op "eval", :code "(+ 1 1)", :id "82ae1c6f-e4c1-4da4-bb63-e4f00a956c4f"}
-[nREPL] 📥 Received response: {:id 82ae1c6f-e4c1-4da4-bb63-e4f00a956c4f, :ns test.example, :value 2}
-[nREPL] 📥 Received response: {:id 82ae1c6f-e4c1-4da4-bb63-e4f00a956c4f, :status [done]}
-[nREPL] 📥 Final merged response: {:value 2, :ns test.example, :status [done]}
-[nREPL] 📤 Sending: {:op "eval", :code "(+ 1 1)", :id "7725fa3e-1ead-47de-94a8-a938438d9c94"}
-[nREPL] 📥 Received response: {:id 7725fa3e-1ead-47de-94a8-a938438d9c94, :ns test.example, :value 2}
-[nREPL] 📥 Received response: {:id 7725fa3e-1ead-47de-94a8-a938438d9c94, :status [done]}
-[nREPL] 📥 Final merged response: {:value 2, :ns test.example, :status [done]}
-[nREPL] 📤 Sending: {:op "eval", :code "(+ 1 1)", :id "9e174936-10a1-436c-8014-b98947630fa5"}
-[nREPL] 📥 Received response: {:id 9e174936-10a1-436c-8014-b98947630fa5, :ns test.example, :value 2}
-[nREPL] 📥 Received response: {:id 9e174936-10a1-436c-8014-b98947630fa5, :status [done]}
-[nREPL] 📥 Final merged response: {:value 2, :ns test.example, :status [done]}
-[nREPL] 📤 Sending: {:op "eval", :code "(+ 1 1)", :id "e1c6bf96-bf84-4d4b-b388-8b49dcda6001"}
-[nREPL] 📥 Received response: {:id e1c6bf96-bf84-4d4b-b388-8b49dcda6001, :ns test.example, :value 2}
-[nREPL] 📥 Received response: {:id e1c6bf96-bf84-4d4b-b388-8b49dcda6001, :status [done]}
-[nREPL] 📥 Final merged response: {:value 2, :ns test.example, :status [done]}
-[nREPL] 📤 Sending: {:op "eval", :code "(+ 1 1)", :id "9a95160b-c2a6-4931-9ce5-78046afebd19"}
-[nREPL] 📥 Received response: {:id 9a95160b-c2a6-4931-9ce5-78046afebd19, :ns test.example, :value 2}
-[nREPL] 📥 Received response: {:id 9a95160b-c2a6-4931-9ce5-78046afebd19, :status [done]}
-[nREPL] 📥 Final merged response: {:value 2, :ns test.example, :status [done]}
-[nREPL] 📤 Sending: {:op "eval", :code "(+ 1 1)", :id "9ff0a92a-5e88-45ef-a4b6-5e8e53bae02f"}
-[nREPL] 📥 Received response: {:id 9ff0a92a-5e88-45ef-a4b6-5e8e53bae02f, :ns test.example, :value 2}
-[nREPL] 📥 Received response: {:id 9ff0a92a-5e88-45ef-a4b6-5e8e53bae02f, :status [done]}
-[nREPL] 📥 Final merged response: {:value 2, :ns test.example, :status [done]}
-[nREPL] 📤 Sending: {:op "eval", :code "(+ 1 1)", :id "6edc3361-32c8-4e25-b7e2-e1156ef64533"}
-[nREPL] 📥 Received response: {:id 6edc3361-32c8-4e25-b7e2-e1156ef64533, :ns test.example, :value 2}
-[nREPL] 📥 Received response: {:id 6edc3361-32c8-4e25-b7e2-e1156ef64533, :status [done]}
-[nREPL] 📥 Final merged response: {:value 2, :ns test.example, :status [done]}
-[nREPL] 📤 Sending: {:op "eval", :code "(+ 1 1)", :id "cd72026e-1f67-4628-ad8e-0985c03671ad"}
-[nREPL] 📥 Received response: {:id cd72026e-1f67-4628-ad8e-0985c03671ad, :ns test.example, :value 2}
-[nREPL] 📥 Received response: {:id cd72026e-1f67-4628-ad8e-0985c03671ad, :status [done]}
-[nREPL] 📥 Final merged response: {:value 2, :ns test.example, :status [done]}
-[nREPL] 📤 Sending: {:op "eval", :code "(+ 1 1)", :id "9c1101d5-24e2-4035-9282-ceb0d60dcc86"}
-[nREPL] 📥 Received response: {:id 9c1101d5-24e2-4035-9282-ceb0d60dcc86, :ns test.example, :value 2}
-[nREPL] 📥 Received response: {:id 9c1101d5-24e2-4035-9282-ceb0d60dcc86, :status [done]}
-[nREPL] 📥 Final merged response: {:value 2, :ns test.example, :status [done]}
-[nREPL] 📤 Sending: {:op "eval", :code "(+ 1 1)", :id "138c5bcf-2c59-4d7b-8161-18678477b7c5"}
-[nREPL] 📥 Received response: {:id 138c5bcf-2c59-4d7b-8161-18678477b7c5, :ns test.example, :value 2}
-[nREPL] 📥 Received response: {:id 138c5bcf-2c59-4d7b-8161-18678477b7c5, :status [done]}
-[nREPL] 📥 Final merged response: {:value 2, :ns test.example, :status [done]}
-[nREPL] 📤 Sending: {:op "eval", :code "(reduce + (range 100))", :id "ea2ef590-c6fc-4aee-bab3-bd648fd3ce4d"}
-[nREPL] 📥 Received response: {:id ea2ef590-c6fc-4aee-bab3-bd648fd3ce4d, :ns test.example, :value 4950}
-[nREPL] 📥 Received response: {:id ea2ef590-c6fc-4aee-bab3-bd648fd3ce4d, :status [done]}
-[nREPL] 📥 Final merged response: {:value 4950, :ns test.example, :status [done]}
-[nREPL] 📤 Sending: {:op "eval", :code "(reduce + (range 100))", :id "48f0116b-d927-4f47-9b7a-aeab6bf73f5f"}
-[nREPL] 📥 Received response: {:id 48f0116b-d927-4f47-9b7a-aeab6bf73f5f, :ns test.example, :value 4950}
-[nREPL] 📥 Received response: {:id 48f0116b-d927-4f47-9b7a-aeab6bf73f5f, :status [done]}
-[nREPL] 📥 Final merged response: {:value 4950, :ns test.example, :status [done]}
-[nREPL] 📤 Sending: {:op "eval", :code "(reduce + (range 100))", :id "e8e3b118-f9a3-437a-b8d7-86ca70ffe981"}
-[nREPL] 📥 Received response: {:id e8e3b118-f9a3-437a-b8d7-86ca70ffe981, :ns test.example, :value 4950}
-[nREPL] 📥 Received response: {:id e8e3b118-f9a3-437a-b8d7-86ca70ffe981, :status [done]}
-[nREPL] 📥 Final merged response: {:value 4950, :ns test.example, :status [done]}
-[nREPL] 📤 Sending: {:op "eval", :code "(reduce + (range 100))", :id "dc65c5d0-cd76-47a0-bfc5-e2575012357b"}
-[nREPL] 📥 Received response: {:id dc65c5d0-cd76-47a0-bfc5-e2575012357b, :ns test.example, :value 4950}
-[nREPL] 📥 Received response: {:id dc65c5d0-cd76-47a0-bfc5-e2575012357b, :status [done]}
-[nREPL] 📥 Final merged response: {:value 4950, :ns test.example, :status [done]}
-[nREPL] 📤 Sending: {:op "eval", :code "(reduce + (range 100))", :id "7b114fd6-4c43-493f-beff-699247e223c1"}
-[nREPL] 📥 Received response: {:id 7b114fd6-4c43-493f-beff-699247e223c1, :ns test.example, :value 4950}
-[nREPL] 📥 Received response: {:id 7b114fd6-4c43-493f-beff-699247e223c1, :status [done]}
-[nREPL] 📥 Final merged response: {:value 4950, :ns test.example, :status [done]}
-[nREPL] 📤 Sending: {:op "eval", :code "(str/join \", \" (map str (range 10)))", :id "cc96803a-9778-4d84-91f3-ca210dadcd70"}
-[nREPL] 📥 Received response: {:err Could not resolve symbol: str/join
-, :id cc96803a-9778-4d84-91f3-ca210dadcd70}
-[nREPL] 📥 Received response: {:ex #error {:message "Could not resolve symbol: str/join", :data {:type :sci/error, :line 1, :column 1, :message "Could not resolve symbol: str/join", :sci.impl/callstack #object[cljs.core.Volatile {:val ({:line 1, :column 1, :ns #object[NY test.example], :file nil})}], :file nil, :phase "analysis"}, :cause #error {:message "Could not resolve symbol: str/join", :data {:type :sci/error, :line 1, :column 1, :file nil, :phase "analysis"}}}, :id cc96803a-9778-4d84-91f3-ca210dadcd70, :ns test.example, :status [done]}
-[nREPL] 📥 Final merged response: {:err Could not resolve symbol: str/join
-, :ex #error {:message "Could not resolve symbol: str/join", :data {:type :sci/error, :line 1, :column 1, :message "Could not resolve symbol: str/join", :sci.impl/callstack #object[cljs.core.Volatile {:val ({:line 1, :column 1, :ns #object[NY test.example], :file nil})}], :file nil, :phase "analysis"}, :cause #error {:message "Could not resolve symbol: str/join", :data {:type :sci/error, :line 1, :column 1, :file nil, :phase "analysis"}}}, :ns test.example, :status [done]}
-[nREPL] 📤 Sending: {:op "eval", :code "(str/join \", \" (map str (range 10)))", :id "b3fb800b-79ed-4f00-883f-bd8e8498ee81"}
-[nREPL] 📥 Received response: {:err Could not resolve symbol: str/join
-, :id b3fb800b-79ed-4f00-883f-bd8e8498ee81}
-[nREPL] 📥 Received response: {:ex #error {:message "Could not resolve symbol: str/join", :data {:type :sci/error, :line 1, :column 1, :message "Could not resolve symbol: str/join", :sci.impl/callstack #object[cljs.core.Volatile {:val ({:line 1, :column 1, :ns #object[NY test.example], :file nil})}], :file nil, :phase "analysis"}, :cause #error {:message "Could not resolve symbol: str/join", :data {:type :sci/error, :line 1, :column 1, :file nil, :phase "analysis"}}}, :id b3fb800b-79ed-4f00-883f-bd8e8498ee81, :ns test.example, :status [done]}
-[nREPL] 📥 Final merged response: {:err Could not resolve symbol: str/join
-, :ex #error {:message "Could not resolve symbol: str/join", :data {:type :sci/error, :line 1, :column 1, :message "Could not resolve symbol: str/join", :sci.impl/callstack #object[cljs.core.Volatile {:val ({:line 1, :column 1, :ns #object[NY test.example], :file nil})}], :file nil, :phase "analysis"}, :cause #error {:message "Could not resolve symbol: str/join", :data {:type :sci/error, :line 1, :column 1, :file nil, :phase "analysis"}}}, :ns test.example, :status [done]}
-[nREPL] 📤 Sending: {:op "eval", :code "(str/join \", \" (map str (range 10)))", :id "4e0b2bd1-9d61-4427-8a08-7af5515cb213"}
-[nREPL] 📥 Received response: {:err Could not resolve symbol: str/join
-, :id 4e0b2bd1-9d61-4427-8a08-7af5515cb213}
-[nREPL] 📥 Received response: {:ex #error {:message "Could not resolve symbol: str/join", :data {:type :sci/error, :line 1, :column 1, :message "Could not resolve symbol: str/join", :sci.impl/callstack #object[cljs.core.Volatile {:val ({:line 1, :column 1, :ns #object[NY test.example], :file nil})}], :file nil, :phase "analysis"}, :cause #error {:message "Could not resolve symbol: str/join", :data {:type :sci/error, :line 1, :column 1, :file nil, :phase "analysis"}}}, :id 4e0b2bd1-9d61-4427-8a08-7af5515cb213, :ns test.example, :status [done]}
-[nREPL] 📥 Final merged response: {:err Could not resolve symbol: str/join
-, :ex #error {:message "Could not resolve symbol: str/join", :data {:type :sci/error, :line 1, :column 1, :message "Could not resolve symbol: str/join", :sci.impl/callstack #object[cljs.core.Volatile {:val ({:line 1, :column 1, :ns #object[NY test.example], :file nil})}], :file nil, :phase "analysis"}, :cause #error {:message "Could not resolve symbol: str/join", :data {:type :sci/error, :line 1, :column 1, :file nil, :phase "analysis"}}}, :ns test.example, :status [done]}
-[nREPL] 📤 Sending: {:op "eval", :code "(str/join \", \" (map str (range 10)))", :id "75e55e82-7443-449f-afd6-6d026f107f78"}
-[nREPL] 📥 Received response: {:err Could not resolve symbol: str/join
-, :id 75e55e82-7443-449f-afd6-6d026f107f78}
-[nREPL] 📥 Received response: {:ex #error {:message "Could not resolve symbol: str/join", :data {:type :sci/error, :line 1, :column 1, :message "Could not resolve symbol: str/join", :sci.impl/callstack #object[cljs.core.Volatile {:val ({:line 1, :column 1, :ns #object[NY test.example], :file nil})}], :file nil, :phase "analysis"}, :cause #error {:message "Could not resolve symbol: str/join", :data {:type :sci/error, :line 1, :column 1, :file nil, :phase "analysis"}}}, :id 75e55e82-7443-449f-afd6-6d026f107f78, :ns test.example, :status [done]}
-[nREPL] 📥 Final merged response: {:err Could not resolve symbol: str/join
-, :ex #error {:message "Could not resolve symbol: str/join", :data {:type :sci/error, :line 1, :column 1, :message "Could not resolve symbol: str/join", :sci.impl/callstack #object[cljs.core.Volatile {:val ({:line 1, :column 1, :ns #object[NY test.example], :file nil})}], :file nil, :phase "analysis"}, :cause #error {:message "Could not resolve symbol: str/join", :data {:type :sci/error, :line 1, :column 1, :file nil, :phase "analysis"}}}, :ns test.example, :status [done]}
-[nREPL] 📤 Sending: {:op "eval", :code "(str/join \", \" (map str (range 10)))", :id "d4fb7031-0985-42b9-a357-2cc057c2f665"}
-[nREPL] 📥 Received response: {:err Could not resolve symbol: str/join
-, :id d4fb7031-0985-42b9-a357-2cc057c2f665}
-[nREPL] 📥 Received response: {:ex #error {:message "Could not resolve symbol: str/join", :data {:type :sci/error, :line 1, :column 1, :message "Could not resolve symbol: str/join", :sci.impl/callstack #object[cljs.core.Volatile {:val ({:line 1, :column 1, :ns #object[NY test.example], :file nil})}], :file nil, :phase "analysis"}, :cause #error {:message "Could not resolve symbol: str/join", :data {:type :sci/error, :line 1, :column 1, :file nil, :phase "analysis"}}}, :id d4fb7031-0985-42b9-a357-2cc057c2f665, :ns test.example, :status [done]}
-[nREPL] 📥 Final merged response: {:err Could not resolve symbol: str/join
-, :ex #error {:message "Could not resolve symbol: str/join", :data {:type :sci/error, :line 1, :column 1, :message "Could not resolve symbol: str/join", :sci.impl/callstack #object[cljs.core.Volatile {:val ({:line 1, :column 1, :ns #object[NY test.example], :file nil})}], :file nil, :phase "analysis"}, :cause #error {:message "Could not resolve symbol: str/join", :data {:type :sci/error, :line 1, :column 1, :file nil, :phase "analysis"}}}, :ns test.example, :status [done]}
 [debug] 📤 HTTP response for method:tools/call

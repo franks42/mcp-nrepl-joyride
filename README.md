@@ -26,8 +26,9 @@ Claude Code ↔ [MCP-nREPL Proxy] ↔ [Joyride nREPL] ↔ [VS Code APIs]
 ### Prerequisites
 
 1. [Babashka](https://babashka.org/) installed
-2. VS Code with [Joyride extension](https://marketplace.visualstudio.com/items?itemName=betterthantomorrow.joyride)
-3. Joyride nREPL server running in your VS Code workspace
+2. [UV](https://docs.astral.sh/uv/) installed (for Python tooling)
+3. VS Code with [Joyride extension](https://marketplace.visualstudio.com/items?itemName=betterthantomorrow.joyride)
+4. Joyride nREPL server running in your VS Code workspace
 
 ### Installation
 
@@ -36,8 +37,44 @@ Claude Code ↔ [MCP-nREPL Proxy] ↔ [Joyride nREPL] ↔ [VS Code APIs]
 git clone https://github.com/franks42/mcp-nrepl-joyride.git
 cd mcp-nrepl-joyride
 
-# Test the server
+# Install Python dependencies
+uv sync
+
+# Start server using management script (recommended)
+uv run python mcp_server_manager.py start
+
+# OR test the server directly
 bb mcp-server
+```
+
+### Server Management
+
+The project includes `mcp_server_manager.py` for streamlined server operations:
+
+```bash
+# Start server in background
+uv run python mcp_server_manager.py start
+
+# Check server status
+uv run python mcp_server_manager.py status
+
+# Run comprehensive health check
+uv run python mcp_server_manager.py health
+
+# Run basic functionality tests
+uv run python mcp_server_manager.py test
+
+# Show available MCP tools
+uv run python mcp_server_manager.py tools
+
+# Full workflow (start + test + health check)
+uv run python mcp_server_manager.py run
+
+# Stop server
+uv run python mcp_server_manager.py stop
+
+# Restart server
+uv run python mcp_server_manager.py restart
 ```
 
 ### Claude Code Configuration
@@ -114,6 +151,21 @@ Once configured, Claude Code can directly manipulate VS Code:
 
 ## 🔧 Development
 
+### Using the Management Script (Recommended)
+
+```bash
+# Full development workflow
+uv run python mcp_server_manager.py run
+
+# Start server for development
+uv run python mcp_server_manager.py start --port 3005 --foreground
+
+# Monitor server status during development
+uv run python mcp_server_manager.py status
+```
+
+### Direct Babashka Commands
+
 ```bash
 # Start in debug mode
 bb dev
@@ -135,6 +187,21 @@ bb repl
 
 # Build standalone jar
 bb build
+```
+
+### Python Code Quality
+
+All Python code changes must pass quality checks:
+
+```bash
+# Format Python code
+uv run black mcp_server_manager.py
+
+# Check code style
+uv run flake8 mcp_server_manager.py
+
+# Install development dependencies
+uv add black flake8
 ```
 
 ## 🏗️ Architecture

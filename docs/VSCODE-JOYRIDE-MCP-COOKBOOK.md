@@ -46,6 +46,7 @@ _________\/________________||_______
 
 **3. Client Connections:**
 - **AI → MCP Server:** Direct MCP function calls
+- **Human → Python Manager Script → MCP Server:** Streamlined server management and testing
 - **Human → Python Client → MCP Server:** Terminal-based MCP requests
 - **Calva → MCP-nREPL Server:** Debug/inspect the bridge application
 - **MCP-nREPL Client → Joyride:** Control VS Code via nREPL
@@ -88,7 +89,43 @@ Create `.joyride/scripts/init.cljs` in your workspace:
     (vscode/window.showInformationMessage "Hello from MCP-nREPL!")))
 ```
 
-### 3. MCP Server Connection
+### 3. System Dependencies
+
+```bash
+# Install Babashka (required for MCP server)
+# See: https://babashka.org/
+curl -sLO https://raw.githubusercontent.com/babashka/babashka/master/install
+chmod +x install && ./install
+
+# Install UV (recommended for Python tooling)
+# See: https://docs.astral.sh/uv/
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+### 4. MCP Server Setup
+
+**Option A: Using Management Script (Recommended)**
+
+```bash
+# Clone and setup the project
+git clone https://github.com/franks42/mcp-nrepl-joyride.git
+cd mcp-nrepl-joyride
+
+# Install Python dependencies
+uv sync
+
+# Start server with full workflow
+uv run python mcp_server_manager.py run
+```
+
+**Option B: Direct Server Start**
+
+```bash
+# Start server directly
+BABASHKA_CLASSPATH=src MCP_HTTP_PORT=3004 MCP_DEBUG=true bb src/mcp_nrepl_proxy/core.clj
+```
+
+### 5. MCP Server Connection
 
 Configure VS Code settings.json:
 

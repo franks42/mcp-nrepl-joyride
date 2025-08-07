@@ -13,22 +13,47 @@ This cookbook provides **practical examples** for human developers using the MCP
 git clone https://github.com/franks42/mcp-nrepl-joyride.git
 cd mcp-nrepl-joyride
 
-# Start the MCP-nREPL server
+# Install Python dependencies with UV (recommended)
+uv sync
+
+# Option A: Start server using management script (recommended)
+uv run python mcp_server_manager.py run
+
+# Option B: Start the MCP-nREPL server directly
 ./start-mcp-http-server.sh
 
 # Verify connection (in another terminal)
-python3 ./mcp_nrepl_client.py --eval "(+ 1 2 3)" --quiet
+uv run python mcp_nrepl_client.py --eval "(+ 1 2 3)" --quiet
 # Expected output: 6
 ```
 
-### 2. Available Tools Overview
+### 2. Server Management Commands
 
 ```bash
-# List all available tools
-python3 ./mcp_nrepl_client.py --tools
+# Server lifecycle management
+uv run python mcp_server_manager.py start    # Start server in background
+uv run python mcp_server_manager.py status   # Check server status
+uv run python mcp_server_manager.py health   # Run comprehensive health check
+uv run python mcp_server_manager.py test     # Run basic functionality tests
+uv run python mcp_server_manager.py tools    # Show available MCP tools
+uv run python mcp_server_manager.py stop     # Stop server
+uv run python mcp_server_manager.py restart  # Restart server
+
+# Full workflow (start + test + health)
+uv run python mcp_server_manager.py run
+```
+
+### 3. Available Tools Overview
+
+```bash
+# List all available tools (using server manager)
+uv run python mcp_server_manager.py tools
+
+# Or using client directly
+uv run python mcp_nrepl_client.py --tools
 
 # Get help for specific functionality
-python3 ./mcp_nrepl_client.py --help
+uv run python mcp_nrepl_client.py --help
 ```
 
 ## Quick Start Patterns
@@ -37,15 +62,18 @@ python3 ./mcp_nrepl_client.py --help
 
 ```bash
 # Test connection and basic math
-python3 ./mcp_nrepl_client.py --eval "(+ 1 2 3)"
-python3 ./mcp_nrepl_client.py --eval "(* 6 7)"
+uv run python mcp_nrepl_client.py --eval "(+ 1 2 3)"
+uv run python mcp_nrepl_client.py --eval "(* 6 7)"
 
 # Check current environment
-python3 ./mcp_nrepl_client.py --eval "*ns*"
-python3 ./mcp_nrepl_client.py --eval "(clojure-version)"
+uv run python mcp_nrepl_client.py --eval "*ns*"
+uv run python mcp_nrepl_client.py --eval "(clojure-version)"
 
-# Run comprehensive health tests
-python3 ./mcp_nrepl_client.py --tool nrepl-test
+# Run comprehensive health tests (recommended approach)
+uv run python mcp_server_manager.py health
+
+# Or run basic tests via client
+uv run python mcp_nrepl_client.py --tool nrepl-test
 ```
 
 ### Connection Management

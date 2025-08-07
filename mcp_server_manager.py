@@ -200,7 +200,7 @@ class MCPServerManager:
                 print(result.stdout)
                 return True
             else:
-                print(f"❌ Health check failed:")
+                print("❌ Health check failed:")
                 print(f"Return code: {result.returncode}")
                 print(f"STDOUT: {result.stdout}")
                 print(f"STDERR: {result.stderr}")
@@ -344,7 +344,9 @@ def main():
     parser.add_argument(
         "--port", type=int, default=3004, help="Server port (default: 3004)"
     )
-    parser.add_argument("--no-debug", action="store_true", help="Disable debug logging")
+    parser.add_argument(
+        "--no-debug", action="store_true", help="Disable debug logging"
+    )
     parser.add_argument(
         "--foreground", action="store_true", help="Run server in foreground"
     )

@@ -660,6 +660,36 @@
                  :text "❌ No nREPL connection available. Use nrepl-connect first."}]
        :isError true})))
 
+(defn- tool-get-mcp-nrepl-context
+  "Get comprehensive context document for AI assistants"
+  [_args]
+  (try
+    (let [context-file "AI-CONTEXT.md"
+          context-content (slurp context-file)]
+      {:content [{:type "text"
+                 :text context-content}]})
+    (catch Exception e
+      (log :error "Failed to read context document:" (.getMessage e))
+      {:content [{:type "text"
+                 :text (str "# MCP-nREPL Server Context\n\n"
+                           "## Overview\n\n"
+                           "This MCP server bridges AI assistants with Clojure/ClojureScript development environments "
+                           "through the nREPL protocol. It provides 15 MCP functions for executing Clojure code, "
+                           "controlling VS Code through Joyride, exploring codebases, and building interactive applications.\n\n"
+                           "## Essential First Steps\n\n"
+                           "1. **Always start with `nrepl-health-check()`** to understand your environment\n"
+                           "2. **Check current namespace** with `nrepl-eval({code: \"*ns*\"})`\n"
+                           "3. **Discover available functions** with `nrepl-apropos({query: \"keyword\"})`\n"
+                           "4. **Get documentation** with `nrepl-doc({symbol: \"function-name\"})`\n\n"
+                           "## Core Functions\n\n"
+                           "- **nrepl-eval**: Execute Clojure code (primary tool)\n"
+                           "- **nrepl-health-check**: Environment diagnostics\n"
+                           "- **nrepl-doc/source/apropos**: Code exploration\n"
+                           "- **nrepl-require**: Load namespaces\n"
+                           "- **nrepl-load-file**: Load Clojure files\n\n"
+                           "## Remember\n\n"
+                           "Start simple, test incrementally, and use the health check to understand your environment!")}]})))
+
 (defn- run-comprehensive-health-check
   "Run comprehensive system health check with detailed diagnostics"
   [conn & {:keys [include-performance include-integration verbose]
@@ -1057,7 +1087,11 @@
    {:name "nrepl-stacktrace"
     :description "ERROR DEBUGGING: Get detailed error information and stack trace for the most recent exception. Use this immediately after an error occurs to understand what went wrong, where it happened, and how to fix it. Provides file locations, line numbers, and call chain. RETURNS: Formatted stack trace with error details and source locations."
     :inputSchema {:type "object"
-                  :properties {:session {:type "string" :description "Session ID (optional)"}}}}])
+                  :properties {:session {:type "string" :description "Session ID (optional)"}}}}
+                  
+   {:name "get-mcp-nrepl-context"
+    :description "🚨 MANDATORY FIRST STEP: Get comprehensive context document that explains the MCP-nREPL server's purpose, architecture, and workflows. AI assistants MUST read this context before using any other MCP functions to understand what this server does, how the 15 functions work together, and essential patterns for success. CRITICAL: This provides the roadmap for effective usage. RETURNS: Complete markdown context document with examples, use cases, and best practices."
+    :inputSchema {:type "object"}}])
 
 (defn- call-tool 
   "Execute an MCP tool by name"
@@ -1077,6 +1111,7 @@
     "nrepl-interrupt" (tool-nrepl-interrupt args)
     "nrepl-stacktrace" (tool-nrepl-stacktrace args)
     "nrepl-health-check" (tool-nrepl-health-check args)
+    "get-mcp-nrepl-context" (tool-get-mcp-nrepl-context args)
     {:content [{:type "text" :text (str "❌ Unknown tool: " tool-name)}]
      :isError true}))
 
