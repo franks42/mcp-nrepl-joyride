@@ -1,0 +1,4 @@
+# Requirements for Python introspection examples
+flask>=2.0.0
+basilisp>=1.0.0
+psutil>=5.8.0  # For memory and system monitoring
