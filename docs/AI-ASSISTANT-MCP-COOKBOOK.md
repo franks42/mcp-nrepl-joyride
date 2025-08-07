@@ -450,6 +450,165 @@ nrepl-eval({
 nrepl-eval({code: "(monitor-system)"})
 ```
 
+## VS Code Automation for AI Assistants
+
+### Connecting to VS Code via Joyride
+
+When connected to VS Code's Joyride nREPL server (typically port 7889), AI assistants can control and automate the editor:
+
+```javascript
+// First, ensure connection to Joyride
+nrepl-connect({host: "localhost", port: 7889})
+
+// Verify VS Code API availability
+nrepl-eval({code: "(require '[\"vscode\" :as vscode])"})
+nrepl-eval({code: "vscode/version"})
+```
+
+### Basic VS Code Control
+
+**Window and Notifications:**
+```javascript
+// Show messages to user
+nrepl-eval({code: "(vscode/window.showInformationMessage \"Task completed!\")"})
+nrepl-eval({code: "(vscode/window.showWarningMessage \"Check this issue\")"})
+nrepl-eval({code: "(vscode/window.showErrorMessage \"Error detected\")"})
+
+// Get user input
+nrepl-eval({code: "(p/let [input (vscode/window.showInputBox #js {:prompt \"Enter value\"})] input)"})
+```
+
+**Document Manipulation:**
+```javascript
+// Get current document info
+nrepl-eval({code: "(when-let [editor vscode/window.activeTextEditor] (.-fileName (.-document editor)))"})
+
+// Insert text at cursor
+nrepl-eval({code: "(when-let [editor vscode/window.activeTextEditor] (.edit editor (fn [builder] (.insert builder (.-active (.-selection editor)) \"// AI generated code\"))))"})
+
+// Replace selected text
+nrepl-eval({code: "(when-let [editor vscode/window.activeTextEditor] (.edit editor (fn [builder] (.replace builder (.-selection editor) \"new text\"))))"})
+```
+
+### File and Workspace Operations
+
+```javascript
+// Open a file
+nrepl-eval({code: "(p/let [doc (vscode/workspace.openTextDocument \"/path/to/file.clj\")] (vscode/window.showTextDocument doc))"})
+
+// Save current file
+nrepl-eval({code: "(when-let [doc (.-document vscode/window.activeTextEditor)] (.save doc))"})
+
+// Find files in workspace
+nrepl-eval({code: "(p/let [files (vscode/workspace.findFiles \"**/*.clj\")] (take 10 (map #(.-path %) files)))"})
+```
+
+### Command Execution
+
+```javascript
+// Execute VS Code commands
+nrepl-eval({code: "(vscode/commands.executeCommand \"workbench.action.terminal.toggleTerminal\")"})
+nrepl-eval({code: "(vscode/commands.executeCommand \"editor.action.formatDocument\")"})
+
+// Calva integration
+nrepl-eval({code: "(vscode/commands.executeCommand \"calva.loadFile\")"})
+nrepl-eval({code: "(vscode/commands.executeCommand \"calva.evaluateCurrentForm\")"})
+```
+
+### Terminal Control
+
+```javascript
+// Create and control terminals
+nrepl-eval({code: "(def term (vscode/window.createTerminal \"AI Terminal\")) (.show term) (.sendText term \"echo 'Hello from AI'\")"})
+
+// Send commands to active terminal
+nrepl-eval({code: "(when-let [term vscode/window.activeTerminal] (.sendText term \"ls -la\"))"})
+```
+
+### Status Bar Integration
+
+```javascript
+// Create status bar item
+nrepl-eval({code: "(def status (vscode/window.createStatusBarItem vscode/StatusBarAlignment.Left 100)) (set! (.-text status) \"🤖 AI Active\") (.show status)"})
+
+// Update status
+nrepl-eval({code: "(set! (.-text status) \"✅ Task Complete\")"})
+```
+
+### Advanced Automation Patterns
+
+**Code Analysis:**
+```javascript
+// Analyze current file
+nrepl-eval({code: `
+(when-let [editor vscode/window.activeTextEditor]
+  (let [doc (.-document editor)
+        text (.getText doc)]
+    {:line-count (.-lineCount doc)
+     :language (.-languageId doc)
+     :functions (count (re-seq #"defn\\s+" text))}))
+`})
+```
+
+**Automated Refactoring:**
+```javascript
+// Find and replace pattern
+nrepl-eval({code: `
+(when-let [editor vscode/window.activeTextEditor]
+  (.edit editor 
+    (fn [builder]
+      (let [doc (.-document editor)
+            text (.getText doc)
+            new-text (clojure.string/replace text #"oldPattern" "newPattern")
+            full-range (vscode/Range. 0 0 (.-lineCount doc) 0)]
+        (.replace builder full-range new-text)))))
+`})
+```
+
+**Custom Command Registration:**
+```javascript
+// Register AI-specific commands
+nrepl-eval({code: `
+(vscode/commands.registerCommand 
+  "ai.analyzeCode"
+  (fn []
+    (vscode/window.showInformationMessage "AI analysis starting...")))
+`})
+```
+
+### Working with Joyride Scripts
+
+```javascript
+// Load Joyride utility scripts
+nrepl-load-file({file-path: ".joyride/scripts/ai-utils.cljs"})
+
+// Execute Joyride workspace scripts
+nrepl-eval({code: "(vscode/commands.executeCommand \"joyride.runWorkspaceScript\" \"my-script\")"})
+```
+
+### VS Code Specific Error Handling
+
+```javascript
+// Safe VS Code operations
+nrepl-eval({code: `
+(try
+  (require '["vscode" :as vscode])
+  (vscode/window.showInformationMessage "VS Code connected")
+  (catch js/Error e
+    {:error (.-message e)
+     :suggestion "Ensure connected to Joyride nREPL on port 7889"}))
+`})
+```
+
+### Best Practices for AI VS Code Automation
+
+1. **Always check for active editor** before manipulating documents
+2. **Use promises (p/let)** for async VS Code operations
+3. **Validate file paths** are within workspace boundaries
+4. **Handle errors gracefully** with try-catch blocks
+5. **Provide user feedback** via status bar or notifications
+6. **Batch operations** when possible to improve performance
+
 ## Troubleshooting Guide for AI Assistants
 
 ### Connection Issues
@@ -485,6 +644,19 @@ nrepl-eval({code: "(+ 1 2)"}) // Test basic functionality
 
 // Check namespace context
 nrepl-eval({code: "*ns*"})
+```
+
+### VS Code Specific Issues
+
+```javascript
+// Verify VS Code API is available
+nrepl-eval({code: "(exists? js/vscode)"})
+
+// Check Joyride is active
+nrepl-eval({code: "(some? (vscode/extensions.getExtension \"betterthantomorrow.joyride\"))"})
+
+// Reload window if needed
+nrepl-eval({code: "(vscode/commands.executeCommand \"workbench.action.reloadWindow\")"})
 ```
 
 This cookbook enables AI assistants to effectively leverage the full power of MCP-nREPL for interactive development and introspection without relying on external command-line tools!
