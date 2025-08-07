@@ -468,6 +468,198 @@
                  :text "❌ No nREPL connection available. Use nrepl-connect first."}]
        :isError true})))
 
+(defn- tool-nrepl-doc
+  "Get documentation for a Clojure symbol"
+  [{:keys [symbol session ns]}]
+  (let [conn-result (ensure-nrepl-connection)]
+    (if (:success conn-result)
+      (try
+        (let [conn (:connection conn-result)
+              result (nrepl/doc conn symbol :session session :ns ns)
+              doc-text (:doc result)
+              arglists (:arglists result)]
+          (if (or doc-text arglists)
+            {:content [{:type "text"
+                       :text (str "📖 Documentation for " symbol "\n\n"
+                                (when arglists (str "Usage: " arglists "\n\n"))
+                                (or doc-text "No documentation available."))}]}
+            {:content [{:type "text"
+                       :text (str "❌ No documentation found for: " symbol)}]
+             :isError true}))
+        (catch Exception e
+          (log :error "Doc lookup failed:" (.getMessage e))
+          {:content [{:type "text"
+                     :text (str "❌ Doc lookup failed: " (.getMessage e))}]
+           :isError true}))
+      {:content [{:type "text"
+                 :text "❌ No nREPL connection available. Use nrepl-connect first."}]
+       :isError true})))
+
+(defn- tool-nrepl-source
+  "Get source code for a Clojure symbol"
+  [{:keys [symbol session ns]}]
+  (let [conn-result (ensure-nrepl-connection)]
+    (if (:success conn-result)
+      (try
+        (let [conn (:connection conn-result)
+              result (nrepl/source conn symbol :session session :ns ns)
+              source-text (:source result)
+              file (:file result)]
+          (if source-text
+            {:content [{:type "text"
+                       :text (str "📄 Source code for " symbol
+                                (when file (str " from " file)) "\n\n"
+                                "```clojure\n" source-text "\n```")}]}
+            {:content [{:type "text"
+                       :text (str "❌ No source code found for: " symbol)}]
+             :isError true}))
+        (catch Exception e
+          (log :error "Source lookup failed:" (.getMessage e))
+          {:content [{:type "text"
+                     :text (str "❌ Source lookup failed: " (.getMessage e))}]
+           :isError true}))
+      {:content [{:type "text"
+                 :text "❌ No nREPL connection available. Use nrepl-connect first."}]
+       :isError true})))
+
+(defn- tool-nrepl-complete
+  "Get symbol completions for a prefix"
+  [{:keys [prefix session ns context]}]
+  (let [conn-result (ensure-nrepl-connection)]
+    (if (:success conn-result)
+      (try
+        (let [conn (:connection conn-result)
+              result (nrepl/complete conn prefix :session session :ns ns :context context)
+              completions (:completions result)]
+          (if (and completions (seq completions))
+            {:content [{:type "text"
+                       :text (str "🔍 Completions for \"" prefix "\":\n\n"
+                                (->> completions
+                                     (take 20) ; Limit to first 20 results
+                                     (map-indexed (fn [i completion]
+                                                   (str (inc i) ". " completion)))
+                                     (str/join "\n")))}]}
+            {:content [{:type "text"
+                       :text (str "❌ No completions found for: " prefix)}]
+             :isError true}))
+        (catch Exception e
+          (log :error "Completion failed:" (.getMessage e))
+          {:content [{:type "text"
+                     :text (str "❌ Completion failed: " (.getMessage e))}]
+           :isError true}))
+      {:content [{:type "text"
+                 :text "❌ No nREPL connection available. Use nrepl-connect first."}]
+       :isError true})))
+
+(defn- tool-nrepl-apropos
+  "Find symbols matching a pattern"
+  [{:keys [query session ns search-ns privates? case-sensitive?]}]
+  (let [conn-result (ensure-nrepl-connection)]
+    (if (:success conn-result)
+      (try
+        (let [conn (:connection conn-result)
+              result (nrepl/apropos conn query 
+                                  :session session 
+                                  :ns ns
+                                  :search-ns search-ns
+                                  :privates? privates?
+                                  :case-sensitive? case-sensitive?)
+              symbols (:apropos-matches result)]
+          (if (and symbols (seq symbols))
+            {:content [{:type "text"
+                       :text (str "🔍 Symbols matching \"" query "\":\n\n"
+                                (->> symbols
+                                     (take 30) ; Limit to first 30 results
+                                     (map-indexed (fn [i sym]
+                                                   (str (inc i) ". " sym)))
+                                     (str/join "\n")))}]}
+            {:content [{:type "text"
+                       :text (str "❌ No symbols found matching: " query)}]
+             :isError true}))
+        (catch Exception e
+          (log :error "Apropos search failed:" (.getMessage e))
+          {:content [{:type "text"
+                     :text (str "❌ Apropos search failed: " (.getMessage e))}]
+           :isError true}))
+      {:content [{:type "text"
+                 :text "❌ No nREPL connection available. Use nrepl-connect first."}]
+       :isError true})))
+
+(defn- tool-nrepl-require
+  "Require/load a namespace"
+  [{:keys [namespace session as refer reload]}]
+  (let [conn-result (ensure-nrepl-connection)]
+    (if (:success conn-result)
+      (try
+        (let [conn (:connection conn-result)
+              result (nrepl/require-ns conn (symbol namespace)
+                                     :session session
+                                     :as (when as (symbol as))
+                                     :refer refer
+                                     :reload reload)]
+          (if (:ex result)
+            {:content [{:type "text"
+                       :text (str "❌ Require failed: " (:ex result))}]
+             :isError true}
+            {:content [{:type "text"
+                       :text (str "✅ Successfully required " namespace
+                                (when as (str " as " as))
+                                (when refer (str " referring " refer))
+                                (when reload " (with reload)"))}]}))
+        (catch Exception e
+          (log :error "Require failed:" (.getMessage e))
+          {:content [{:type "text"
+                     :text (str "❌ Require failed: " (.getMessage e))}]
+           :isError true}))
+      {:content [{:type "text"
+                 :text "❌ No nREPL connection available. Use nrepl-connect first."}]
+       :isError true})))
+
+(defn- tool-nrepl-interrupt
+  "Interrupt running evaluation"
+  [{:keys [session interrupt-id]}]
+  (let [conn-result (ensure-nrepl-connection)]
+    (if (:success conn-result)
+      (try
+        (let [conn (:connection conn-result)
+              result (nrepl/interrupt conn :session session :interrupt-id interrupt-id)]
+          {:content [{:type "text"
+                     :text (str "🛑 Interrupt signal sent"
+                              (when session (str " to session " session))
+                              (when interrupt-id (str " for evaluation " interrupt-id)))}]})
+        (catch Exception e
+          (log :error "Interrupt failed:" (.getMessage e))
+          {:content [{:type "text"
+                     :text (str "❌ Interrupt failed: " (.getMessage e))}]
+           :isError true}))
+      {:content [{:type "text"
+                 :text "❌ No nREPL connection available. Use nrepl-connect first."}]
+       :isError true})))
+
+(defn- tool-nrepl-stacktrace
+  "Get stacktrace for the last exception"
+  [{:keys [session]}]
+  (let [conn-result (ensure-nrepl-connection)]
+    (if (:success conn-result)
+      (try
+        (let [conn (:connection conn-result)
+              result (nrepl/stacktrace conn :session session)
+              stacktrace (:stacktrace result)]
+          (if stacktrace
+            {:content [{:type "text"
+                       :text (str "🔍 Stacktrace:\n\n" stacktrace)}]}
+            {:content [{:type "text"
+                       :text "❌ No stacktrace available"}]
+             :isError true}))
+        (catch Exception e
+          (log :error "Stacktrace lookup failed:" (.getMessage e))
+          {:content [{:type "text"
+                     :text (str "❌ Stacktrace lookup failed: " (.getMessage e))}]
+           :isError true}))
+      {:content [{:type "text"
+                 :text "❌ No nREPL connection available. Use nrepl-connect first."}]
+       :isError true})))
+
 ;; MCP Protocol Handlers
 
 (def tool-definitions
@@ -503,7 +695,64 @@
                   :properties {:file-path {:type "string" :description "Path to the Clojure file to load"}
                               :session {:type "string" :description "Session ID (optional)"}
                               :ns {:type "string" :description "Namespace context (optional)"}}
-                  :required ["file-path"]}}])
+                  :required ["file-path"]}}
+                  
+   {:name "nrepl-doc"
+    :description "Get documentation for a Clojure symbol"
+    :inputSchema {:type "object"
+                  :properties {:symbol {:type "string" :description "Symbol to get documentation for"}
+                              :session {:type "string" :description "Session ID (optional)"}
+                              :ns {:type "string" :description "Namespace context (optional)"}}
+                  :required ["symbol"]}}
+                  
+   {:name "nrepl-source"
+    :description "Get source code for a Clojure symbol"
+    :inputSchema {:type "object"
+                  :properties {:symbol {:type "string" :description "Symbol to get source code for"}
+                              :session {:type "string" :description "Session ID (optional)"}
+                              :ns {:type "string" :description "Namespace context (optional)"}}
+                  :required ["symbol"]}}
+                  
+   {:name "nrepl-complete"
+    :description "Get symbol completions for a prefix"
+    :inputSchema {:type "object"
+                  :properties {:prefix {:type "string" :description "Symbol prefix to complete"}
+                              :session {:type "string" :description "Session ID (optional)"}
+                              :ns {:type "string" :description "Namespace context (optional)"}
+                              :context {:type "string" :description "Completion context (optional)"}}
+                  :required ["prefix"]}}
+                  
+   {:name "nrepl-apropos"
+    :description "Find symbols matching a pattern"
+    :inputSchema {:type "object"
+                  :properties {:query {:type "string" :description "Query pattern to search for"}
+                              :session {:type "string" :description "Session ID (optional)"}
+                              :ns {:type "string" :description "Namespace context (optional)"}
+                              :search-ns {:type "string" :description "Namespace to search in (optional)"}
+                              :privates? {:type "boolean" :description "Include private symbols (default: false)"}
+                              :case-sensitive? {:type "boolean" :description "Case-sensitive search (default: false)"}}
+                  :required ["query"]}}
+                  
+   {:name "nrepl-require"
+    :description "Require/load a namespace"
+    :inputSchema {:type "object"
+                  :properties {:namespace {:type "string" :description "Namespace symbol to require"}
+                              :session {:type "string" :description "Session ID (optional)"}
+                              :as {:type "string" :description "Alias for the namespace (optional)"}
+                              :refer {:type "array" :description "Symbols to refer (optional)"}
+                              :reload {:type "boolean" :description "Force reload (default: false)"}}
+                  :required ["namespace"]}}
+                  
+   {:name "nrepl-interrupt"
+    :description "Interrupt running evaluation"
+    :inputSchema {:type "object"
+                  :properties {:session {:type "string" :description "Session ID (optional)"}
+                              :interrupt-id {:type "string" :description "Specific evaluation ID to interrupt (optional)"}}}}
+                              
+   {:name "nrepl-stacktrace"
+    :description "Get stacktrace for the last exception"
+    :inputSchema {:type "object"
+                  :properties {:session {:type "string" :description "Session ID (optional)"}}}}])
 
 (defn- call-tool 
   "Execute an MCP tool by name"
@@ -515,6 +764,13 @@
     "nrepl-new-session" (tool-nrepl-new-session args)
     "nrepl-test" (tool-nrepl-test args)
     "nrepl-load-file" (tool-nrepl-load-file args)
+    "nrepl-doc" (tool-nrepl-doc args)
+    "nrepl-source" (tool-nrepl-source args)
+    "nrepl-complete" (tool-nrepl-complete args)
+    "nrepl-apropos" (tool-nrepl-apropos args)
+    "nrepl-require" (tool-nrepl-require args)
+    "nrepl-interrupt" (tool-nrepl-interrupt args)
+    "nrepl-stacktrace" (tool-nrepl-stacktrace args)
     {:content [{:type "text" :text (str "❌ Unknown tool: " tool-name)}]
      :isError true}))
 

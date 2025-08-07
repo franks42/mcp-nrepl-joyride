@@ -39,17 +39,33 @@ Before diving into introspection patterns, it's essential to understand how the 
 
 ### Available MCP Tools
 
-Our MCP server provides these key tools for Python introspection:
+Our MCP server provides these essential tools for Python introspection:
 
 ```bash
-# 1. Direct evaluation - execute Clojure code in the nREPL session
+# Core Evaluation & File Loading
 python3 ./mcp_nrepl_client.py --eval "(clojure-expression)" --quiet
-
-# 2. Load Clojure files - load utility functions into the session  
 python3 ./mcp_nrepl_client.py --tool nrepl-load-file --args '{"file-path": "/path/to/utils.clj"}' --quiet
 
-# 3. Get connection status
-python3 ./mcp_nrepl_client.py --tool nrepl-eval --args '{"code": "(+ 1 2 3)"}'
+# Symbol Introspection & Discovery
+python3 ./mcp_nrepl_client.py --tool nrepl-doc --args '{"symbol": "py-system-info"}' --quiet
+python3 ./mcp_nrepl_client.py --tool nrepl-source --args '{"symbol": "py-explore-object"}' --quiet
+python3 ./mcp_nrepl_client.py --tool nrepl-apropos --args '{"query": "py-"}' --quiet
+
+# Development Assistance
+python3 ./mcp_nrepl_client.py --tool nrepl-complete --args '{"prefix": "python/sys."}' --quiet
+python3 ./mcp_nrepl_client.py --tool nrepl-require --args '{"namespace": "your-introspection-utils"}' --quiet
+
+# Session Management
+python3 ./mcp_nrepl_client.py --tool nrepl-new-session
+python3 ./mcp_nrepl_client.py --tool nrepl-status
+
+# Error Handling & Debugging  
+python3 ./mcp_nrepl_client.py --tool nrepl-stacktrace
+python3 ./mcp_nrepl_client.py --tool nrepl-interrupt
+
+# Connection Management
+python3 ./mcp_nrepl_client.py --tool nrepl-connect --args '{"port": 7888}'
+python3 ./mcp_nrepl_client.py --tool nrepl-test
 ```
 
 ### How It Works
@@ -493,40 +509,150 @@ python/django.conf.settings.MIDDLEWARE
 
 ## Integration with MCP Tools
 
-### Enhanced nREPL Commands for Python
+### Enhanced nREPL Development Workflow
 
-We can create convenience functions that combine multiple Python introspection operations:
+With our new nREPL tools, Python introspection becomes much more powerful and interactive:
+
+**1. Discovery and Documentation Workflow:**
+```bash
+# Discover available Python introspection functions
+python3 ./mcp_nrepl_client.py --tool nrepl-apropos --args '{"query": "py-"}' --quiet
+
+# Get documentation for specific functions
+python3 ./mcp_nrepl_client.py --tool nrepl-doc --args '{"symbol": "py-health-check"}' --quiet
+python3 ./mcp_nrepl_client.py --tool nrepl-doc --args '{"symbol": "py-explore-object"}' --quiet
+
+# View source code to understand implementations
+python3 ./mcp_nrepl_client.py --tool nrepl-source --args '{"symbol": "py-system-info"}' --quiet
+```
+
+**2. Interactive Development with Sessions:**
+```bash
+# Create dedicated session for Python introspection
+python3 ./mcp_nrepl_client.py --tool nrepl-new-session
+
+# Load utilities in specific session
+python3 ./mcp_nrepl_client.py --tool nrepl-load-file --args '{"file-path": "examples/python_introspection_utils.clj", "session": "session-id"}' --quiet
+
+# Work within that session context
+python3 ./mcp_nrepl_client.py --eval "(py-health-check)" --session "session-id" --quiet
+```
+
+**3. Namespace Management for Introspection:**
+```bash
+# Require Python interop namespaces as needed
+python3 ./mcp_nrepl_client.py --tool nrepl-require --args '{"namespace": "clojure.pprint", "as": "pp"}'
+
+# Load additional utility libraries
+python3 ./mcp_nrepl_client.py --tool nrepl-require --args '{"namespace": "python-introspection-utils"}'
+```
+
+**4. Code Completion for Python Objects:**
+```bash
+# Get completions for Python namespace
+python3 ./mcp_nrepl_client.py --tool nrepl-complete --args '{"prefix": "python/sys."}' --quiet
+
+# Find Python-specific functions
+python3 ./mcp_nrepl_client.py --tool nrepl-complete --args '{"prefix": "py-"}' --quiet
+```
+
+**5. Error Handling and Debugging:**
+```bash
+# If introspection code fails, get detailed stack trace
+python3 ./mcp_nrepl_client.py --tool nrepl-stacktrace --quiet
+
+# Interrupt long-running introspection operations
+python3 ./mcp_nrepl_client.py --tool nrepl-interrupt --quiet
+```
+
+### Enhanced Python Introspection Functions
+
+With the new tools, you can create more sophisticated introspection utilities:
 
 ```clojure
 ;; Load Python introspection utilities
-(python3 ./mcp_nrepl_client.py --tool nrepl-load-file --args '{"file-path": "python_utils.clj"}' --quiet)
+python3 ./mcp_nrepl_client.py --tool nrepl-load-file --args '{"file-path": "examples/python_introspection_utils.clj"}' --quiet
 
-;; Usage examples:
-(py-health-check)     ; Comprehensive app health
-(py-memory-report)    ; Memory and resource usage  
-(py-config-summary)   ; Safe configuration overview
-(py-db-status)        ; Database connection health
-(py-performance-snapshot) ; Performance metrics
+;; Enhanced usage examples:
+(py-health-check)           ; Comprehensive app health
+(py-system-info)            ; System and runtime information
+(py-memory-info)            ; Memory usage details
+(py-config-summary)         ; Safe configuration overview
+(py-db-status)              ; Database connection health
+(py-performance-snapshot)   ; Performance metrics
+(py-explore-object python/app)  ; Deep object introspection
+
+;; New workflow patterns:
+;; 1. Discover -> Document -> Experiment -> Build
+python3 ./mcp_nrepl_client.py --tool nrepl-apropos --args '{"query": "memory"}'
+python3 ./mcp_nrepl_client.py --tool nrepl-doc --args '{"symbol": "py-memory-info"}'
+python3 ./mcp_nrepl_client.py --eval "(py-memory-info)" --quiet
+
+;; 2. Session-based exploration
+python3 ./mcp_nrepl_client.py --tool nrepl-new-session  # Create isolated context
+python3 ./mcp_nrepl_client.py --eval "(def debug-session true)" --session "session-id"
 ```
 
-### Custom MCP Tools for Python
+### Development Best Practices with New Tools
 
-We could extend our MCP server with Python-specific tools:
+**1. Safe Experimentation:**
+```bash
+# Create a dedicated debugging session
+python3 ./mcp_nrepl_client.py --tool nrepl-new-session
+
+# Load only the utilities you need
+python3 ./mcp_nrepl_client.py --tool nrepl-require --args '{"namespace": "python-utils-simple"}' --session "debug-session"
+
+# If something goes wrong, interrupt and check errors
+python3 ./mcp_nrepl_client.py --tool nrepl-interrupt --session "debug-session"
+python3 ./mcp_nrepl_client.py --tool nrepl-stacktrace --session "debug-session"
+```
+
+**2. Iterative Development:**
+```bash
+# Start with discovery
+python3 ./mcp_nrepl_client.py --tool nrepl-apropos --args '{"query": "config"}'
+
+# Get documentation for functions of interest  
+python3 ./mcp_nrepl_client.py --tool nrepl-doc --args '{"symbol": "py-config-summary"}'
+
+# Experiment with modifications
+python3 ./mcp_nrepl_client.py --eval "(defn my-config-check [] (merge (py-config-summary) {:custom true}))"
+
+# Test your changes
+python3 ./mcp_nrepl_client.py --eval "(my-config-check)"
+```
+
+**3. Documentation and Knowledge Sharing:**
+```bash
+# Document your introspection functions
+python3 ./mcp_nrepl_client.py --tool nrepl-source --args '{"symbol": "py-health-check"}' > health-check-impl.clj
+
+# Share useful patterns with your team
+python3 ./mcp_nrepl_client.py --eval "(defn team-debug-setup [] (do (require 'python-introspection-utils) (println \"Debug environment ready!\")))"
+```
+
+### Custom MCP Tools for Python Introspection
+
+Building on our nREPL foundation, we could extend our MCP server with Python-specific tools:
 
 ```json
 {
   "name": "python-health-check", 
-  "description": "Comprehensive Python application health check",
+  "description": "Comprehensive Python application health check via Basilisp",
   "inputSchema": {
     "type": "object",
     "properties": {
       "include_memory": {"type": "boolean", "default": true},
       "include_db": {"type": "boolean", "default": true},
-      "include_config": {"type": "boolean", "default": false}
+      "include_config": {"type": "boolean", "default": false},
+      "session": {"type": "string", "description": "nREPL session ID"}
     }
   }
 }
 ```
+
+These tools would internally use our nREPL infrastructure while providing a more specialized Python-focused interface.
 
 ## Best Practices
 
@@ -596,13 +722,23 @@ We could extend our MCP server with Python-specific tools:
 
 ## Future Enhancements
 
-### Potential nREPL Tools
+### Recently Implemented nREPL Tools ✅
 
-- `python-inspect-object` - Deep object introspection
-- `python-call-function` - Safe function execution
-- `python-health-report` - Comprehensive system status
-- `python-performance-profile` - Performance analysis
-- `python-memory-analyzer` - Memory usage breakdown
+- ✅ `nrepl-doc` - Get documentation for symbols and functions
+- ✅ `nrepl-source` - View source code for introspection functions  
+- ✅ `nrepl-apropos` - Discover functions by pattern matching
+- ✅ `nrepl-complete` - Auto-completion for Python objects and functions
+- ✅ `nrepl-require` - Load namespaces and utilities dynamically
+- ✅ `nrepl-stacktrace` - Debug errors with detailed stack traces
+- ✅ `nrepl-interrupt` - Stop long-running introspection operations
+
+### Potential Future nREPL Tools
+
+- `python-inspect-object` - Enhanced deep object introspection with type analysis
+- `python-call-function` - Safe function execution with sandboxing
+- `python-health-report` - Comprehensive system status with alerting
+- `python-performance-profile` - Real-time performance analysis and profiling
+- `python-memory-analyzer` - Advanced memory usage breakdown and leak detection
 
 ### Integration Ideas
 

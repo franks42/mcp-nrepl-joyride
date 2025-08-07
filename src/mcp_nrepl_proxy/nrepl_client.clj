@@ -157,3 +157,74 @@
               session (assoc :session session)
               ns (assoc :ns ns))]
     (send-message conn msg)))
+
+(defn doc
+  "Get documentation for a symbol"
+  [conn symbol & {:keys [session ns]}]
+  (let [msg (cond-> {:op "info" :symbol symbol}
+              session (assoc :session session)
+              ns (assoc :ns ns))]
+    (send-message conn msg)))
+
+(defn source
+  "Get source code for a symbol"
+  [conn symbol & {:keys [session ns]}]
+  (let [msg (cond-> {:op "info" :symbol symbol}
+              session (assoc :session session)
+              ns (assoc :ns ns))]
+    (send-message conn msg)))
+
+(defn complete
+  "Get completions for a symbol prefix"
+  [conn prefix & {:keys [session ns context]}]
+  (let [msg (cond-> {:op "completions" :prefix prefix}
+              session (assoc :session session)
+              ns (assoc :ns ns)
+              context (assoc :context context))]
+    (send-message conn msg)))
+
+(defn apropos
+  "Find symbols matching query"
+  [conn query & {:keys [session ns search-ns privates? case-sensitive?]}]
+  (let [msg (cond-> {:op "apropos" :query query}
+              session (assoc :session session)
+              ns (assoc :ns ns)
+              search-ns (assoc :search-ns search-ns)
+              (some? privates?) (assoc :privates? privates?)
+              (some? case-sensitive?) (assoc :case-sensitive? case-sensitive?))]
+    (send-message conn msg)))
+
+(defn require-ns
+  "Require/load a namespace"
+  [conn ns-symbol & {:keys [session as refer reload]}]
+  (let [require-form (cond
+                       ;; Simple require without options
+                       (and (not as) (not refer) (not reload))
+                       (list 'require (list 'quote ns-symbol))
+                       
+                       ;; Require with options - build vector form
+                       :else
+                       (let [ns-vector (cond-> [ns-symbol]
+                                         as (conj :as (symbol as))
+                                         refer (conj :refer refer)
+                                         reload (conj :reload reload))]
+                         (list 'require ns-vector)))
+        code (pr-str require-form)
+        msg (cond-> {:op "eval" :code code}
+              session (assoc :session session))]
+    (send-message conn msg)))
+
+(defn interrupt
+  "Interrupt evaluation"
+  [conn & {:keys [session interrupt-id]}]
+  (let [msg (cond-> {:op "interrupt"}
+              session (assoc :session session)
+              interrupt-id (assoc :interrupt-id interrupt-id))]
+    (send-message conn msg)))
+
+(defn stacktrace
+  "Get stacktrace for the last exception"
+  [conn & {:keys [session]}]
+  (let [msg (cond-> {:op "stacktrace"}
+              session (assoc :session session))]
+    (send-message conn msg)))
