@@ -420,6 +420,54 @@
                :text "❌ No nREPL connection available for testing"}]
      :isError true}))
 
+(defn- tool-nrepl-load-file
+  "Load a Clojure file into the nREPL session"
+  [{:keys [file-path session ns]}]
+  (let [conn-result (ensure-nrepl-connection)]
+    (if (:success conn-result)
+      (try
+        ;; Validate file exists and is readable
+        (when-not (and file-path (.exists (java.io.File. file-path)))
+          (throw (Exception. (str "File not found: " file-path))))
+        
+        (let [conn (:connection conn-result)
+              result (nrepl/load-file conn file-path
+                                    :session session
+                                    :ns ns)]
+          (log :debug "Load-file result:" result)
+          
+          ;; Store session info if provided in response
+          (when-let [response-session (:session result)]
+            (swap! state assoc-in [:sessions response-session] 
+                   {:created (System/currentTimeMillis)
+                    :last-used (System/currentTimeMillis)}))
+          
+          ;; Format response similar to eval
+          (let [has-error (:ex result)
+                has-output (and (:out result) (not= "" (str/trim (:out result))))]
+            (cond
+              has-error
+              {:content [{:type "text"
+                         :text (str "❌ Load failed: " (:ex result))}]
+               :isError true}
+              
+              has-output
+              {:content [{:type "text"
+                         :text (str "✅ File loaded: " file-path "\n" (:out result))}]}
+              
+              :else
+              {:content [{:type "text"
+                         :text (str "✅ File loaded successfully: " file-path)}]})))
+        
+        (catch Exception e
+          (log :error "Load-file failed:" (.getMessage e))
+          {:content [{:type "text"
+                     :text (str "❌ Load failed: " (.getMessage e))}]
+           :isError true}))
+      {:content [{:type "text"
+                 :text "❌ No nREPL connection available. Use nrepl-connect first."}]
+       :isError true})))
+
 ;; MCP Protocol Handlers
 
 (def tool-definitions
@@ -447,7 +495,15 @@
 
    {:name "nrepl-test"
     :description "Run comprehensive nREPL health and functionality tests"
-    :inputSchema {:type "object"}}])
+    :inputSchema {:type "object"}}
+
+   {:name "nrepl-load-file"
+    :description "Load a Clojure file into the nREPL session"
+    :inputSchema {:type "object"
+                  :properties {:file-path {:type "string" :description "Path to the Clojure file to load"}
+                              :session {:type "string" :description "Session ID (optional)"}
+                              :ns {:type "string" :description "Namespace context (optional)"}}
+                  :required ["file-path"]}}])
 
 (defn- call-tool 
   "Execute an MCP tool by name"
@@ -458,6 +514,7 @@
     "nrepl-status" (tool-nrepl-status args)
     "nrepl-new-session" (tool-nrepl-new-session args)
     "nrepl-test" (tool-nrepl-test args)
+    "nrepl-load-file" (tool-nrepl-load-file args)
     {:content [{:type "text" :text (str "❌ Unknown tool: " tool-name)}]
      :isError true}))
 

@@ -28,3 +28,9 @@ pom.xml.asc
 # OS generated files
 .DS_Store
 Thumbs.db
+tmp/
+
+# Cache directories
+.clj-kondo/.cache/
+.calva/
+server.log

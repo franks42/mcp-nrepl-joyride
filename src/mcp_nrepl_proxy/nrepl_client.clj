@@ -145,3 +145,15 @@
   "Get server description/capabilities"
   [conn]
   (send-message conn {:op "describe"}))
+
+(defn load-file
+  "Load a file into the nREPL session"
+  [conn file-path & {:keys [session ns]}]
+  (let [file-content (slurp file-path)
+        msg (cond-> {:op "load-file"
+                     :file file-content
+                     :file-path file-path
+                     :file-name (.getName (java.io.File. file-path))}
+              session (assoc :session session)
+              ns (assoc :ns ns))]
+    (send-message conn msg)))

@@ -227,6 +227,32 @@ This creates a complete milestone checkpoint of our progress.
 - **Check memory** for complete usage patterns and examples
 - **See docs/ENHANCED-MCP-CLIENT.md** for comprehensive documentation
 
+## Testing MCP-nREPL Tools
+
+Use the enhanced Python MCP client for testing (use `python3` to avoid confirmation prompts):
+
+```bash
+# Test nREPL evaluation
+python3 ./mcp_nrepl_client.py --eval "(+ 1 2 3)" --quiet
+
+# Get nREPL status
+python3 ./mcp_nrepl_client.py --status --quiet
+
+# Run health tests
+python3 ./mcp_nrepl_client.py --test-nrepl --quiet
+
+# List available tools
+python3 ./mcp_nrepl_client.py --tools --format json --quiet
+
+# Call specific tools
+python3 ./mcp_nrepl_client.py --tool nrepl-load-file --args '{"file-path": "path/to/file.clj"}' --quiet
+
+# Interactive mode
+python3 ./mcp_nrepl_client.py --interactive
+```
+
+**Note**: Use `python3 ./mcp_nrepl_client.py` instead of `./mcp_nrepl_client.py` to avoid confirmation prompts in Claude Code.
+
 **Most Common Commands:**
 ```bash
 # Direct evaluation
