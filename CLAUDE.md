@@ -411,3 +411,52 @@ Health check documentation has been integrated into all three main cookbooks:
 3. **Python Introspection Cookbook** - System monitoring with Python-specific diagnostics
 
 **Key Achievement**: Provides unified diagnostic approach across all deployment scenarios (Joyride, Python, standard Clojure) with environment-aware result interpretation.
+
+## 🚨 WORKFLOW RULE: TODO PROGRESSION
+
+**CRITICAL REQUIREMENT**: Do not go to next todo without explicit user confirmation!
+
+### Todo Management Protocol
+1. **Complete current task** - Mark as completed when finished
+2. **Report completion** - Summarize what was accomplished  
+3. **Wait for explicit confirmation** - User must explicitly approve moving to next task
+4. **No automatic progression** - Never assume user wants to continue to next todo
+
+### Example Confirmation Patterns
+- ✅ **"move to next task"**
+- ✅ **"continue with next todo"**  
+- ✅ **"proceed to testing"**
+- ❌ **Implied continuation without explicit request**
+
+**Remember**: This prevents unwanted task execution and ensures user maintains full control over development priorities.
+
+## 🐍 PYTHON CODE QUALITY & UV USAGE
+
+**CRITICAL REQUIREMENTS**: 
+1. For every Python code change, run black and flake8!
+2. Use UV wherever possible for Python package management and tool execution!
+
+### UV-First Python Protocol
+1. **Always use UV** - `uv run black`, `uv run flake8`, `uv pip install`, etc.
+2. **Black formatting** - `uv run black filename.py` for consistent formatting
+3. **Flake8 linting** - `uv run flake8 filename.py` for code quality checks  
+4. **Package installation** - `uv add package-name` or `uv pip install package-name`
+5. **Script execution** - `uv run python script.py` for isolated execution
+6. **Fix all issues** - Don't commit Python code with linting errors
+
+### Example Workflow
+```bash
+# After editing Python files (UV-first approach)
+uv run black mcp_server_manager.py
+uv run flake8 mcp_server_manager.py
+
+# Install packages with UV
+uv add black flake8
+
+# Run Python scripts with UV
+uv run python mcp_server_manager.py --help
+
+# Fix any reported issues before proceeding
+```
+
+**Remember**: UV provides faster, more reliable Python tooling. Clean, well-formatted code is essential for maintainability and team collaboration.

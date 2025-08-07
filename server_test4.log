@@ -1,0 +1,30 @@
+----- Error --------------------------------------------------------------------
+Type:     clojure.lang.ExceptionInfo
+Message:  Unmatched delimiter: ], expected: ) to match ( at [963 1]
+Data:     {:type :edamame/error, :line 1060, :column 121, :edamame/opened-delimiter "(", :edamame/opened-delimiter-loc {:row 963, :col 1}, :edamame/expected-delimiter ")"}
+Location: /Users/franksiebenlist/Development/mcp-nrepl-joyride/src/mcp_nrepl_proxy/core.clj:1060:121
+Phase:    parse
+
+----- Context ------------------------------------------------------------------
+1056:                               
+1057:    {:name "nrepl-stacktrace"
+1058:     :description "ERROR DEBUGGING: Get detailed error information and stack trace for the most recent exception. Use this immediately after an error occurs to understand what went wrong, where it happened, and how to fix it. Provides file locations, line numbers, and call chain. RETURNS: Formatted stack trace with error details and source locations."
+1059:     :inputSchema {:type "object"
+1060:                   :properties {:session {:type "string" :description "Session ID to get stacktrace from (optional)"}}}}]])
+                                                                                                                              ^--- Unmatched delimiter: ], expected: ) to match ( at [963 1]
+1061: 
+1062: (defn- call-tool 
+1063:   "Execute an MCP tool by name"
+1064:   [tool-name args]
+1065:   (case tool-name
+
+----- Stack trace --------------------------------------------------------------
+edamame.impl.parser/throw-reader       - <built-in>
+edamame.impl.parser/dispatch           - <built-in>
+edamame.impl.parser/parse-next         - <built-in>
+edamame.impl.parser/parse-to-delimiter - <built-in>
+edamame.impl.parser/parse-list         - <built-in>
+edamame.impl.parser/dispatch           - <built-in>
+edamame.impl.parser/parse-next         - <built-in>
+edamame.core/parse-next                - <built-in>
+

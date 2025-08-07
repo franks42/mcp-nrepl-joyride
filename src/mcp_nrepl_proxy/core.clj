@@ -962,13 +962,13 @@
 
 (def tool-definitions
   [{:name "nrepl-connect"
-    :description "Connect to Joyride nREPL server"
+    :description "FIRST-TIME SETUP: Connect to a Joyride nREPL server running in VS Code. Use this when starting a new session or if you get connection errors. Auto-discovers the port from .nrepl-port file, but you can specify custom host/port. RETURNS: Success message with connection details or error message."
     :inputSchema {:type "object"
                   :properties {:host {:type "string" :description "nREPL host (default: localhost)"}
                               :port {:type "number" :description "nREPL port (auto-discovered if not provided)"}}}}
    
    {:name "nrepl-eval"
-    :description "Evaluate Clojure code in nREPL session"
+    :description "PRIMARY TOOL: Execute any Clojure code in the connected nREPL session. Use this for: running calculations, calling VS Code functions, defining variables, requiring namespaces, or any Clojure expression. For VS Code automation, use expressions like (vscode/window.showInformationMessage \"Hello\"). RETURNS: Evaluation result (numbers, strings, data structures) or error details with stack trace."
     :inputSchema {:type "object"
                   :properties {:code {:type "string" :description "Clojure code to evaluate"}
                               :session {:type "string" :description "Session ID (optional)"}
@@ -976,26 +976,26 @@
                   :required ["code"]}}
    
    {:name "nrepl-status"
-    :description "Get nREPL connection and session status"
+    :description "DIAGNOSTIC: Check if nREPL connection is active and get current session information. Use this to verify connection before other operations or when troubleshooting. RETURNS: Connection status, active sessions list, server info, and recent command history."
     :inputSchema {:type "object"}}
    
    {:name "nrepl-new-session"
-    :description "Create new nREPL session"
+    :description "SESSION MANAGEMENT: Create isolated evaluation context for complex workflows. Use when you need variable isolation or want to run parallel evaluations without interference. Each session maintains separate namespace and variable state. RETURNS: New session ID string for use in other function calls."
     :inputSchema {:type "object"}}
 
    {:name "nrepl-test"
-    :description "Run comprehensive nREPL health and functionality tests"
+    :description "QUICK VALIDATION: Run basic nREPL functionality tests to verify the connection works properly. Use this after connecting or when experiencing issues. Tests basic evaluation, session management, and server communication. RETURNS: Test results summary with pass/fail status for each test."
     :inputSchema {:type "object"}}
 
    {:name "nrepl-health-check"
-    :description "Run comprehensive system health check including environment, connectivity, performance, and functionality tests"
+    :description "COMPREHENSIVE DIAGNOSTICS: Run detailed system health analysis across 6 categories - environment, connectivity, functionality, integration, performance, and configuration. Use this for troubleshooting, performance analysis, or when starting work in a new environment. Essential first step for AI assistants. RETURNS: Color-coded diagnostic report with detailed status, timing, and recommendations."
     :inputSchema {:type "object"
                   :properties {:include-performance {:type "boolean" :description "Include performance benchmarks (default: true)"}
                               :include-integration {:type "boolean" :description "Include integration tests (default: true)"}
                               :verbose {:type "boolean" :description "Include detailed diagnostic information (default: false)"}}}}
 
    {:name "nrepl-load-file"
-    :description "Load a Clojure file into the nREPL session"
+    :description "FILE OPERATIONS: Load and evaluate a complete Clojure source file into the session. Use this to load utility functions, configuration, or library code from files. The file content is evaluated as if typed directly. Essential for loading reusable code modules. RETURNS: Success confirmation with namespace info or detailed error with line numbers."
     :inputSchema {:type "object"
                   :properties {:file-path {:type "string" :description "Path to the Clojure file to load"}
                               :session {:type "string" :description "Session ID (optional)"}
@@ -1003,7 +1003,7 @@
                   :required ["file-path"]}}
                   
    {:name "nrepl-doc"
-    :description "Get documentation for a Clojure symbol"
+    :description "SYMBOL DOCUMENTATION: Get detailed documentation for any Clojure symbol or function. Use this to understand function parameters, usage examples, and behavior before using unfamiliar functions. Works with built-in functions (map, reduce), your own functions, and VS Code API functions. RETURNS: Formatted documentation with parameters, description, and examples, or 'No documentation found' message."
     :inputSchema {:type "object"
                   :properties {:symbol {:type "string" :description "Symbol to get documentation for"}
                               :session {:type "string" :description "Session ID (optional)"}
@@ -1011,7 +1011,7 @@
                   :required ["symbol"]}}
                   
    {:name "nrepl-source"
-    :description "Get source code for a Clojure symbol"
+    :description "SOURCE CODE INSPECTION: View the actual source code implementation of Clojure functions. Use this to understand how functions work internally, learn implementation patterns, or debug issues. Particularly useful for exploring custom functions and macros. RETURNS: Source code with line numbers and file location, or 'Source not found' for built-in functions."
     :inputSchema {:type "object"
                   :properties {:symbol {:type "string" :description "Symbol to get source code for"}
                               :session {:type "string" :description "Session ID (optional)"}
@@ -1019,7 +1019,7 @@
                   :required ["symbol"]}}
                   
    {:name "nrepl-complete"
-    :description "Get symbol completions for a prefix"
+    :description "AUTO-COMPLETION: Get available symbol completions for partial input. Use this when you know part of a function name and want to see all possible completions. Helpful for discovering VS Code API functions, exploring namespaces, or finding the right function name. Essential for interactive development. RETURNS: List of matching symbols with brief descriptions or empty list if no matches."
     :inputSchema {:type "object"
                   :properties {:prefix {:type "string" :description "Symbol prefix to complete"}
                               :session {:type "string" :description "Session ID (optional)"}
@@ -1028,7 +1028,7 @@
                   :required ["prefix"]}}
                   
    {:name "nrepl-apropos"
-    :description "Find symbols matching a pattern"
+    :description "SYMBOL DISCOVERY: Search for functions and symbols by name pattern or keywords. Use this when you don't know exact function names but remember part of the name or functionality. Great for exploring available functions, finding utilities, or rediscovering forgotten function names. RETURNS: List of matching symbols with their namespaces and brief descriptions."
     :inputSchema {:type "object"
                   :properties {:query {:type "string" :description "Query pattern to search for"}
                               :session {:type "string" :description "Session ID (optional)"}
@@ -1039,7 +1039,7 @@
                   :required ["query"]}}
                   
    {:name "nrepl-require"
-    :description "Require/load a namespace"
+    :description "NAMESPACE MANAGEMENT: Load additional Clojure namespaces and libraries into the current session. Use this to access external functions, load utility libraries, or import VS Code-specific namespaces. Essential for working with modular code and accessing extended functionality. RETURNS: Success confirmation or detailed error if namespace not found."
     :inputSchema {:type "object"
                   :properties {:namespace {:type "string" :description "Namespace symbol to require"}
                               :session {:type "string" :description "Session ID (optional)"}
@@ -1049,13 +1049,13 @@
                   :required ["namespace"]}}
                   
    {:name "nrepl-interrupt"
-    :description "Interrupt running evaluation"
+    :description "EMERGENCY STOP: Interrupt long-running or stuck evaluations. Use this when code is taking too long, appears frozen, or you need to stop an infinite loop. Essential safety tool for interactive development. Does not affect the session state or variables. RETURNS: Confirmation that interrupt signal was sent."
     :inputSchema {:type "object"
                   :properties {:session {:type "string" :description "Session ID (optional)"}
                               :interrupt-id {:type "string" :description "Specific evaluation ID to interrupt (optional)"}}}}
                               
    {:name "nrepl-stacktrace"
-    :description "Get stacktrace for the last exception"
+    :description "ERROR DEBUGGING: Get detailed error information and stack trace for the most recent exception. Use this immediately after an error occurs to understand what went wrong, where it happened, and how to fix it. Provides file locations, line numbers, and call chain. RETURNS: Formatted stack trace with error details and source locations."
     :inputSchema {:type "object"
                   :properties {:session {:type "string" :description "Session ID (optional)"}}}}])
 
