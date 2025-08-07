@@ -1,0 +1,24 @@
+🚀 Starting MCP-nREPL Proxy HTTP Server...
+📍 Connecting to Joyride nREPL on port 62577
+🌐 HTTP server will listen on port 3000
+🔗 MCP endpoint: http://localhost:3000/mcp
+💚 Health check: http://localhost:3000/health
+----------------------------------------
+[info] 🔧 MCP-nREPL Proxy Configuration:
+[info]    Debug mode:true
+[info]    Workspace:/Users/franksiebenlist/Development/mcp-nrepl-joyride
+[info]    Transport::http
+[info]    HTTP port:3000
+[info]    Babashka nREPL port:7889
+[info] Starting nREPL heartbeat monitor
+[info] 🔧 Starting Babashka nREPL server on port:7889
+[warn] ⚠️  Failed to start Babashka nREPL server:Address already in use
+[info] 🔍 Found nREPL port:62577
+[info] Connecting to nREPL atlocalhost:62577
+[info] Connected to nREPL successfully
+[info] ✅ Auto-connected to Joyride nREPL
+[info] 🚀 MCP-nREPL proxy server starting (HTTP)
+[info] 📡 Listening for HTTP MCP requests on port3000
+[info] 🔗 MCP endpoint: http://localhost:3000/mcp
+[info] 💚 Health check: http://localhost:3000/health
+[error] 💥 HTTP server error:Address already in use
