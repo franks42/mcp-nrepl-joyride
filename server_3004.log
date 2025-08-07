@@ -81,3 +81,7 @@ Started nREPL server at 0.0.0.0:7889
 [debug] Handling request:tools/call
 [debug] Calling tool:nrepl-statuswith args:{}
 [debug] 📤 HTTP response for method:tools/call
+[debug] 📥 HTTP request::get/health
+[debug] 📥 HTTP request::get/health
+[debug] 📥 HTTP request::get/health
+[info] 🛑 Shutting down HTTP server...

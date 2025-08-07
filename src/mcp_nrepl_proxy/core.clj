@@ -1119,7 +1119,7 @@
   "Handle MCP tools/list request"
   [request]
   {:jsonrpc "2.0"
-   :id (:id request)
+   :id (or (:id request) (str (System/currentTimeMillis)))
    :result {:tools tool-definitions}})
 
 (defn- handle-call-tool
@@ -1131,12 +1131,12 @@
       (log :debug "Calling tool:" tool-name "with args:" args)
       (let [result (call-tool tool-name args)]
         {:jsonrpc "2.0"
-         :id (:id request)
+         :id (or (:id request) (str (System/currentTimeMillis)))
          :result result}))
     (catch Exception e
       (log :error "Tool call failed:" (.getMessage e))
       {:jsonrpc "2.0"
-       :id (:id request)
+       :id (or (:id request) (str (System/currentTimeMillis)))
        :error {:code -32603
                :message "Internal error"
                :data {:error (.getMessage e)}}})))
@@ -1145,7 +1145,7 @@
   "Handle MCP initialize request"
   [request]
   {:jsonrpc "2.0"
-   :id (:id request)
+   :id (or (:id request) (str (System/currentTimeMillis)))
    :result {:protocolVersion "2024-11-05"
             :capabilities {:tools {}
                           :resources {}}
@@ -1158,7 +1158,7 @@
   [request]
   (let [commands (:recent-commands @state)]
     {:jsonrpc "2.0"
-     :id (:id request)
+     :id (or (:id request) (str (System/currentTimeMillis)))
      :result {:resources (map-indexed
                           (fn [idx cmd]
                             {:uri (str "nrepl://commands/" idx)
@@ -1176,16 +1176,16 @@
       (let [idx (Integer/parseInt (second match))]
         (if (< idx (count commands))
           {:jsonrpc "2.0"
-           :id (:id request)
+           :id (or (:id request) (str (System/currentTimeMillis)))
            :result {:contents [{:uri uri
                                :mimeType "application/json"
                                :text (json/generate-string (nth commands idx) {:pretty true})}]}}
           {:jsonrpc "2.0"
-           :id (:id request)
+           :id (or (:id request) (str (System/currentTimeMillis)))
            :error {:code -32602
                    :message "Resource not found"}}))
       {:jsonrpc "2.0"
-       :id (:id request)
+       :id (or (:id request) (str (System/currentTimeMillis)))
        :error {:code -32602
                :message "Invalid resource URI"}})))
 
@@ -1201,7 +1201,7 @@
     "resources/read" (handle-read-resource request)
     ;; Unknown method
     {:jsonrpc "2.0"
-     :id (:id request)
+     :id (or (:id request) (str (System/currentTimeMillis)))
      :error {:code -32601
              :message "Method not found"}}))
 
@@ -1226,7 +1226,7 @@
               (let [request (json/parse-string line true)]
                 (println (json/generate-string
                           {:jsonrpc "2.0"
-                           :id (:id request)
+                           :id (or (:id request) (str (System/currentTimeMillis)))
                            :error {:code -32700
                                    :message "Parse error"}})))
               (catch Exception _
@@ -1336,15 +1336,25 @@
     (start-heartbeat-monitor)
     
     ;; Start Babashka nREPL server for Calva introspection
+    (when false ;; TEMPORARILY DISABLED - debugging JSON output issue
     (when-let [bb-nrepl-port (:babashka-nrepl-port config)]
       (try
         (log :info "🔧 Starting Babashka nREPL server on port:" bb-nrepl-port)
-        (let [server (nrepl-server/start-server! {:port bb-nrepl-port})]
+        (let [server (let [captured-output (atom "")
+                           original-out *out*]
+                       (binding [*out* (java.io.StringWriter.)]
+                         (let [result (nrepl-server/start-server! {:port bb-nrepl-port})]
+                           (reset! captured-output (str *out*))
+                           ;; Log captured output to stderr
+                           (when (seq @captured-output)
+                             (binding [*out* *err*]
+                               (print @captured-output)))
+                           result)))]
           (swap! state assoc :babashka-nrepl-server server)
           (log :info "✅ Babashka nREPL server started - connect Calva to localhost:" bb-nrepl-port)
           (spit ".nrepl-port-babashka" bb-nrepl-port))
         (catch Exception e
-          (log :warn "⚠️  Failed to start Babashka nREPL server:" (.getMessage e)))))
+          (log :warn "⚠️  Failed to start Babashka nREPL server:" (.getMessage e))))))
     
     ;; Try to auto-discover and connect to Joyride nREPL
     (when-let [nrepl-port (or (some->> (System/getenv "NREPL_PORT") Integer/parseInt)
