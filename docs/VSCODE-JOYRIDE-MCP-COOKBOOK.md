@@ -113,6 +113,9 @@ Configure VS Code settings.json:
 # Start MCP-nREPL bridge connecting to Joyride
 ./start-mcp-http-server.sh --port 7889
 
+# Run comprehensive health check
+python3 ./mcp_nrepl_client.py --tool nrepl-health-check --quiet
+
 # Verify connection
 python3 ./mcp_nrepl_client.py --eval "(+ 1 2 3)" --quiet
 # Result: 6
@@ -675,6 +678,32 @@ python3 ./mcp_nrepl_client.py --eval "
 ```
 
 ## Part 10: Troubleshooting and Best Practices
+
+### Comprehensive Health Check
+
+Start troubleshooting with the comprehensive health check tool:
+
+```bash
+# Full diagnostic report
+python3 ./mcp_nrepl_client.py --tool nrepl-health-check
+
+# Quick health check without performance tests
+python3 ./mcp_nrepl_client.py --tool nrepl-health-check --args '{"include_performance": false}'
+
+# Detailed verbose output
+python3 ./mcp_nrepl_client.py --tool nrepl-health-check --args '{"verbose": true}'
+```
+
+### Understanding Health Check Results for Joyride
+
+The health check will typically show:
+
+- ✅ **Connection Health**: Should be fully operational
+- ⚠️ **Environment Diagnostics**: May show limitations (Math/round not available)
+- ✅ **Core Functionality**: Basic evaluation should work
+- ⚠️ **Tool Integration**: Advanced operations may be unsupported (normal for Joyride)
+- ⚠️ **Performance**: Some benchmarks may fail due to missing libraries
+- ✅ **Configuration**: Server settings should be valid
 
 ### Common Issues
 

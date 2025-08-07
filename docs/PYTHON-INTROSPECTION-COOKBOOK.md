@@ -29,7 +29,8 @@ if os.getenv('ENABLE_NREPL') == 'true':
 # Start your Python app with nREPL enabled
 ENABLE_NREPL=true python your_app.py
 
-# Connect via our MCP client  
+# Connect via our MCP client and run health check
+python3 ./mcp_nrepl_client.py --tool nrepl-health-check --quiet
 python3 ./mcp_nrepl_client.py --eval "(+ 1 2 3)" --quiet
 ```
 
@@ -62,6 +63,10 @@ python3 ./mcp_nrepl_client.py --tool nrepl-status
 # Error Handling & Debugging  
 python3 ./mcp_nrepl_client.py --tool nrepl-stacktrace
 python3 ./mcp_nrepl_client.py --tool nrepl-interrupt
+
+# System Diagnostics
+python3 ./mcp_nrepl_client.py --tool nrepl-health-check
+python3 ./mcp_nrepl_client.py --tool nrepl-health-check --args '{"include_performance": true, "verbose": true}'
 
 # Connection Management
 python3 ./mcp_nrepl_client.py --tool nrepl-connect --args '{"port": 7888}'
@@ -720,6 +725,85 @@ These tools would internally use our nREPL infrastructure while providing a more
 (safe-getattr python/app "config" "No config found")
 ```
 
+## System Health Monitoring
+
+### Comprehensive Health Checks
+
+Use the health check tool to diagnose system issues:
+
+```bash
+# Full system diagnostic
+python3 ./mcp_nrepl_client.py --tool nrepl-health-check
+
+# Quick health check (skip performance tests)
+python3 ./mcp_nrepl_client.py --tool nrepl-health-check --args '{"include_performance": false}'
+
+# Detailed verbose output for debugging
+python3 ./mcp_nrepl_client.py --tool nrepl-health-check --args '{"verbose": true, "include_performance": true}'
+```
+
+### Understanding Health Check Results for Python Applications
+
+The health check provides diagnostics across 6 categories:
+
+1. **🔧 Environment Diagnostics**
+   - Python version, system info, memory usage
+   - JVM details (if applicable), available libraries
+
+2. **🔌 Connection Health** 
+   - nREPL server connectivity and response times
+   - Available operations and protocol version
+
+3. **⚙️ Core Functionality**
+   - Basic evaluation, Python interop, data structures
+   - String operations and mathematical functions
+
+4. **🔗 Tool Integration**
+   - Advanced nREPL operations (doc, source, completion)
+   - Session management and introspection capabilities
+
+5. **⚡ Performance Benchmarks**
+   - Evaluation speed across multiple iterations
+   - Complex computation performance
+
+6. **🛠️ Configuration Status**
+   - Server settings, debug mode, operational parameters
+
+### Interpreting Health Results
+
+```bash
+# Example health check interpretation for Python apps:
+# ✅ Connection Health: nREPL server responding normally
+# ✅ Environment: Full Basilisp environment with Python interop
+# ✅ Core Functionality: All basic operations working
+# ✅ Tool Integration: All introspection tools available
+# ✅ Performance: Meeting performance benchmarks  
+# ✅ Configuration: Optimal server configuration
+```
+
+### Using Health Check for Python Troubleshooting
+
+**Performance Issues:**
+```bash
+# Focus on performance diagnostics
+python3 ./mcp_nrepl_client.py --tool nrepl-health-check --args '{"include_performance": true}'
+# Look for: Performance Benchmarks section results
+```
+
+**Connection Problems:**
+```bash
+# Quick connection test
+python3 ./mcp_nrepl_client.py --tool nrepl-health-check --args '{"include_performance": false}'
+# Look for: Connection Health section status
+```
+
+**Python Interop Issues:**
+```bash
+# Detailed environment analysis
+python3 ./mcp_nrepl_client.py --tool nrepl-health-check --args '{"verbose": true}'
+# Look for: Environment Diagnostics and Core Functionality sections
+```
+
 ## Future Enhancements
 
 ### Recently Implemented nREPL Tools ✅
@@ -731,6 +815,7 @@ These tools would internally use our nREPL infrastructure while providing a more
 - ✅ `nrepl-require` - Load namespaces and utilities dynamically
 - ✅ `nrepl-stacktrace` - Debug errors with detailed stack traces
 - ✅ `nrepl-interrupt` - Stop long-running introspection operations
+- ✅ `nrepl-health-check` - Comprehensive system diagnostics with 6 categories
 
 ### Potential Future nREPL Tools
 

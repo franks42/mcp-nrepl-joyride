@@ -352,3 +352,62 @@ ast = mcp__tree_sitter__get_ast(...)
 - **More maintainable code** following project conventions
 
 **Remember**: Tree-sitter gives you IDE-level understanding without an IDE!
+
+## 🏥 Comprehensive Health Check System
+
+**Latest Enhancement**: Full diagnostic system for troubleshooting and monitoring.
+
+### Health Check Features (✅ IMPLEMENTED)
+- **🔧 Environment Diagnostics**: System info, memory, versions, runtime details
+- **🔌 Connection Health**: nREPL server status, available operations, response times  
+- **⚙️ Core Functionality**: Basic evaluation, data structures, operations testing
+- **🔗 Tool Integration**: Advanced nREPL operations (doc, source, completion)
+- **⚡ Performance Benchmarks**: Multi-iteration evaluation speed testing
+- **🛠️ Configuration Status**: Server settings, debug mode, operational parameters
+
+### Health Check Usage
+```bash
+# Full diagnostic report
+python3 ./mcp_nrepl_client.py --tool nrepl-health-check
+
+# Quick check (skip performance tests)  
+python3 ./mcp_nrepl_client.py --tool nrepl-health-check --args '{"include_performance": false}'
+
+# Detailed verbose output
+python3 ./mcp_nrepl_client.py --tool nrepl-health-check --args '{"verbose": true}'
+```
+
+### Health Check Results Interpretation
+
+**Color-Coded Status:**
+- 🟢 **Green**: All systems operational
+- 🟡 **Yellow**: Partial functionality (degraded but usable)  
+- 🔴 **Red**: Critical issues requiring attention
+
+**Environment-Specific Results:**
+- **Joyride**: Expects some limitations (Math/round, str/join, limited nREPL ops)
+- **Python/Basilisp**: Should show full functionality across all categories
+- **Standard Clojure**: Complete nREPL operation support expected
+
+### Integration in Development Workflows
+
+**Always start sessions with:**
+```bash
+python3 ./mcp_nrepl_client.py --tool nrepl-health-check --quiet
+```
+
+**For troubleshooting:**
+1. **Connection issues** → Check Connection Health section
+2. **Performance problems** → Review Performance Benchmarks  
+3. **Missing operations** → Examine Tool Integration status
+4. **Environment errors** → Analyze Environment Diagnostics
+
+### Cookbook Integration
+
+Health check documentation has been integrated into all three main cookbooks:
+
+1. **AI Assistant MCP Cookbook** - Added as first step in environment discovery
+2. **VS Code Joyride MCP Cookbook** - Troubleshooting section with Joyride-specific expectations
+3. **Python Introspection Cookbook** - System monitoring with Python-specific diagnostics
+
+**Key Achievement**: Provides unified diagnostic approach across all deployment scenarios (Joyride, Python, standard Clojure) with environment-aware result interpretation.

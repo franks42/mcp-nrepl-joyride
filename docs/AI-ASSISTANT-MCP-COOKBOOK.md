@@ -12,10 +12,11 @@ This cookbook is designed specifically for **AI assistants** (Claude, GPT, etc.)
 - No ability to run bash commands or access local filesystems directly
 
 **✅ What AI Assistants DO Have:**
-- Direct access to all 13 MCP function calls through the protocol
+- Direct access to all 14 MCP function calls through the protocol
 - Ability to call functions with JSON parameters
 - Full access to nREPL evaluation and introspection capabilities
 - Session management and error handling through MCP tools
+- Comprehensive system diagnostics and health monitoring
 
 ## Available MCP Functions
 
@@ -59,6 +60,10 @@ nrepl-new-session()
 // Error Handling
 nrepl-stacktrace()
 nrepl-interrupt()
+
+// System Diagnostics
+nrepl-health-check()
+nrepl-health-check({include_performance: false, verbose: true})
 ```
 
 ## AI Assistant Development Workflows
@@ -68,13 +73,16 @@ nrepl-interrupt()
 **Goal:** Understand the current nREPL environment and capabilities
 
 ```javascript
-// 1. Check connection status
+// 1. Run comprehensive health check first
+nrepl-health-check()
+
+// 2. Check connection status
 nrepl-status()
 
-// 2. Test basic functionality
+// 3. Test basic functionality
 nrepl-test()
 
-// 3. Discover current namespace and environment
+// 4. Discover current namespace and environment
 nrepl-eval({code: "*ns*"})
 nrepl-eval({code: "(clojure-version)"})
 nrepl-eval({code: "(keys (ns-publics *ns*))"})
@@ -260,6 +268,82 @@ nrepl-eval({code: "(py-performance-snapshot)"})
 // 4. Module analysis
 nrepl-eval({code: "(py-list-app-modules \"myapp\")"})
 nrepl-eval({code: "(py-module-info \"myapp.models\")"})
+```
+
+## Comprehensive System Health Monitoring
+
+The `nrepl-health-check` tool provides detailed diagnostics across 6 categories:
+
+### Running Health Checks
+
+```javascript
+// Basic health check
+nrepl-health-check()
+
+// Detailed health check with performance benchmarks
+nrepl-health-check({include_performance: true, verbose: true})
+
+// Quick check without performance testing
+nrepl-health-check({include_performance: false})
+```
+
+### Understanding Health Check Results
+
+The health check provides color-coded diagnostics:
+
+- **🟢 Green**: All systems operational
+- **🟡 Yellow**: Partial functionality (degraded but usable)
+- **🔴 Red**: Critical issues requiring attention
+
+**Six Diagnostic Categories:**
+
+1. **🔧 Environment Diagnostics**: System info, memory, versions
+2. **🔌 Connection Health**: nREPL server status, available operations
+3. **⚙️ Core Functionality**: Basic evaluation capabilities
+4. **🔗 Tool Integration**: Advanced nREPL operations
+5. **⚡ Performance Benchmarks**: Responsiveness and throughput
+6. **🛠️ Configuration Status**: Server settings and parameters
+
+### Interpreting Health Check Output
+
+```javascript
+// Example health check interpretation:
+// ✅ Connection Health: nREPL server responding normally
+// ⚠️ Tool Integration: Some operations not supported (normal for Joyride)
+// ❌ Environment: Math operations limited (platform-specific)
+```
+
+### Using Health Check for Troubleshooting
+
+```javascript
+// If experiencing issues, run diagnostics first
+nrepl-health-check({verbose: true})
+
+// Check specific categories:
+// - Connection issues → Look at Connection Health section
+// - Performance problems → Review Performance Benchmarks
+// - Missing operations → Check Tool Integration status
+// - Environment errors → Examine Environment Diagnostics
+```
+
+### Health Check in Development Workflows
+
+**Start of session:**
+```javascript
+// Always begin with health check to understand environment
+nrepl-health-check()
+```
+
+**During development:**
+```javascript
+// If operations start failing unexpectedly
+nrepl-health-check({include_performance: false}) // Quick check
+```
+
+**Performance monitoring:**
+```javascript
+// For performance-sensitive applications
+nrepl-health-check({include_performance: true, verbose: true})
 ```
 
 ## Best Practices for AI Assistants
