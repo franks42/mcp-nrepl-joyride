@@ -711,8 +711,11 @@
   [{:keys [op port port-path]}]
   (let [op (keyword op)
         port (or port 7889)
-        port-path (or port-path ".babashka-nrepl-port")
-        log-path ".babashka-nrepl.log"
+        port-path (or port-path 
+                     (if (fs/writable? ".")
+                       ".babashka-nrepl-port"
+                       (str (System/getProperty "java.io.tmpdir") "/babashka-nrepl-port")))
+        log-path (str (System/getProperty "java.io.tmpdir") "/babashka-nrepl.log")
         workspace (get-in @state [:config :workspace])]
     (case op
       :start
@@ -727,7 +730,11 @@
                           {:pretty true})}]}
         (try
           ;; Redirect stdout to log file during server startup
-          (let [log-writer (java.io.FileWriter. log-path true)
+          (let [log-writer (try 
+                            (java.io.FileWriter. log-path true)
+                            (catch Exception e
+                              (log :warn "Cannot write to log file" log-path "- using stderr instead")
+                              (java.io.OutputStreamWriter. System/err)))
                 original-out System/out
                 log-stream (java.io.PrintStream. 
                            (proxy [java.io.OutputStream] []
@@ -747,7 +754,7 @@
                                     (spit port-path (str port))
                                     true
                                     (catch Exception e
-                                      (log :warn "Could not write port file:" (.getMessage e))
+                                      (log :warn "Could not write port file to" port-path ":" (.getMessage e))
                                       false))]
                   {:content [{:type "text"
                              :text (json/generate-string
