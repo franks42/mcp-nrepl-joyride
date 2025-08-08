@@ -65,7 +65,8 @@ uv run python mcp_nrepl_client.py --help
 uv run python mcp_nrepl_client.py --eval "(+ 1 2 3)"
 uv run python mcp_nrepl_client.py --eval "(* 6 7)"
 
-# Check current environment
+# Check current environment - namespace may vary by nREPL server
+# Could be 'user', 'mcp-nrepl-proxy.core', 'test.example' - all valid!
 uv run python mcp_nrepl_client.py --eval "*ns*"
 uv run python mcp_nrepl_client.py --eval "(clojure-version)"
 

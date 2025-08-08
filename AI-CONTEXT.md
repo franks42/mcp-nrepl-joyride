@@ -40,13 +40,18 @@ nrepl-eval({code: "(keys (ns-publics *ns*))"})
 
 ### Phase 2: Explore Before Acting
 ```javascript
-// 3. Discover relevant functions
+// 3. **Important: Check initial namespace** - may vary by environment
+// Could be 'user' (standard), 'mcp-nrepl-proxy.core', or 'test.example'
+// All are valid - no need to change unless required for your task
+nrepl-eval({code: "*ns*"})
+
+// 4. Discover relevant functions
 nrepl-apropos({query: "keyword-related-to-task"})
 
-// 4. Get documentation for unfamiliar functions
+// 5. Get documentation for unfamiliar functions
 nrepl-doc({symbol: "function-name"})
 
-// 5. Check if you need additional namespaces
+// 6. Check if you need additional namespaces
 nrepl-require({namespace: "clojure.string", as: "str"})
 ```
 
@@ -139,16 +144,25 @@ nrepl-eval({code: "(str \"hello \" \"world\")"}) // Test string operations
 
 ### DO:
 - **Always call `nrepl-health-check()` first** - This gives you environment context
+- **Check initial namespace** with `nrepl-eval({code: "*ns*"})` - could be 'user', 'mcp-nrepl-proxy.core', or others
 - **Start with simple expressions** before building complex solutions
 - **Use `nrepl-doc` and `nrepl-apropos`** to discover available functions
 - **Test incrementally** - evaluate small pieces and build up
 - **Handle errors gracefully** with `nrepl-stacktrace()`
 
 ### DON'T:
+- Don't assume you'll be in 'user' namespace - check first and work with whatever you find
 - Don't assume specific libraries are available - check with `nrepl-apropos`
 - Don't write long complex expressions without testing parts first
 - Don't ignore errors - always investigate with `nrepl-stacktrace()`
 - Don't forget to load required namespaces with `nrepl-require`
+
+### 📋 **Namespace Notes:**
+Different nREPL servers start in different namespaces:
+- **'user'** - Standard Clojure nREPL behavior
+- **'mcp-nrepl-proxy.core'** - Babashka nREPL server context
+- **'test.example'** - Test environments
+- **All are valid!** - Work with whatever namespace you connect to
 
 ## 🔍 Example: Complete AI Workflow
 

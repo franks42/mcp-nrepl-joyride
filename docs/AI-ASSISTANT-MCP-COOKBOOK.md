@@ -101,7 +101,8 @@ nrepl-status()
 // 4. Test basic functionality  
 nrepl-test()
 
-// 5. Discover current namespace and environment
+// 5. **IMPORTANT: Check initial namespace** - varies by nREPL server
+// Could be 'user', 'mcp-nrepl-proxy.core', 'test.example' - all valid!
 nrepl-eval({code: "*ns*"})
 nrepl-eval({code: "(clojure-version)"})
 nrepl-eval({code: "(keys (ns-publics *ns*))"})
@@ -364,6 +365,48 @@ nrepl-health-check({include_performance: false}) // Quick check
 // For performance-sensitive applications
 nrepl-health-check({include_performance: true, verbose: true})
 ```
+
+## Important: Namespace Expectations
+
+### 🔍 **Initial Namespace Varies by Environment**
+
+When you connect to an nREPL server, **don't assume you'll be in the 'user' namespace**. The initial namespace depends on the server implementation:
+
+```javascript
+// ALWAYS check first - could be any of these valid namespaces:
+nrepl-eval({code: "*ns*"})
+
+// Possible results:
+// - 'user'                 (Standard Clojure nREPL)
+// - 'mcp-nrepl-proxy.core' (Babashka nREPL server)  
+// - 'test.example'         (Test environments)
+// - Other project namespaces
+```
+
+### ✅ **All Namespaces Are Valid**
+
+**Don't try to "fix" the namespace** - work with whatever you find:
+
+```javascript
+// ✅ GOOD: Check and work with current namespace
+nrepl-eval({code: "*ns*"})                    // See where you are
+nrepl-eval({code: "(keys (ns-publics *ns*))"}) // See what's available
+
+// ✅ GOOD: Switch if needed for your task
+nrepl-eval({code: "(in-ns 'user)"}) // Only if specifically required
+
+// ❌ AVOID: Assuming or forcing a specific namespace
+// nrepl-eval({code: "(in-ns 'user)"}) // Don't do this automatically
+```
+
+### 🔄 **Namespace Context is Environment-Specific**
+
+- **Joyride nREPL**: Often starts in project namespace with VS Code APIs available
+- **Babashka nREPL**: Starts in server context with system utilities  
+- **Standard Clojure nREPL**: Typically starts in 'user' with core functions
+- **Test environments**: May start in test-specific namespaces
+
+**The key**: Explore what's available rather than changing where you are.
 
 ## Best Practices for AI Assistants
 
