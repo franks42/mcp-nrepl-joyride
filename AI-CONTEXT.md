@@ -29,6 +29,8 @@ You (AI) → MCP Functions → nREPL Client → Joyride nREPL → VS Code APIs
 ### Phase 1: Always Start Here (MANDATORY)
 ```javascript
 // 1. Run health check to understand environment
+// TIP: If no nREPL server connected, start built-in server first:
+// babashka-nrepl({op: "start"})
 nrepl-health-check()
 
 // 2. Check what's available in current namespace

@@ -832,7 +832,7 @@
                            "through the nREPL protocol. It provides 15 MCP functions for executing Clojure code, "
                            "controlling VS Code through Joyride, exploring codebases, and building interactive applications.\n\n"
                            "## Essential First Steps\n\n"
-                           "1. **Always start with `nrepl-health-check()`** to understand your environment\n"
+                           "1. **Always start with `nrepl-health-check()`** to understand your environment (if no nREPL server connected, use `babashka-nrepl({op: 'start'})` first)\n"
                            "2. **Check current namespace** with `nrepl-eval({code: \"*ns*\"})`\n"
                            "3. **Discover available functions** with `nrepl-apropos({query: \"keyword\"})`\n"
                            "4. **Get documentation** with `nrepl-doc({symbol: \"function-name\"})`\n\n"
@@ -1176,7 +1176,7 @@
     :inputSchema {:type "object"}}
 
    {:name "nrepl-health-check"
-    :description "COMPREHENSIVE DIAGNOSTICS: Run detailed system health analysis across 6 categories - environment, connectivity, functionality, integration, performance, and configuration. Use this for troubleshooting, performance analysis, or when starting work in a new environment. Essential first step for AI assistants. RETURNS: Color-coded diagnostic report with detailed status, timing, and recommendations."
+    :description "COMPREHENSIVE DIAGNOSTICS: Run detailed system health analysis across 6 categories - environment, connectivity, functionality, integration, performance, and configuration. Use this for troubleshooting, performance analysis, or when starting work in a new environment. Essential first step for AI assistants. TIP: If no nREPL server is connected, start the built-in Babashka nREPL server first with babashka-nrepl({op: 'start'}) for testing. RETURNS: Color-coded diagnostic report with detailed status, timing, and recommendations."
     :inputSchema {:type "object"
                   :properties {:include-performance {:type "boolean" :description "Include performance benchmarks (default: true)"}
                               :include-integration {:type "boolean" :description "Include integration tests (default: true)"}
