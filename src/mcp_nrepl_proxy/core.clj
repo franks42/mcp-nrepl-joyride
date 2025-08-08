@@ -366,7 +366,53 @@
                             {:success (and (:out result) (str/includes? (:out result) "test-output"))
                              :result (if (and (:out result) (str/includes? (:out result) "test-output"))
                                       "✅ Output handling: println captured correctly"
-                                      (str "❌ Output not captured, got: " (:out result)))}))}]]
+                                      (str "❌ Output not captured, got: " (:out result)))}))}
+               
+               {:name "Babashka nREPL Server"
+                :test-fn (fn []
+                          (try
+                            ;; Start server if not running
+                            (when-not (:babashka-nrepl-server @state)
+                              (log :info "Starting Babashka nREPL server for testing...")
+                              ;; Start server directly without using tool function
+                              (try
+                                (let [server (nrepl-server/start-server! {:port 7889})]
+                                  (swap! state assoc 
+                                         :babashka-nrepl-server server
+                                         :babashka-nrepl-port 7889)
+                                  (log :info "✅ Babashka nREPL server started for testing"))
+                                (catch Exception e
+                                  (log :warn "Failed to start Babashka server:" (.getMessage e)))))
+                            
+                            ;; Test connection to Babashka nREPL
+                            (if-let [bb-port (:babashka-nrepl-port @state)]
+                              (try
+                                (log :info "Testing Babashka nREPL connection on port" bb-port)
+                                (let [bb-conn (nrepl/connect "localhost" bb-port)
+                                      ;; Test basic evaluation
+                                      eval-result (nrepl/eval-code bb-conn "(* 7 6)")
+                                      eval-success (= "42" (:value eval-result))
+                                      ;; Test Babashka-specific functionality
+                                      bb-check (nrepl/eval-code bb-conn "(System/getProperty \"babashka.version\")")
+                                      has-bb-version (some? (:value bb-check))
+                                      ;; Test self-connection capability
+                                      self-test (nrepl/eval-code bb-conn "(require '[babashka.nrepl.server]) ::loaded")
+                                      self-success (= ":user/loaded" (:value self-test))]
+                                  ;; Test connection cleanup - simple close if possible
+                                  (try (.close bb-conn) (catch Exception _))
+                                  {:success (and eval-success has-bb-version self-success)
+                                   :result (str "✅ Babashka server: eval=" eval-success 
+                                              ", version=" has-bb-version 
+                                              ", self-conn=" self-success 
+                                              " (port " bb-port ")")})
+                                (catch Exception e
+                                  {:success false
+                                   :result (str "❌ Babashka connection failed: " (.getMessage e))}))
+                              {:success false
+                               :result "❌ Babashka server not started"})
+                            (catch Exception e
+                              {:success false
+                               :result (str "❌ Babashka test error: " (.getMessage e))})))}]]
     
     (reduce (fn [acc test]
               (try
@@ -658,6 +704,126 @@
            :isError true}))
       {:content [{:type "text"
                  :text "❌ No nREPL connection available. Use nrepl-connect first."}]
+       :isError true})))
+
+(defn- tool-babashka-nrepl
+  "Manage Babashka nREPL server for debugging tools"
+  [{:keys [op port port-path]}]
+  (let [op (keyword op)
+        port (or port 7889)
+        port-path (or port-path ".babashka-nrepl-port")
+        log-path ".babashka-nrepl.log"
+        workspace (get-in @state [:config :workspace])]
+    (case op
+      :start
+      (if (:babashka-nrepl-server @state)
+        {:content [{:type "text"
+                   :text (json/generate-string
+                          {:status "already-running"
+                           :port (:babashka-nrepl-port @state)
+                           :port-file (fs/absolutize port-path)
+                           :log-file (fs/absolutize log-path)
+                           :message "Babashka nREPL server is already running"}
+                          {:pretty true})}]}
+        (try
+          ;; Redirect stdout to log file during server startup
+          (let [log-writer (java.io.FileWriter. log-path true)
+                original-out System/out
+                log-stream (java.io.PrintStream. 
+                           (proxy [java.io.OutputStream] []
+                             (write 
+                               ([b] (.write log-writer (String. (byte-array [b]))))
+                               ([b off len] (.write log-writer (String. b off len))))))]
+            ;; Start server with stdout redirected
+            (System/setOut log-stream)
+            (try
+              (let [server (nrepl-server/start-server! {:port port})]
+                (System/setOut original-out)
+                (swap! state assoc 
+                       :babashka-nrepl-server server
+                       :babashka-nrepl-port port)
+                ;; Try to write port file
+                (let [port-written (try
+                                    (spit port-path (str port))
+                                    true
+                                    (catch Exception e
+                                      (log :warn "Could not write port file:" (.getMessage e))
+                                      false))]
+                  {:content [{:type "text"
+                             :text (json/generate-string
+                                    {:status "started"
+                                     :port port
+                                     :port-file (if port-written
+                                                 (str (fs/absolutize port-path))
+                                                 nil)
+                                     :port-file-writable port-written
+                                     :log-file (str (fs/absolutize log-path))
+                                     :message (str "✅ Babashka nREPL server started on port " port
+                                                 "\nConnect Calva to: localhost:" port
+                                                 (when-not port-written 
+                                                   "\n⚠️  Could not write port file"))}
+                                    {:pretty true})}]}))
+              (catch Exception e
+                (System/setOut original-out)
+                (throw e))))
+          (catch Exception e
+            (log :error "Failed to start Babashka nREPL server:" (.getMessage e))
+            {:content [{:type "text"
+                       :text (json/generate-string
+                              {:status "error"
+                               :error (.getMessage e)
+                               :message (str "❌ Failed to start server: " (.getMessage e))}
+                              {:pretty true})}]
+             :isError true})))
+      
+      :stop
+      (if-let [server (:babashka-nrepl-server @state)]
+        (try
+          (.close server)
+          (swap! state dissoc :babashka-nrepl-server :babashka-nrepl-port)
+          ;; Try to remove port file
+          (try (fs/delete port-path) (catch Exception _))
+          {:content [{:type "text"
+                     :text (json/generate-string
+                            {:status "stopped"
+                             :message "✅ Babashka nREPL server stopped"}
+                            {:pretty true})}]}
+          (catch Exception e
+            {:content [{:type "text"
+                       :text (json/generate-string
+                              {:status "error"
+                               :error (.getMessage e)
+                               :message (str "❌ Error stopping server: " (.getMessage e))}
+                              {:pretty true})}]
+             :isError true}))
+        {:content [{:type "text"
+                   :text (json/generate-string
+                          {:status "not-running"
+                           :message "No Babashka nREPL server is running"}
+                          {:pretty true})}]})
+      
+      :status
+      (let [running (boolean (:babashka-nrepl-server @state))
+            port (:babashka-nrepl-port @state)]
+        {:content [{:type "text"
+                   :text (json/generate-string
+                          {:status (if running "running" "stopped")
+                           :running running
+                           :port (when running port)
+                           :port-file (when running (str (fs/absolutize port-path)))
+                           :log-file (when running (str (fs/absolutize log-path)))
+                           :message (if running
+                                     (str "✅ Babashka nREPL server running on port " port)
+                                     "⚠️  Babashka nREPL server is not running")}
+                          {:pretty true})}]})
+      
+      ;; Invalid operation
+      {:content [{:type "text"
+                 :text (json/generate-string
+                        {:status "error"
+                         :error "Invalid operation"
+                         :message (str "❌ Invalid operation: " op ". Use 'start', 'stop', or 'status'")}
+                        {:pretty true})}]
        :isError true})))
 
 (defn- tool-get-mcp-nrepl-context
@@ -1091,7 +1257,15 @@
                   
    {:name "get-mcp-nrepl-context"
     :description "🚨 MANDATORY FIRST STEP: Get comprehensive context document that explains the MCP-nREPL server's purpose, architecture, and workflows. AI assistants MUST read this context before using any other MCP functions to understand what this server does, how the 15 functions work together, and essential patterns for success. CRITICAL: This provides the roadmap for effective usage. RETURNS: Complete markdown context document with examples, use cases, and best practices."
-    :inputSchema {:type "object"}}])
+    :inputSchema {:type "object"}}
+                  
+   {:name "babashka-nrepl"
+    :description "DEVELOPMENT TOOLS: Manage Babashka nREPL server for debugging and introspection. Start/stop/status operations for the integrated Babashka server that enables Calva and other tools to connect for development. Use 'start' to launch server, 'stop' to shut down, 'status' to check current state. RETURNS: JSON status with port, files, and connection details."
+    :inputSchema {:type "object"
+                  :properties {:op {:type "string" :enum ["start" "stop" "status"] :description "Operation: start, stop, or status"}
+                              :port {:type "number" :description "Port number (default: 7889)"}
+                              :port-path {:type "string" :description "Path to port file (default: .babashka-nrepl-port)"}}
+                  :required ["op"]}}])
 
 (defn- call-tool 
   "Execute an MCP tool by name"
@@ -1112,6 +1286,7 @@
     "nrepl-stacktrace" (tool-nrepl-stacktrace args)
     "nrepl-health-check" (tool-nrepl-health-check args)
     "get-mcp-nrepl-context" (tool-get-mcp-nrepl-context args)
+    "babashka-nrepl" (tool-babashka-nrepl args)
     {:content [{:type "text" :text (str "❌ Unknown tool: " tool-name)}]
      :isError true}))
 
