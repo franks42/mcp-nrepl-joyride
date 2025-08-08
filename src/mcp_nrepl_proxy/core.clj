@@ -376,7 +376,7 @@
                               (log :info "Starting Babashka nREPL server for testing...")
                               ;; Start server directly without using tool function
                               (try
-                                (let [server (nrepl-server/start-server! {:port 7889})]
+                                (let [server (nrepl-server/start-server! {:port 7889 :quiet true})]
                                   (swap! state assoc 
                                          :babashka-nrepl-server server
                                          :babashka-nrepl-port 7889)
@@ -729,53 +729,32 @@
                            :message "Babashka nREPL server is already running"}
                           {:pretty true})}]}
         (try
-          ;; Redirect stdout to log file during server startup
-          (let [log-writer (try 
-                            (java.io.FileWriter. log-path true)
-                            (catch Exception e
-                              (log :warn "Cannot write to log file" log-path "- using stderr instead")
-                              (java.io.OutputStreamWriter. System/err)))
-                original-out System/out
-                log-stream (java.io.PrintStream. 
-                           (proxy [java.io.OutputStream] []
-                             (write 
-                               ([b] (.write log-writer (String. (byte-array [b]))))
-                               ([b off len] (.write log-writer (String. b off len))))))]
-            ;; Start server with stdout redirected  
-            (System/setOut log-stream)
-            (System/setErr log-stream) ;; Also redirect stderr
-            (try
-              (let [server (nrepl-server/start-server! {:port port})]
-                (System/setOut original-out)
-                (System/setErr System/err)
-                (swap! state assoc 
-                       :babashka-nrepl-server server
-                       :babashka-nrepl-port port)
-                ;; Try to write port file
-                (let [port-written (try
-                                    (spit port-path (str port))
-                                    true
-                                    (catch Exception e
-                                      (log :warn "Could not write port file to" port-path ":" (.getMessage e))
-                                      false))]
-                  {:content [{:type "text"
-                             :text (json/generate-string
-                                    {:status "started"
-                                     :port port
-                                     :port-file (if port-written
-                                                 (str (fs/absolutize port-path))
-                                                 nil)
-                                     :port-file-writable port-written
-                                     :log-file (str (fs/absolutize log-path))
-                                     :message (str "✅ Babashka nREPL server started on port " port
-                                                 "\nConnect Calva to: localhost:" port
-                                                 (when-not port-written 
-                                                   "\n⚠️  Could not write port file"))}
-                                    {:pretty true})}]}))
-              (catch Exception e
-                (System/setOut original-out)
-                (System/setErr System/err)
-                (throw e))))
+          ;; Start server with quiet option to suppress stdout
+          (let [server (nrepl-server/start-server! {:port port :quiet true})]
+            (swap! state assoc 
+                   :babashka-nrepl-server server
+                   :babashka-nrepl-port port)
+            ;; Try to write port file
+            (let [port-written (try
+                                (spit port-path (str port))
+                                true
+                                (catch Exception e
+                                  (log :warn "Could not write port file to" port-path ":" (.getMessage e))
+                                  false))]
+              {:content [{:type "text"
+                         :text (json/generate-string
+                                {:status "started"
+                                 :port port
+                                 :port-file (if port-written
+                                             (str (fs/absolutize port-path))
+                                             nil)
+                                 :port-file-writable port-written
+                                 :log-file (str (fs/absolutize log-path))
+                                 :message (str "✅ Babashka nREPL server started on port " port
+                                             "\nConnect Calva to: localhost:" port
+                                             (when-not port-written 
+                                               "\n⚠️  Could not write port file"))}
+                                {:pretty true})}]}))
           (catch Exception e
             (log :error "Failed to start Babashka nREPL server:" (.getMessage e))
             {:content [{:type "text"
