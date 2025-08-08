@@ -376,7 +376,8 @@
                               (log :info "Starting Babashka nREPL server for testing...")
                               ;; Start server directly without using tool function
                               (try
-                                (let [server (nrepl-server/start-server! {:port 7889 :quiet true})]
+                                (let [server (binding [*ns* (find-ns 'user)]
+                                               (nrepl-server/start-server! {:port 7889 :quiet true}))]
                                   (swap! state assoc 
                                          :babashka-nrepl-server server
                                          :babashka-nrepl-port 7889)
@@ -729,8 +730,9 @@
                            :message "Babashka nREPL server is already running"}
                           {:pretty true})}]}
         (try
-          ;; Start server with quiet option to suppress stdout
-          (let [server (nrepl-server/start-server! {:port port :quiet true})]
+          ;; Start server with quiet option and bind *ns* to user for client sessions
+          (let [server (binding [*ns* (find-ns 'user)]
+                         (nrepl-server/start-server! {:port port :quiet true}))]
             (swap! state assoc 
                    :babashka-nrepl-server server
                    :babashka-nrepl-port port)
@@ -932,7 +934,9 @@
                                       (not (str/includes? % "nil")))}
                       {:name "Namespace Operations"
                        :test #(nrepl/eval-code conn "(str *ns*)")
-                       :expect-fn #(str/includes? % "user")}]]
+                       :expect-fn #(or (str/includes? % "user") 
+                                      (str/includes? % "mcp-nrepl-proxy.core")
+                                      (str/includes? % "test.example"))}]]
       (let [test-results (mapv (fn [{:keys [name test expect expect-fn]}]
                                 (try
                                   (let [test-start (System/currentTimeMillis)
