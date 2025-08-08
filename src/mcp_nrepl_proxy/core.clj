@@ -10,7 +10,8 @@
             [babashka.fs :as fs]
             [clojure.string :as str]
             [org.httpkit.server :as httpkit]
-            [babashka.nrepl.server :as nrepl-server])
+            [babashka.nrepl.server :as nrepl-server]
+            [sci.core :as sci])
   (:import [java.util Base64]))
 
 (def ^:private state
@@ -376,7 +377,8 @@
                               (log :info "Starting Babashka nREPL server for testing...")
                               ;; Start server directly without using tool function
                               (try
-                                (let [server (nrepl-server/start-server! {:port 7889 :quiet true})]
+                                (let [sci-ctx (sci/init {:namespaces {'user {}}})
+                                      server (nrepl-server/start-server! sci-ctx {:port 7889 :quiet true})]
                                   (swap! state assoc 
                                          :babashka-nrepl-server server
                                          :babashka-nrepl-port 7889)
@@ -730,7 +732,9 @@
                           {:pretty true})}]}
         (try
           ;; Start server with quiet option to suppress stdout
-          (let [server (nrepl-server/start-server! {:port port :quiet true})]
+          ;; Create sci context starting in user namespace (standard nREPL behavior)
+          (let [sci-ctx (sci/init {:namespaces {'user {}}})
+                server (nrepl-server/start-server! sci-ctx {:port port :quiet true})]
             (swap! state assoc 
                    :babashka-nrepl-server server
                    :babashka-nrepl-port port)
