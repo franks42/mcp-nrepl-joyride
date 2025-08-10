@@ -84,12 +84,12 @@
         final-ns (last (keep :ns responses))
         final-session (last (keep :session responses))
         final-status (:status (last responses))
-        
+
         ;; For describe operation, preserve ops and versions from first response
         ops (some :ops responses)
         versions (some :versions responses)
         aux (some :aux responses)
-        
+
         ;; Build the merged response
         merged (cond-> {}
                  (not-empty all-out) (assoc :out all-out)
@@ -111,11 +111,11 @@
     ;; Log outgoing message
     (binding [*out* *err*]
       (println "[nREPL] 📤 Sending:" (pr-str msg-with-id)))
-    
+
     ;; Send bencode-encoded message
     (bencode/write-bencode out msg-with-id)
     (.flush out)
-    
+
     ;; Collect all response messages until "done"
     (let [responses (collect-responses in (:id msg-with-id))
           merged-response (merge-responses responses)]
@@ -201,7 +201,7 @@
                        ;; Simple require without options
                        (and (not as) (not refer) (not reload))
                        (list 'require (list 'quote ns-symbol))
-                       
+
                        ;; Require with options - build vector form
                        :else
                        (let [ns-vector (cond-> [ns-symbol]

@@ -15,28 +15,29 @@ The MCP protocol expects synchronous request-response patterns, while nREPL is f
 - Manage connection lifecycle and failures transparently
 - Provide both simple sync and powerful async interfaces
 
-### 1.2 High-Level Architecture
+### 1.2 Three-Layer Architecture Design
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                          MCP Server                              │
 │  ┌──────────────────────────────────────────────────────────┐   │
-│  │                    Sync Facade Layer                      │   │
-│  │         (99% use case - simple request/response)         │   │
+│  │                    MCP Layer                             │   │
+│  │  nrepl-raw-async  │  nrepl-eval  │  nrepl-doc  │ etc.   │   │
+│  │  (MCP validation, │  (refactored │  (refactored │        │   │
+│  │   error format)   │   wrapper)   │   wrapper)   │        │   │
 │  └────────────────────┬─────────────────────────────────────┘   │
 │                       │                                          │
 │  ┌────────────────────▼─────────────────────────────────────┐   │
-│  │                 Async Core Engine                        │   │
-│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐     │   │
-│  │  │  Message    │  │   Send      │  │  Response   │     │   │
-│  │  │  Router     │  │   Queue     │  │  Collector  │     │   │
-│  │  │  (atom map) │  │ (atom queue)│  │  (promises) │     │   │
-│  │  └─────────────┘  └─────────────┘  └─────────────┘     │   │
+│  │                 Internal Layer                           │   │
+│  │  nrepl-raw-async-int │ send-message (existing, preserved)│   │
+│  │  (pure nREPL logic)  │ (for backward compatibility)     │   │
 │  └────────────────────┬─────────────────────────────────────┘   │
 │                       │                                          │
 │  ┌────────────────────▼─────────────────────────────────────┐   │
-│  │              Connection Management Layer                  │   │
-│  │         (state tracking, health monitoring)              │   │
+│  │                Transport Layer                           │   │
+│  │  send-message-async │  Connection Management            │   │
+│  │  (async/timeout/    │  (state tracking, health)        │   │
+│  │   queuing)          │                                   │   │
 │  └────────────────────┬─────────────────────────────────────┘   │
 └───────────────────────┼─────────────────────────────────────────┘
                         │
@@ -45,7 +46,41 @@ The MCP protocol expects synchronous request-response patterns, while nREPL is f
                    nREPL Server
 ```
 
-### 1.3 Data Flow
+### 1.3 MCP Function Interface Design
+
+The `nrepl-raw-async` MCP function will accept:
+
+```json
+{
+  "name": "nrepl-raw-async",
+  "arguments": {
+    "message": {
+      "op": "eval",
+      "code": "(+ 1 2 3)",
+      "session": "optional-session-id"
+    },
+    "timeout_ms": 60000  // Optional: default 30000ms (30s)
+  }
+}
+```
+
+**Timeout Use Cases for AI Assistants:**
+- **Quick evaluations**: Default 30s for simple expressions
+- **File loading**: 60-120s for large files or complex dependencies  
+- **Long computations**: 300s+ for data processing, ML training
+- **Interactive development**: 10-15s for fast feedback loops
+- **Production scripts**: 600s+ for deployment or migration tasks
+
+**Parameter Flow:**
+```
+MCP nrepl-raw-async(message, timeout_ms=30000)
+    ↓
+nrepl-raw-async-int(message, timeout_ms)  
+    ↓
+send-message-async(connection, message, timeout_ms)
+```
+
+### 1.4 Data Flow
 
 ```
 MCP Request Flow:
@@ -606,8 +641,106 @@ Development Cycle
 - 📖 Comprehensive documentation
 - 🔍 Tree-sitter analyzable code structure
 
-## 8. Conclusion
+## 8. Step-by-Step Implementation Plan
+
+### 8.1 Phase 1: Transport Layer Foundation
+**Goal**: Implement `send-message-async` with timeout and queuing
+
+**Deliverables**:
+- `send-message-async` function with configurable timeouts
+- Async response collection with promise-based handling
+- Basic connection state management
+- Unit tests for timeout scenarios
+
+**Test Criteria**:
+- Timeout after configurable delay (passed as parameter)
+- Proper cleanup of pending operations on timeout
+- Handles concurrent message sending
+- Graceful error reporting
+
+**Commit Milestone**: `feat: implement send-message-async with timeout handling`
+
+### 8.2 Phase 2: Internal Layer Implementation  
+**Goal**: Create `nrepl-raw-async-int` as pure nREPL interface
+
+**Deliverables**:
+- `nrepl-raw-async-int` function using `send-message-async`
+- Message validation and error handling
+- Response format standardization
+- Integration tests with real nREPL server
+
+**Test Criteria**:
+- All nREPL operations work (`eval`, `doc`, `load-file`, etc.)
+- Proper error messages for invalid operations
+- Response format consistency
+- Performance parity with existing `send-message`
+
+**Commit Milestone**: `feat: implement nrepl-raw-async-int foundation`
+
+### 8.3 Phase 3: MCP Layer Implementation
+**Goal**: Create `nrepl-raw-async` MCP function with full protocol compliance
+
+**Deliverables**:
+- `nrepl-raw-async` MCP function with validation
+- Optional timeout parameter (default: 30s) for AI control of long-running operations
+- MCP-compliant error formatting
+- Comprehensive parameter validation
+- MCP integration tests
+
+**Test Criteria**:
+- MCP protocol compliance (validated with Claude Desktop)
+- Input sanitization and validation
+- Timeout parameter properly passed through layers
+- Proper error messages in MCP format
+- Full nREPL operation coverage
+
+**Commit Milestone**: `feat: implement nrepl-raw-async MCP function`
+
+### 8.4 Phase 4: Migration and Testing
+**Goal**: Demonstrate backward compatibility and performance
+
+**Deliverables**:
+- Side-by-side comparison tests
+- Performance benchmarks
+- Migration strategy documentation  
+- Rollback procedures
+
+**Test Criteria**:
+- All existing MCP functions continue working
+- `nrepl-raw-async` provides equivalent functionality
+- Performance within 10% of current implementation
+- Memory usage stays bounded
+
+**Commit Milestone**: `feat: complete async architecture with migration path`
+
+### 8.5 Testing Strategy
+
+**Unit Tests**:
+- Timeout handling edge cases
+- Message correlation correctness  
+- Connection failure scenarios
+- Memory leak prevention
+
+**Integration Tests**:
+- Real nREPL server interactions
+- Claude Desktop MCP validation
+- Concurrent operation handling
+- Long-running operation management
+
+**Performance Tests**:
+- Response time distribution
+- Memory usage over time
+- Connection pool behavior
+- Backpressure effectiveness
+
+**Commit Tags**:
+- `v0.x.0-async-transport` (Phase 1)
+- `v0.x.0-async-internal` (Phase 2) 
+- `v0.x.0-async-mcp` (Phase 3)
+- `v0.x.0-async-complete` (Phase 4)
+
+## 9. Conclusion
 
 This architecture provides a robust, simple, and maintainable solution to the sync-async impedance mismatch between MCP and nREPL. By leveraging Clojure's built-in persistent data structures and atoms, we achieve thread-safety without complex async frameworks. The design supports both simple synchronous usage patterns and sophisticated asynchronous operations, while maintaining clear separation of concerns and graceful degradation under load.
 
-The incremental implementation strategy, combined with continuous validation using tree-sitter and clj-kondo, ensures high code quality throughout development. This architecture forms the foundation for reliable, production-ready MCP-nREPL integration.
+The step-by-step implementation strategy, combined with continuous validation using tree-sitter and clj-kondo, ensures high code quality throughout development. This architecture forms the foundation for reliable, production-ready MCP-nREPL integration.

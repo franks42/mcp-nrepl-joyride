@@ -430,6 +430,32 @@ Health check documentation has been integrated into all three main cookbooks:
 
 **Remember**: This prevents unwanted task execution and ensures user maintains full control over development priorities.
 
+## 🎨 CLOJURE CODE QUALITY & FORMATTING
+
+**CRITICAL REQUIREMENTS**:
+1. Run `./format.sh` (cljfmt) BEFORE clj-kondo - formatting first!
+2. After EVERY code change: format → lint → fix issues → format → lint again
+3. cljfmt auto-fixes formatting, clj-kondo only reports issues
+
+### Clojure Quality Protocol
+```bash
+# After ANY Clojure code change:
+./format.sh              # 1. Format code first
+clj-kondo --lint src/    # 2. Lint to find issues
+
+# If linting shows issues:
+# 3. Fix the issues
+./format.sh              # 4. Format again (fixes may need formatting)
+clj-kondo --lint src/    # 5. Lint again to verify clean
+
+# Only proceed when both tools show clean results!
+```
+
+### Why Format Before Lint?
+- Consistent formatting makes linting more accurate
+- Some linting issues are caused by formatting problems
+- Clean format = cleaner lint output = easier fixes
+
 ## 🐍 PYTHON CODE QUALITY & UV USAGE
 
 **CRITICAL REQUIREMENTS**: 
