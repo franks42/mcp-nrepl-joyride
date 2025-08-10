@@ -214,9 +214,9 @@ When I say **"snapshot!"**, it means:
 This creates a complete milestone checkpoint of our progress.
 
 **Recent Snapshots:**
-- **v0.5.2** (2025-01-06) - Complete Joyride auto-discovery and fix nrepl-eval bug
-- **v0.5.1** (2025-01-06) - Fix nrepl-status NPE by ensuring recent-commands is always a vector  
-- **v0.5.0** (2025-01-06) - The Polyglot Stack milestone
+- **v0.5.2** (2025-01-08) - Complete Joyride auto-discovery and fix nrepl-eval bug
+- **v0.5.1** (2025-01-08) - Fix nrepl-status NPE by ensuring recent-commands is always a vector  
+- **v0.5.0** (2025-01-08) - The Polyglot Stack milestone
 
 ## 🛠️ Enhanced MCP Client
 
@@ -460,3 +460,44 @@ uv run python mcp_server_manager.py --help
 ```
 
 **Remember**: UV provides faster, more reliable Python tooling. Clean, well-formatted code is essential for maintainability and team collaboration.
+
+## 🏗️ Architecture Documentation
+
+### Sync-Async Queuing Architecture (January 2025)
+
+**Document**: `/docs/sync-async-queuing-architecture.md`
+
+**Key Innovation**: Anonymous function heartbeat `((fn [] :pong))` - zero setup, comprehensive testing, minimal overhead (~80 byte responses).
+
+**Architecture Highlights**:
+- Atom-based message router with O(1) correlation using PersistentMap
+- PersistentQueue send queue with backpressure protection
+- Elegant sync facade over async core engine
+- Connection state management with unique connection IDs
+- TCP backpressure integration for flow control
+- Anonymous function heartbeat strategy (tested and validated)
+- 5-phase implementation strategy with tree-sitter validation and clj-kondo quality gates
+
+**Status**: Design complete, validation testing performed, ready for implementation.
+
+## 📅 IMPORTANT: Current Date Context
+
+**Today is 2025** - Always search for current 2025 information, not 2024!
+
+### Search Query Guidelines
+- ✅ Use "2025" for current information
+- ✅ Omit years entirely for general technical searches
+- ❌ Don't use "2024" unless specifically referencing historical information
+- 🎯 My knowledge cutoff is January 2025, so search for the latest available information
+
+### Why This Matters
+- **Web search results** - Get the most current best practices and solutions
+- **Technology updates** - Don't miss recent developments and improvements
+- **Accurate context** - Ensure recommendations reflect current state of technology
+- **Proper documentation** - Date references should reflect the actual current year
+
+**Example Corrections:**
+- ❌ "Babashka queuing mechanisms 2024" 
+- ✅ "Babashka queuing mechanisms 2025" or "Babashka queuing mechanisms"
+
+This ensures all research and recommendations are based on the most current information available.
