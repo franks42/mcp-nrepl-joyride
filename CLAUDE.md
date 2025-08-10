@@ -430,6 +430,26 @@ Health check documentation has been integrated into all three main cookbooks:
 
 **Remember**: This prevents unwanted task execution and ensures user maintains full control over development priorities.
 
+## 📋 TODO MANAGEMENT RULE
+
+**CRITICAL**: Always use TODO.md to manage/update/change/add todos
+
+### Todo Management Requirements
+1. **NEVER use TodoWrite tool** - This is only for internal progress tracking
+2. **ALWAYS update TODO.md document** - This is the single source of truth
+3. **Edit TODO.md directly** when adding, changing, or updating todos
+4. **Keep TODO.md synchronized** with actual project status
+5. **Mark completed items** in TODO.md when tasks are finished
+
+### Why TODO.md Only?
+- ✅ **Persistent** - Survives session changes
+- ✅ **Visible** - User can see and review all todos
+- ✅ **Version controlled** - Changes tracked in git
+- ✅ **Single source of truth** - No confusion between tools
+- ✅ **Shareable** - Other developers can see project status
+
+**Remember**: TODO.md is the authoritative todo list. TodoWrite tool is for internal session management only.
+
 ## 🎨 CLOJURE CODE QUALITY & FORMATTING
 
 **CRITICAL REQUIREMENTS**:

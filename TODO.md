@@ -1,18 +1,28 @@
 # MCP-nREPL Project TODO List
 
 Last updated: 2025-08-10
+**Status**: Phase 1 ready to implement - tree-sitter enhanced Clojure support validated
 
 ## Critical Priority - Async Architecture Implementation
 
-### Phase 1: Transport Layer Foundation
-- [ ] **Implement send-message-async with timeout handling**
-  - [ ] Create `send-message-async` function with timeout parameter (no default)
-  - [ ] Implement async response collection with promise-based handling
-  - [ ] Add basic connection state management
-  - [ ] Write unit tests for timeout scenarios
-  - [ ] Test: timeout cleanup, concurrent messaging, error reporting
-  - **Commit**: `feat: implement send-message-async with timeout handling`
-  - **Tag**: `v0.x.0-async-transport`
+### Phase 1: Transport Layer Foundation ⚡ **CURRENT FOCUS**
+**Context**: `collect-responses` infinite loop bottleneck identified in `nrepl_client.clj` lines 50-73
+**Strategy**: Small steps with testing along the way
+
+- [ ] **Step 1: Add timeout parameter to collect-responses function (minimal change)**
+  - [ ] Test Step 1: Verify timeout parameter works with simple timeout test
+- [ ] **Step 2: Create collect-responses-async using promise-based timeout**  
+  - [ ] Test Step 2: Unit test promise timeout behavior
+- [ ] **Step 3: Create send-message-async calling collect-responses-async**
+  - [ ] Test Step 3: Integration test with Babashka nREPL server
+- [ ] **Step 4: Add connection state management (basic atom)**
+  - [ ] Test Step 4: Verify state tracking works correctly
+
+**Implementation Method**: Use Babashka's native `(deref future timeout-ms :default)` pattern
+**Preserve**: Keep existing `send-message` function for backward compatibility
+**Quality Gates**: `./format.sh && ./clojure-quality.sh` after each step
+**Commit**: `feat: implement send-message-async with timeout handling`
+**Tag**: `v0.x.0-async-transport`
 
 ### Phase 2: Internal Layer Implementation
 - [ ] **Create nrepl-raw-async-int as pure nREPL interface**
