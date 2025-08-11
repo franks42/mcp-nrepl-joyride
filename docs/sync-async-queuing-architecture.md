@@ -818,3 +818,271 @@ This architecture provides a robust, simple, and maintainable solution to the sy
 2. Comprehensive timeout handling with `(deref promise timeout-ms :timeout)`
 3. Complex connection state management with atomic coordination
 4. Multi-environment testing strategy
+
+---
+
+## 12. nREPL Session Architecture (January 2025)
+
+### 12.1 Session Model Fundamentals
+
+The nREPL protocol implements a unique session model that's critical to understand for proper async queue management:
+
+#### The Default/Implicit Session
+- **Always exists** - Created when the nREPL server starts
+- **Has no ID** - Represented by omitting the session field or using nil/null
+- **Shared state** - All connections without explicit session ID share this namespace
+- **Cannot be closed** - Permanent for the server lifetime
+- **Good for** - Quick REPL interactions, simple testing, shared utilities
+
+#### Named Sessions (Created via Clone)
+- **Created only via clone** - The `clone` operation is the ONLY way to create new sessions
+- **Server-generated IDs** - The nREPL server creates and manages all session IDs
+- **Isolated state** - Each session has independent namespaces and variables
+- **Can be closed** - Using `{:op "close" :session "session-id"}`
+- **Good for** - Parallel evaluations, user isolation, testing isolation
+
+### 12.2 Session Creation Flow
+
+```clojure
+;; Step 1: Clone from default session (no session specified)
+{:op "clone"
+ :id "msg-123"}
+
+;; Step 2: Server creates and returns new session
+{:id "msg-123"
+ :new-session "d3f4a2b1-8c9e-4f5a-b6e7-1a2b3c4d5e6f"  ; Server-generated UUID
+ :status ["done"]}
+
+;; Step 3: Use the new session for isolated evaluation
+{:op "eval"
+ :code "(def x 42)"
+ :session "d3f4a2b1-8c9e-4f5a-b6e7-1a2b3c4d5e6f"
+ :id "msg-124"}
+```
+
+### 12.3 Session ID Behavior Rules
+
+#### Request Rules (Client → Server)
+- **Omitting `:session`** → Uses default session
+- **`:session nil`** → Also uses default session  
+- **`:session "id"`** → Uses specific named session
+
+#### Response Rules (Server → Client)
+- **No `:session` field** → Operation executed in default session
+- **`:session "id"` present** → Operation executed in that named session
+- **Session ID always echoed** → If you send a session ID, it's returned in response
+
+### 12.4 Session Isolation Example
+
+```clojure
+;; Default session - shared state
+{:op "eval" :code "(def shared-var 1)" :id "1"}
+;; → shared-var = 1 in default session
+
+;; Create isolated session
+{:op "clone" :id "2"}
+;; → {:new-session "session-abc"}
+
+;; Isolated session - no access to shared-var
+{:op "eval" :code "shared-var" :session "session-abc" :id "3"}
+;; → Error: Unable to resolve symbol: shared-var
+
+;; Default session still has shared-var
+{:op "eval" :code "shared-var" :id "4"}  ; No session = default
+;; → Returns "1"
+
+;; Different sessions can have same var names with different values
+{:op "eval" :code "(def shared-var 99)" :session "session-abc" :id "5"}
+;; → shared-var = 99 in session-abc, still 1 in default
+```
+
+### 12.5 Implications for Async Queue Architecture
+
+The session model has important implications for our async message handling:
+
+1. **Message Routing** - Must preserve session ID through entire async pipeline
+2. **State Isolation** - Each session's state is independent, no cross-contamination
+3. **Default Session Handling** - Absence of session ID is valid and means "use default"
+4. **Session Lifecycle** - Must handle session closure gracefully in queued messages
+5. **Error Handling** - Invalid session IDs will cause errors that need proper handling
+
+### 12.6 Session ID Formats by Implementation
+
+Different nREPL servers generate different session ID formats:
+- **Clojure/JVM nREPL**: UUID strings like `"d3f4a2b1-8c9e-4f5a-b6e7-1a2b3c4d5e6f"`
+- **Babashka nREPL**: Similar UUID format
+- **CIDER nREPL**: May include additional metadata in the ID
+- **Custom implementations**: May use any unique string format
+
+Our architecture must handle any string format without assumptions about structure.
+
+### 12.7 Best Practices for Session Management
+
+1. **Use named sessions for isolation** - Create new sessions for independent work
+2. **Clean up sessions** - Close sessions when done to free resources
+3. **Track session ownership** - Know which operations belong to which session
+4. **Handle session errors** - Gracefully handle "unknown session" errors
+5. **Don't assume session format** - Treat session IDs as opaque strings
+
+---
+
+## 13. Data Format Mapping: JSON ↔ EDN ↔ Bencode (January 2025)
+
+### 13.1 Three-Layer Data Transformation
+
+Our MCP-nREPL bridge handles data transformations across three distinct formats:
+
+1. **MCP Layer**: JSON (for MCP protocol compliance)
+2. **Internal Layer**: EDN/Clojure data structures (for processing)
+3. **nREPL Layer**: Bencode (wire protocol) containing EDN structures
+
+### 13.2 Basic Type Mappings
+
+| EDN (Clojure) | JSON | Notes |
+|---------------|------|-------|
+| `nil` | `null` | Represents absence/default |
+| `true`/`false` | `true`/`false` | Boolean values |
+| `42` | `42` | Numbers unchanged |
+| `3.14` | `3.14` | Floats unchanged |
+| `"hello"` | `"hello"` | Strings unchanged |
+| `:keyword` | `"keyword"` | Keywords → string keys |
+| `symbol` | `"symbol"` | Symbols → strings |
+
+### 13.3 Collection Mappings
+
+| EDN (Clojure) | JSON | Information Loss |
+|---------------|------|------------------|
+| `[1 2 3]` | `[1, 2, 3]` | None (vectors → arrays) |
+| `{:a 1 :b 2}` | `{"a": 1, "b": 2}` | Keywords become strings |
+| `#{1 2 3}` | `[1, 2, 3]` | Set uniqueness lost |
+| `'(1 2 3)` | `[1, 2, 3]` | List type lost |
+
+### 13.4 Complete Round-Trip Example
+
+```javascript
+// Step 1: MCP Client sends (JSON)
+{
+  "name": "nrepl-send-message-async",
+  "arguments": {
+    "message": {
+      "op": "eval",
+      "code": "(+ 1 2 3)",
+      "session": "abc-123"
+    },
+    "timeout-ms": 30000
+  }
+}
+```
+
+```clojure
+;; Step 2: Parse to Clojure/EDN (internal processing)
+{:name "nrepl-send-message-async"
+ :arguments {:message {:op "eval"
+                       :code "(+ 1 2 3)"
+                       :session "abc-123"}
+             :timeout-ms 30000}}
+
+;; Step 3: Extract and prepare nREPL message
+{:op "eval"
+ :code "(+ 1 2 3)"
+ :session "abc-123"
+ :id "019899d8-65bc-7000-8000-000046568110-msg"}  ; Add UUID
+
+;; Step 4: Send to nREPL (EDN → Bencode wire format)
+;; Bencode encoding of the above EDN structure
+"d2:op4:eval4:code9:(+ 1 2 3)7:session7:abc-1232:id36:019899d8...e"
+
+;; Step 5: Receive from nREPL (Bencode → EDN)
+{:id "019899d8-65bc-7000-8000-000046568110-msg"
+ :session "abc-123"
+ :value "6"
+ :ns "user"
+ :status ["done"]}
+```
+
+```javascript
+// Step 6: Convert to JSON for MCP response
+{
+  "id": "019899d8-65bc-7000-8000-000046568110-msg",
+  "session": "abc-123",
+  "value": "6",
+  "ns": "user",
+  "status": ["done"]
+}
+```
+
+### 13.5 Code Implementation
+
+```clojure
+;; JSON → EDN (MCP input handling)
+(defn parse-mcp-request [json-str]
+  (json/parse-string json-str true))  ; true = keywordize keys
+  ;; {"op": "eval"} becomes {:op "eval"}
+
+;; EDN → Bencode (nREPL communication)
+(defn send-to-nrepl [connection edn-message]
+  (bencode/write-bencode (:out connection) edn-message))
+  ;; {:op "eval" :code "(+ 1 2)"} → bencoded bytes
+
+;; Bencode → EDN (nREPL response)
+(defn read-from-nrepl [connection]
+  (bencode/read-bencode (:in connection)))
+  ;; bencoded bytes → {:value "3" :status ["done"]}
+
+;; EDN → JSON (MCP output)
+(defn format-mcp-response [edn-data]
+  (json/generate-string edn-data {:pretty true}))
+  ;; {:value "3"} becomes {"value": "3"}
+```
+
+### 13.6 Critical Conversion Points
+
+#### Keywords vs Strings
+- **EDN keywords** (`:session`) are symbolic identifiers in Clojure
+- **JSON string keys** (`"session"`) are required by JSON spec
+- **Cheshire library** handles this with `:keywordize` option
+- **Direction matters**: JSON→EDN keywordizes, EDN→JSON stringifies
+
+#### Nil/Null Session Handling
+```clojure
+;; All these represent "use default session":
+{:op "eval" :code "(+ 1 2)"}           ; EDN - no :session key
+{:op "eval" :code "(+ 1 2)" :session nil}  ; EDN - explicit nil
+```
+```javascript
+{"op": "eval", "code": "(+ 1 2)"}      // JSON - no session key
+{"op": "eval", "code": "(+ 1 2)", "session": null}  // JSON - explicit null
+```
+
+### 13.7 Layer-Specific Representations
+
+#### MCP Layer (JSON)
+- String keys required: `"op"`, `"code"`, `"session"`
+- Arrays for sequences: `["done"]`
+- Null for nil: `null`
+
+#### Internal Processing (EDN/Clojure)
+- Keyword keys preferred: `:op`, `:code`, `:session`
+- Vectors for sequences: `["done"]`
+- Nil for absence: `nil`
+
+#### nREPL Protocol (EDN in Bencode)
+- Keywords required: `:op`, `:code`, `:session`
+- EDN structures preserved
+- Bencode handles serialization
+
+### 13.8 Common Pitfalls
+
+1. **Mixing representations** - Be clear which layer you're documenting
+2. **Assuming keyword preservation** - JSON has no keyword type
+3. **Set semantics** - JSON arrays don't preserve set uniqueness
+4. **Symbol handling** - Symbols become strings in JSON
+5. **Metadata loss** - Clojure metadata not preserved in JSON
+
+### 13.9 Best Practices
+
+1. **Document the layer** - Always specify if showing JSON, EDN, or Bencode
+2. **Use appropriate format** - JSON for MCP docs, EDN for nREPL docs
+3. **Preserve types when possible** - But accept information loss
+4. **Test round-trips** - Ensure data survives transformations
+5. **Handle edge cases** - Nil/null, empty collections, special characters
