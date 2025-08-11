@@ -226,6 +226,7 @@ NREPL_PORT=3000 # Caused conflicts
 - `run-integration-test.clj` - Basic integration test suite
 - `test-joyride-integration.clj` - Comprehensive Joyride test suite
 - `mcp_test_client.py` - Python MCP protocol client for testing and automation
+- `stdio_mcp_client.py` - 🆕 **Generic stdio MCP test client** - Production-realistic stdio testing
 
 ### Original Planning Documents (RECOVERED)
 - `docs/babashka_mcp_nrepl_implementation_plan.md` - Core implementation strategy
@@ -299,14 +300,54 @@ This creates a complete milestone checkpoint of our progress.
 - **v0.5.1** (2025-01-08) - Fix nrepl-status NPE by ensuring recent-commands is always a vector  
 - **v0.5.0** (2025-01-08) - The Polyglot Stack milestone
 
-## 🛠️ Enhanced MCP Client
+## 🛠️ Enhanced MCP Clients
 
-**Never use curl again!** Use the enhanced Python MCP client for all server interactions.
+### 🌐 **HTTP MCP Client** (`mcp_nrepl_client.py`)
+**Never use curl again!** Use the enhanced Python MCP client for HTTP server interactions.
 
 **Quick Reference:**
 - `python3 mcp_nrepl_client.py --help` - Full usage guide
 - **Check memory** for complete usage patterns and examples
 - **See docs/ENHANCED-MCP-CLIENT.md** for comprehensive documentation
+
+### 🔌 **stdio MCP Client** (`stdio_mcp_client.py`) - 🆕 **BREAKTHROUGH**
+**Production-realistic stdio testing!** Generic test client that works with ANY stdio MCP server.
+
+**Revolutionary Features:**
+- ✅ **Server-Agnostic**: Works with any stdio MCP server (not just nREPL)
+- ✅ **Production-Realistic**: Uses exact same stdio interface as Claude Desktop
+- ✅ **Multi-Layer Timeout Protection**: Client + server + nREPL timeout layers prevent hanging
+- ✅ **Quality Standards**: Black/flake8/type hints/uv managed/tree-sitter validated
+- ✅ **Robust Process Management**: Graceful shutdown, signal handling, cleanup
+- ✅ **Rich CLI**: Comprehensive --help, quiet mode, pretty printing, test suites
+
+**Essential stdio vs HTTP Testing Solution:**
+```bash
+# Test basic MCP protocol (any server)
+uv run python stdio_mcp_client.py --server-cmd "my-server" --test-basic
+
+# Test our nREPL server specifically  
+uv run python stdio_mcp_client.py \
+  --server-cmd "bb -cp src src/mcp_nrepl_proxy/core.clj" \
+  --test-nrepl
+
+# Call any tool on any server
+uv run python stdio_mcp_client.py \
+  --server-cmd "node mcp-server.js" \
+  --tool some-tool --args '{"param": "value"}'
+
+# List tools from any stdio MCP server
+uv run python stdio_mcp_client.py \
+  --server-cmd "./binary-server" --list-tools --pretty
+```
+
+**Why This Is a Game-Changer:**
+- 🎯 **Solves stdio vs HTTP testing gap** - Tests the REAL interface users experience
+- 🔄 **Reusable across MCP community** - Could benefit any stdio MCP server project
+- 🛡️ **Never hangs** (famous last words, but we tried!) - Multi-layer timeout protection
+- 🧪 **CI/CD Integration** - Exit codes, quiet mode, automated testing
+
+This is the missing piece for comprehensive stdio MCP server testing!
 
 ## Testing MCP-nREPL Tools
 

@@ -22,6 +22,7 @@ Claude Code ↔ [MCP-nREPL Proxy] ↔ [Joyride nREPL] ↔ [VS Code APIs]
 - **Joyride/Calva integration** - Full support for VS Code API calls and Calva middleware
 - **Enhanced testing** - Multiple test modes (full/quick/server-only) with complete lifecycle testing
 - **Workspace operations** - File listing, document operations, and notification support
+- **🆕 Generic stdio MCP test client** - Production-realistic testing tool that works with ANY stdio MCP server
 
 ## 🚀 Quick Start
 
@@ -162,7 +163,33 @@ Once configured, Claude Code can directly manipulate VS Code:
 
 ## 🔧 Development
 
-### Using the Management Script (Recommended)
+### 🧪 **stdio MCP Testing (Recommended)** - 🆕
+
+**Test the REAL stdio interface that users experience:**
+
+```bash
+# Test basic MCP protocol
+uv run python stdio_mcp_client.py \
+  --server-cmd "bb -cp src src/mcp_nrepl_proxy/core.clj" \
+  --test-basic
+
+# Test nREPL functionality
+uv run python stdio_mcp_client.py \
+  --server-cmd "bb -cp src src/mcp_nrepl_proxy/core.clj" \
+  --test-nrepl
+
+# List available tools
+uv run python stdio_mcp_client.py \
+  --server-cmd "bb -cp src src/mcp_nrepl_proxy/core.clj" \
+  --list-tools --pretty
+
+# Call specific tools
+uv run python stdio_mcp_client.py \
+  --server-cmd "bb -cp src src/mcp_nrepl_proxy/core.clj" \
+  --tool nrepl-eval --args '{"code": "(+ 1 2 3)"}'
+```
+
+### HTTP Server Management (Alternative)
 
 ```bash
 # Full development workflow
