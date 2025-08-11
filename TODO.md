@@ -115,11 +115,13 @@ Last updated: 2025-08-10
 
 **Target**: Move all `tool-nrepl-*` functions (~450 LOC) to specialized namespaces
 
-- [ ] **Create mcp-nrepl-proxy.tools.evaluation namespace**
-  - [ ] Extract: `tool-nrepl-eval`, `tool-nrepl-load-file`, `tool-nrepl-require`
-  - [ ] Functions: `eval-in-joyride` helper
-  - [ ] Dependencies: nrepl_client functions
-  - [ ] Size estimate: ~120 LOC
+- [x] **Create mcp-nrepl-proxy.tools.evaluation namespace** ✅ **COMPLETED**
+  - [x] Extract: `tool-nrepl-eval`, `tool-nrepl-load-file`, `tool-nrepl-require` ✅
+  - [x] Functions: `eval-in-joyride` helper ✅
+  - [x] Dependencies: nrepl_client functions ✅
+  - [x] Size estimate: ~120 LOC (actual: 167 LOC) ✅
+  - [x] **Testing**: 11/11 tests passed (100% success rate) ✅
+  - [x] **Commit**: `v0.8.1-modular-evaluation` ✅
 
 - [ ] **Create mcp-nrepl-proxy.tools.introspection namespace**  
   - [ ] Extract: `tool-nrepl-doc`, `tool-nrepl-source`, `tool-nrepl-apropos`, `tool-nrepl-complete`
