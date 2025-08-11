@@ -10,9 +10,9 @@ Tests the complete nREPL ecosystem including:
 - Error handling and edge cases
 
 Usage:
-    python3 test_nrepl_lifecycle.py
-    python3 test_nrepl_lifecycle.py --quick    # Skip long-running tests
-    python3 test_nrepl_lifecycle.py --server-only  # Test server lifecycle only
+    uv run python test_nrepl_lifecycle.py
+    uv run python test_nrepl_lifecycle.py --quick    # Skip long-running tests
+    uv run python test_nrepl_lifecycle.py --server-only  # Test server lifecycle only
 """
 
 import os
@@ -66,8 +66,7 @@ class NReplTestSuite:
             else:
                 return subprocess.run(cmd, timeout=timeout, cwd=self.project_root)
         except subprocess.TimeoutExpired:
-            raise Exception(
-                f"Command timed out after {timeout}s: {' '.join(cmd)}")
+            raise Exception(f"Command timed out after {timeout}s: {' '.join(cmd)}")
         except FileNotFoundError:
             raise Exception(f"Command not found: {cmd[0]}")
 
@@ -80,7 +79,8 @@ class NReplTestSuite:
         try:
             self.log("Testing server start...")
             result = self.run_command(
-                ["python3", "nrepl_test_server.py", "start"])
+                ["uv", "run", "python", "nrepl_test_server.py", "start"]
+            )
             if (
                 result.returncode == 0
                 and "Server started successfully" in result.stdout
@@ -118,9 +118,10 @@ class NReplTestSuite:
         try:
             self.log("Testing server status...")
             time.sleep(1)  # Brief pause for server to stabilize
-            result = self.run_command(["python3", "nrepl_test_server.py", "status"])
-            if (result.returncode == 0 and
-                    "Status: ✅ Running" in result.stdout):
+            result = self.run_command(
+                ["uv", "run", "python", "nrepl_test_server.py", "status"]
+            )
+            if result.returncode == 0 and "Status: ✅ Running" in result.stdout:
                 duration = time.time() - start_time
                 tests.append(
                     TestResult(
@@ -159,8 +160,7 @@ class NReplTestSuite:
                 info = json.loads(info_file.read_text())
                 required_keys = ["pid", "port", "started_at", "status"]
 
-                if (all(key in info for key in required_keys) and
-                        info["port"] == port):
+                if all(key in info for key in required_keys) and info["port"] == port:
                     duration = time.time() - start_time
                     tests.append(
                         TestResult(
@@ -201,7 +201,9 @@ class NReplTestSuite:
         start_time = time.time()
         try:
             self.log("Testing server restart...")
-            result = self.run_command(["python3", "nrepl_test_server.py", "restart"])
+            result = self.run_command(
+                ["uv", "run", "python", "nrepl_test_server.py", "restart"]
+            )
             if (
                 result.returncode == 0
                 and "Server started successfully" in result.stdout
@@ -236,7 +238,9 @@ class NReplTestSuite:
         start_time = time.time()
         try:
             self.log("Testing server stop...")
-            result = self.run_command(["python3", "nrepl_test_server.py", "stop"])
+            result = self.run_command(
+                ["uv", "run", "python", "nrepl_test_server.py", "stop"]
+            )
             if (
                 result.returncode == 0
                 and "Server stopped successfully" in result.stdout
@@ -287,7 +291,9 @@ class NReplTestSuite:
 
         # Start server for MCP tests
         self.log("Starting server for MCP integration tests...")
-        start_result = self.run_command(["python3", "nrepl_test_server.py", "start"])
+        start_result = self.run_command(
+            ["uv", "run", "python", "nrepl_test_server.py", "start"]
+        )
         if start_result.returncode != 0:
             self.log("Failed to start server for MCP tests", "ERROR")
             return [
@@ -308,8 +314,7 @@ class NReplTestSuite:
 
         # Get free port for MCP server to avoid conflicts with bb-nrepl-server
         mcp_port = get_test_mcp_port()
-        self.log(
-            f"Using MCP HTTP port: {mcp_port} (dynamically allocated)")
+        self.log(f"Using MCP HTTP port: {mcp_port} (dynamically allocated)")
 
         # Start MCP server (no auto-connection)
         mcp_process = None
@@ -330,11 +335,12 @@ class NReplTestSuite:
             time.sleep(3)  # Allow MCP server to start
 
             # Explicitly connect to nREPL server using MCP tool
-            self.log(
-                f"Connecting MCP proxy to nREPL server on port {nrepl_port}...")
+            self.log(f"Connecting MCP proxy to nREPL server on port {nrepl_port}...")
             connect_result = self.run_command(
                 [
-                    "python3",
+                    "uv",
+                    "run",
+                    "python",
                     "./mcp_nrepl_client.py",
                     "--url",
                     f"http://localhost:{mcp_port}/mcp",
@@ -349,8 +355,8 @@ class NReplTestSuite:
 
             if connect_result.returncode != 0:
                 self.log(
-                    f"❌ Failed to connect to nREPL: {connect_result.stderr}",
-                    "ERROR")
+                    f"❌ Failed to connect to nREPL: {connect_result.stderr}", "ERROR"
+                )
                 return [
                     TestResult(
                         "nrepl_connect",
@@ -368,7 +374,9 @@ class NReplTestSuite:
                 self.log("Testing MCP health check...")
                 result = self.run_command(
                     [
-                        "python3",
+                        "uv",
+                        "run",
+                        "python",
                         "./mcp_nrepl_client.py",
                         "--url",
                         f"http://localhost:{mcp_port}/mcp",
@@ -408,7 +416,9 @@ class NReplTestSuite:
                 self.log("Testing basic nREPL evaluation...")
                 result = self.run_command(
                     [
-                        "python3",
+                        "uv",
+                        "run",
+                        "python",
                         "./mcp_nrepl_client.py",
                         "--url",
                         f"http://localhost:{mcp_port}/mcp",
@@ -432,8 +442,7 @@ class NReplTestSuite:
                             "basic_eval",
                             False,
                             time.time() - start_time,
-                            f"Evaluation failed: {result.stdout} "
-                            f"{result.stderr}",
+                            f"Evaluation failed: {result.stdout} " f"{result.stderr}",
                         )
                     )
                     self.log("Basic eval: FAILED", "ERROR")
@@ -451,13 +460,9 @@ class NReplTestSuite:
                         "(let [p (promise)] (deliver p :test) (deref p))",
                         ":test",
                     ),
-                    ("promise_timeout",
-                     "(deref (promise) 100 :timeout)",
-                     ":timeout"),
+                    ("promise_timeout", "(deref (promise) 100 :timeout)", ":timeout"),
                     ("futures", "@(future (+ 1 2 3))", "6"),
-                    ("java_interop",
-                     "(> (System/currentTimeMillis) 0)",
-                     "true"),
+                    ("java_interop", "(> (System/currentTimeMillis) 0)", "true"),
                 ]
 
                 for test_name, code, expected in clojure_tests:
@@ -466,7 +471,9 @@ class NReplTestSuite:
                         self.log(f"Testing {test_name}...")
                         result = self.run_command(
                             [
-                                "python3",
+                                "uv",
+                                "run",
+                                "python",
                                 "./mcp_nrepl_client.py",
                                 "--url",
                                 f"http://localhost:{mcp_port}/mcp",
@@ -476,8 +483,7 @@ class NReplTestSuite:
                             timeout=20,
                         )
 
-                        if (result.returncode == 0 and
-                                expected in result.stdout):
+                        if result.returncode == 0 and expected in result.stdout:
                             duration = time.time() - start_time
                             tests.append(
                                 TestResult(
@@ -522,7 +528,7 @@ class NReplTestSuite:
                     self.log("MCP server force killed")
 
             # Stop test server
-            self.run_command(["python3", "nrepl_test_server.py", "stop"])
+            self.run_command(["uv", "run", "python", "nrepl_test_server.py", "stop"])
             self.log("Test server stopped")
 
         return tests
@@ -578,11 +584,9 @@ class NReplTestSuite:
                 self.log(f"  • {result.name}: {result.details}")
 
         if failed == 0:
-            self.log("\n🎉 ALL TESTS PASSED! nREPL system is working "
-                     "correctly.")
+            self.log("\n🎉 ALL TESTS PASSED! nREPL system is working " "correctly.")
         else:
-            self.log(f"\n⚠️  {failed} test(s) failed. Check the details "
-                     "above.")
+            self.log(f"\n⚠️  {failed} test(s) failed. Check the details " "above.")
 
 
 def main():
