@@ -1145,14 +1145,14 @@
                 :text "❌ No nREPL connection available. Use nrepl-connect first."}]
      :isError true}))
 
-(defn- tool-nrepl-raw-async
+(defn- tool-nrepl-send-message-async
   "Queue an nREPL message for async processing and return message-id immediately.
   
   This function implements the raw async interface described in the sync-async 
   queuing architecture. It puts the message on the send queue and returns 
   immediately with a message-id that can be used to fetch results later.
   
-  Use nrepl-fetch-result with the returned message-id to get the result."
+  Use nrepl-get-result-async with the returned message-id to get the result."
   [{:keys [message timeout-ms] :or {timeout-ms 30000}}]
   (let [conn-result (ensure-nrepl-connection)]
     (if (:success conn-result)
@@ -1172,11 +1172,11 @@
                   :text (str "❌ No nREPL connection: " (:error conn-result))}]
        :isError true})))
 
-(defn- tool-nrepl-fetch-result
+(defn- tool-nrepl-get-result-async
   "Fetch the result of an async message by message-id.
   
-  This is the companion function to nrepl-raw-async. Use the message-id 
-  returned by nrepl-raw-async to fetch the result."
+  This is the companion function to nrepl-send-message-async. Use the message-id 
+  returned by nrepl-send-message-async to fetch the result."
   [{:keys [message-id]}]
   (if message-id
     (try
@@ -1327,17 +1327,17 @@
     :description "🚨 MANDATORY FIRST STEP: Get comprehensive context document that explains the MCP-nREPL server's purpose, architecture, and workflows. AI assistants MUST read this context before using any other MCP functions to understand what this server does, how the 15 functions work together, and essential patterns for success. CRITICAL: This provides the roadmap for effective usage. RETURNS: Complete markdown context document with examples, use cases, and best practices."
     :inputSchema {:type "object"}}
 
-   {:name "nrepl-raw-async"
-    :description "🚀 ASYNC QUEUING: Queue an nREPL message for asynchronous processing and return immediately with a message-id. This implements the raw async interface from the sync-async queuing architecture. The message is processed in the background using the complete async transport layer. Use nrepl-fetch-result with the returned message-id to get results. Perfect for long-running operations where you don't want to block. RETURNS: JSON with message-id, status (pending), and timeout-ms."
+   {:name "nrepl-send-message-async"
+    :description "🚀 ASYNC MESSAGE SENDING: Send an nREPL message asynchronously and return immediately with a message-id. This queues the message for background processing using the complete async transport layer with timeout handling. Use nrepl-get-result-async with the returned message-id to retrieve results. Perfect for long-running operations where you don't want to block. RETURNS: JSON with message-id, status (pending), and timeout-ms."
     :inputSchema {:type "object"
                   :properties {:message {:type "object" :description "nREPL message map (e.g., {:op \"eval\" :code \"(+ 1 2 3)\"})"}
                                :timeout-ms {:type "number" :description "Timeout in milliseconds (default: 30000)"}}
                   :required ["message"]}}
 
-   {:name "nrepl-fetch-result"
-    :description "📥 ASYNC RESULT: Fetch the result of an async message by message-id. This is the companion function to nrepl-raw-async. Use the message-id returned by nrepl-raw-async to check completion status and retrieve results. Supports polling pattern for long-running operations. RETURNS: JSON with status (pending/completed/failed/expired), message-id, and result data or error info."
+   {:name "nrepl-get-result-async"
+    :description "📥 ASYNC RESULT RETRIEVAL: Get the result of an async message by message-id. This is the companion function to nrepl-send-message-async. Use the message-id returned by nrepl-send-message-async to check completion status and retrieve results. Supports polling pattern for long-running operations. RETURNS: JSON with status (pending/completed/failed/expired), message-id, and result data or error info."
     :inputSchema {:type "object"
-                  :properties {:message-id {:type "string" :description "Message ID returned by nrepl-raw-async"}}
+                  :properties {:message-id {:type "string" :description "Message ID returned by nrepl-send-message-async"}}
                   :required ["message-id"]}}
 
    {:name "babashka-nrepl"
@@ -1367,8 +1367,8 @@
     "nrepl-stacktrace" (tool-nrepl-stacktrace args)
     "nrepl-health-check" (tool-nrepl-health-check args)
     "get-mcp-nrepl-context" (tool-get-mcp-nrepl-context args)
-    "nrepl-raw-async" (tool-nrepl-raw-async args)
-    "nrepl-fetch-result" (tool-nrepl-fetch-result args)
+    "nrepl-send-message-async" (tool-nrepl-send-message-async args)
+    "nrepl-get-result-async" (tool-nrepl-get-result-async args)
     "babashka-nrepl" (tool-babashka-nrepl args)
     {:content [{:type "text" :text (str "❌ Unknown tool: " tool-name)}]
      :isError true}))

@@ -63,17 +63,22 @@ Last updated: 2025-08-10
   - **Tag**: `v0.x.0-async-internal-complete`
 
 ### Phase 3: MCP Layer Implementation ✅ **COMPLETED**
-- [x] **Create nrepl-raw-async MCP function with full protocol compliance** ✅ **IMPLEMENTED**
-  - [x] ✅ **COMPLETED**: Implement `nrepl-raw-async` MCP function with validation
+- [x] **Create nrepl-send-message-async MCP function with full protocol compliance** ✅ **IMPLEMENTED**
+  - [x] ✅ **COMPLETED**: Implement `nrepl-send-message-async` MCP function with validation
   - [x] ✅ **COMPLETED**: Add optional timeout_ms parameter (default 30000ms) for AI control
   - [x] ✅ **COMPLETED**: Add MCP-compliant error formatting with JSON responses
   - [x] ✅ **COMPLETED**: Comprehensive parameter validation in inputSchema
-  - [x] ✅ **COMPLETED**: Implement companion `nrepl-fetch-result` MCP function
+  - [x] ✅ **COMPLETED**: Implement companion `nrepl-get-result-async` MCP function
   - [x] ✅ **VERIFIED**: MCP protocol compliance with proper tool registration and routing
   - [x] ✅ **VERIFIED**: Timeout parameter flow through all async layers (30s default)
   - [x] ✅ **VERIFIED**: Error formatting with proper JSON structure and isError flags
   - [x] ✅ **ARCHITECTURE**: Single-session state management (correct for persistent MCP connections)
-  - **Commit**: `feat: implement nrepl-raw-async MCP function`
+  - **NOTE**: The async functions require a persistent MCP session to maintain message state between 
+    `nrepl-send-message-async` (returns message-id) and `nrepl-get-result-async` (retrieves by message-id).
+    This works correctly with Claude Desktop and other MCP clients that maintain persistent connections.
+    Each stdio invocation creates a new server instance, so testing requires either HTTP mode or 
+    a persistent MCP client.
+  - **Commit**: `feat: implement nrepl-send-message-async MCP function`
   - **Tag**: `v0.x.0-async-mcp`
 
 ### Phase 4: Migration and Testing
