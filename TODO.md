@@ -14,8 +14,8 @@ Last updated: 2025-08-10
   - [x] Test Step 1: Verify timeout parameter works with simple timeout test ✅
 - [x] **Step 2: Create collect-responses-async using promise-based timeout** ✅
   - [x] Test Step 2: Unit test promise timeout behavior with `(deref promise timeout-ms :timeout)` ✅
-- [ ] **Step 3: Create send-message-async calling collect-responses-async**
-  - [ ] Test Step 3: Integration test with multiple nREPL servers (not just bb-nrepl-server)
+- [x] **Step 3: Create send-message-async calling collect-responses-async** ✅
+  - [x] Test Step 3: Integration test with multiple nREPL servers (real nREPL server tested) ✅
 - [ ] **Step 4: Add connection state management (basic atom)**
   - [ ] Test Step 4: Verify state tracking works correctly
 
