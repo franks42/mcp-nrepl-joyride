@@ -7,11 +7,12 @@
    Supports both stdio and HTTP transports."
   (:require [cheshire.core :as json]
             [mcp-nrepl-proxy.nrepl-client :as nrepl]
+            [mcp-nrepl-proxy.config :as config]
+            [mcp-nrepl-proxy.utils :as utils]
             [babashka.fs :as fs]
             [clojure.string :as str]
             [org.httpkit.server :as httpkit]
-            [babashka.nrepl.server :as nrepl-server])
-  (:import [java.util Base64]))
+            [babashka.nrepl.server :as nrepl-server]))
 
 (def ^:private state
   "Server state: nREPL connections, sessions, and configuration"
@@ -29,38 +30,6 @@
                   :heartbeat-interval-ms 45000
                   :babashka-nrepl-port 7889}}))
 
-(defn- log
-  "Log to stderr (stdout reserved for MCP protocol)"
-  [level & args]
-  (when (or (= level :error)
-            (get-in @state [:config :debug]))
-    (binding [*out* *err*]
-      (println (str "[" (name level) "] " (apply str args))))))
-
-(defn- base64-decode
-  "Decode base64 string to regular string, or return as-is if not base64 or not a string"
-  [value]
-  (cond
-    (nil? value) nil
-    (not (string? value)) (str value)  ; Convert non-strings to strings
-    :else
-    (try
-      (String. (.decode (Base64/getDecoder) value))
-      (catch Exception e
-        (log :debug "Not base64 encoded, returning as string:" value)
-        value))))
-
-(defn- decode-nrepl-response
-  "Decode base64-encoded values and byte arrays in nREPL response"
-  [response]
-  (when response
-    (cond-> response
-      (:value response) (update :value base64-decode)
-      (:ns response) (update :ns base64-decode)
-      (:out response) (update :out base64-decode)
-      (:err response) (update :err base64-decode)
-      (:status response) (update :status #(map base64-decode %)))))
-
 (defn- discover-nrepl-port
   "Discover nREPL port from .nrepl-port file in workspace or .joyride subdirectory"
   [workspace-path]
@@ -70,10 +39,10 @@
             (when (fs/exists? port-file)
               (try
                 (let [port (Integer/parseInt (str/trim (slurp port-file)))]
-                  (log :info "Found nREPL port" port "in" (str port-file))
+                  (utils/log state :info "Found nREPL port" port "in" (str port-file))
                   port)
                 (catch Exception e
-                  (log :warn "Could not parse .nrepl-port file:" (.getMessage e))
+                  (utils/log state :warn "Could not parse .nrepl-port file:" (.getMessage e))
                   nil))))
           port-files)))
 
@@ -84,13 +53,13 @@
     (let [result (nrepl/describe-server conn)]
       (contains? result :ops))
     (catch Exception e
-      (log :debug "Heartbeat failed:" (.getMessage e))
+      (utils/log state :debug "Heartbeat failed:" (.getMessage e))
       false)))
 
 (defn- start-heartbeat-monitor
   "Start background heartbeat monitoring"
   []
-  (log :info "Starting nREPL heartbeat monitor")
+  (utils/log state :info "Starting nREPL heartbeat monitor")
   (future
     (loop []
       (Thread/sleep (get-in @state [:config :heartbeat-interval-ms]))
@@ -103,32 +72,32 @@
                      :connected true
                      :last-heartbeat now
                      :heartbeat-failures 0)
-              (log :debug "Heartbeat successful"))
+              (utils/log state :debug "Heartbeat successful"))
             (do
               (swap! state update-in [:health-status]
                      (fn [health]
                        (assoc health
                               :connected false
                               :heartbeat-failures (inc (:heartbeat-failures health)))))
-              (log :warn "Heartbeat failed, failure count:"
-                   (get-in @state [:health-status :heartbeat-failures]))))))
+              (utils/log state :warn "Heartbeat failed, failure count:"
+                         (get-in @state [:health-status :heartbeat-failures]))))))
       (recur))))
 
 (defn- connect-to-nrepl
   "Connect to nREPL server with connection pooling and heartbeat monitoring"
   [host port]
   (try
-    (log :info "Connecting to nREPL at" (str host ":" port))
+    (utils/log state :info "Connecting to nREPL at" (str host ":" port))
     (let [conn (nrepl/connect host port)]
       (swap! state assoc :nrepl-conn conn)
       (swap! state update-in [:health-status] assoc
              :connected true
              :last-heartbeat (System/currentTimeMillis)
              :heartbeat-failures 0)
-      (log :info "Connected to nREPL successfully")
+      (utils/log state :info "Connected to nREPL successfully")
       {:success true :connection conn})
     (catch Exception e
-      (log :error "nREPL connection failed:" (.getMessage e))
+      (utils/log state :error "nREPL connection failed:" (.getMessage e))
       (swap! state update-in [:health-status] assoc :connected false)
       {:success false :error (.getMessage e)})))
 
@@ -142,23 +111,7 @@
         (connect-to-nrepl "localhost" port)
         {:success false :error "No nREPL connection and could not discover port"}))))
 
-(defn- cache-command
-  "Cache a command and its result for resource access"
-  [code result]
-  (let [max-cached (or (get-in @state [:config :max-cached-commands]) 10)
-        command {:code code
-                 :result result
-                 :timestamp (str (java.time.Instant/now))}]
-    (swap! state update :recent-commands
-           (fn [commands]
-             (vec (take max-cached (cons command commands)))))))
-
 ;; Helper functions for Calva introspection
-
-(defn get-server-state
-  "Get current server state for introspection"
-  []
-  @state)
 
 (defn get-joyride-connection
   "Get current Joyride nREPL connection details"
@@ -167,15 +120,6 @@
     {:host (:host conn)
      :port (:port conn)
      :connected true}))
-
-(defn get-mcp-stats
-  "Get MCP server statistics"
-  []
-  {:sessions (count (:sessions @state))
-   :recent-commands (count (:recent-commands @state))
-   :health (:health-status @state)
-   :transport (get-in @state [:config :transport])
-   :debug (get-in @state [:config :debug])})
 
 (defn eval-in-joyride
   "Evaluate code in connected Joyride nREPL (for Calva convenience)"
@@ -215,8 +159,8 @@
               result (nrepl/eval-code conn code
                                       :session session
                                       :ns ns)]
-          (cache-command code result)
-          (log :debug "nREPL result:" result)
+          (utils/cache-command state code result)
+          (utils/log state :debug "nREPL result:" result)
 
           ;; Store session info if provided in response
           (when-let [response-session (:session result)]
@@ -232,11 +176,11 @@
                                           (not= "nil" value-field))
                 has-output (and output-field (not= "" (str/trim output-field)))
                 has-error (:ex result)]
-            (log :debug "Result keys:" (keys result))
-            (log :debug "Value field exists?" (contains? result :value))
-            (log :debug "Value field content:" (pr-str value-field))
-            (log :debug "Output field content:" (pr-str output-field))
-            (log :debug "Response decision: has-meaningful-value=" has-meaningful-value " has-output=" has-output " has-error=" has-error)
+            (utils/log state :debug "Result keys:" (keys result))
+            (utils/log state :debug "Value field exists?" (contains? result :value))
+            (utils/log state :debug "Value field content:" (pr-str value-field))
+            (utils/log state :debug "Output field content:" (pr-str output-field))
+            (utils/log state :debug "Response decision: has-meaningful-value=" has-meaningful-value " has-output=" has-output " has-error=" has-error)
             (cond
               ;; Error in evaluation
               has-error
@@ -265,9 +209,9 @@
                :session (:session result)
                :namespace (:ns result)})))
         (catch Exception e
-          (log :error "nREPL eval failed:" (.getMessage e))
-          (log :error "Exception type:" (type e))
-          (log :error "Stack trace:" (with-out-str (.printStackTrace e)))
+          (utils/log state :error "nREPL eval failed:" (.getMessage e))
+          (utils/log state :error "Exception type:" (type e))
+          (utils/log state :error "Stack trace:" (with-out-str (.printStackTrace e)))
           {:content [{:type "text"
                       :text (str "❌ Evaluation failed: " (.getMessage e) " (type: " (type e) ")")}]
            :isError true}))
@@ -315,7 +259,7 @@
                         :text "❌ Failed to create session"}]
              :isError true}))
         (catch Exception e
-          (log :error "Session creation failed:" (.getMessage e))
+          (utils/log state :error "Session creation failed:" (.getMessage e))
           {:content [{:type "text"
                       :text (str "❌ Session creation failed: " (.getMessage e))}]
            :isError true}))
@@ -371,7 +315,7 @@
                            (try
                             ;; Start server if not running
                              (when-not (:babashka-nrepl-server @state)
-                               (log :info "Starting Babashka nREPL server for testing...")
+                               (utils/log state :info "Starting Babashka nREPL server for testing...")
                               ;; Start server directly without using tool function
                                (try
                                  (let [server (binding [*ns* (find-ns 'user)]
@@ -379,14 +323,14 @@
                                    (swap! state assoc
                                           :babashka-nrepl-server server
                                           :babashka-nrepl-port 7889)
-                                   (log :info "✅ Babashka nREPL server started for testing"))
+                                   (utils/log state :info "✅ Babashka nREPL server started for testing"))
                                  (catch Exception e
-                                   (log :warn "Failed to start Babashka server:" (.getMessage e)))))
+                                   (utils/log state :warn "Failed to start Babashka server:" (.getMessage e)))))
 
                             ;; Test connection to Babashka nREPL
                              (if-let [bb-port (:babashka-nrepl-port @state)]
                                (try
-                                 (log :info "Testing Babashka nREPL connection on port" bb-port)
+                                 (utils/log state :info "Testing Babashka nREPL connection on port" bb-port)
                                  (let [bb-conn (nrepl/connect "localhost" bb-port)
                                       ;; Test basic evaluation
                                        eval-result (nrepl/eval-code bb-conn "(* 7 6)")
@@ -433,7 +377,7 @@
   [_args]
   (if-let [conn (:nrepl-conn @state)]
     (try
-      (log :info "Running nREPL health tests...")
+      (utils/log state :info "Running nREPL health tests...")
       (let [start-time (System/currentTimeMillis)
             test-results (run-health-test conn)
             total-duration (- (System/currentTimeMillis) start-time)
@@ -457,7 +401,7 @@
                       :text (str summary "\n\n" details)}]
            :isError (not all-passed)}))
       (catch Exception e
-        (log :error "Health test failed:" (.getMessage e))
+        (utils/log state :error "Health test failed:" (.getMessage e))
         {:content [{:type "text"
                     :text (str "❌ Health test failed: " (.getMessage e))}]
          :isError true}))
@@ -479,7 +423,7 @@
               result (nrepl/load-file conn file-path
                                       :session session
                                       :ns ns)]
-          (log :debug "Load-file result:" result)
+          (utils/log state :debug "Load-file result:" result)
 
           ;; Store session info if provided in response
           (when-let [response-session (:session result)]
@@ -505,7 +449,7 @@
                           :text (str "✅ File loaded successfully: " file-path)}]})))
 
         (catch Exception e
-          (log :error "Load-file failed:" (.getMessage e))
+          (utils/log state :error "Load-file failed:" (.getMessage e))
           {:content [{:type "text"
                       :text (str "❌ Load failed: " (.getMessage e))}]
            :isError true}))
@@ -532,7 +476,7 @@
                         :text (str "❌ No documentation found for: " symbol)}]
              :isError true}))
         (catch Exception e
-          (log :error "Doc lookup failed:" (.getMessage e))
+          (utils/log state :error "Doc lookup failed:" (.getMessage e))
           {:content [{:type "text"
                       :text (str "❌ Doc lookup failed: " (.getMessage e))}]
            :isError true}))
@@ -559,7 +503,7 @@
                         :text (str "❌ No source code found for: " symbol)}]
              :isError true}))
         (catch Exception e
-          (log :error "Source lookup failed:" (.getMessage e))
+          (utils/log state :error "Source lookup failed:" (.getMessage e))
           {:content [{:type "text"
                       :text (str "❌ Source lookup failed: " (.getMessage e))}]
            :isError true}))
@@ -588,7 +532,7 @@
                         :text (str "❌ No completions found for: " prefix)}]
              :isError true}))
         (catch Exception e
-          (log :error "Completion failed:" (.getMessage e))
+          (utils/log state :error "Completion failed:" (.getMessage e))
           {:content [{:type "text"
                       :text (str "❌ Completion failed: " (.getMessage e))}]
            :isError true}))
@@ -622,7 +566,7 @@
                         :text (str "❌ No symbols found matching: " query)}]
              :isError true}))
         (catch Exception e
-          (log :error "Apropos search failed:" (.getMessage e))
+          (utils/log state :error "Apropos search failed:" (.getMessage e))
           {:content [{:type "text"
                       :text (str "❌ Apropos search failed: " (.getMessage e))}]
            :isError true}))
@@ -652,7 +596,7 @@
                                    (when refer (str " referring " refer))
                                    (when reload " (with reload)"))}]}))
         (catch Exception e
-          (log :error "Require failed:" (.getMessage e))
+          (utils/log state :error "Require failed:" (.getMessage e))
           {:content [{:type "text"
                       :text (str "❌ Require failed: " (.getMessage e))}]
            :isError true}))
@@ -673,7 +617,7 @@
                                  (when session (str " to session " session))
                                  (when interrupt-id (str " for evaluation " interrupt-id)))}]})
         (catch Exception e
-          (log :error "Interrupt failed:" (.getMessage e))
+          (utils/log state :error "Interrupt failed:" (.getMessage e))
           {:content [{:type "text"
                       :text (str "❌ Interrupt failed: " (.getMessage e))}]
            :isError true}))
@@ -697,7 +641,7 @@
                         :text "❌ No stacktrace available"}]
              :isError true}))
         (catch Exception e
-          (log :error "Stacktrace lookup failed:" (.getMessage e))
+          (utils/log state :error "Stacktrace lookup failed:" (.getMessage e))
           {:content [{:type "text"
                       :text (str "❌ Stacktrace lookup failed: " (.getMessage e))}]
            :isError true}))
@@ -739,7 +683,7 @@
                                  (spit port-path (str port))
                                  true
                                  (catch Exception e
-                                   (log :warn "Could not write port file to" port-path ":" (.getMessage e))
+                                   (utils/log state :warn "Could not write port file to" port-path ":" (.getMessage e))
                                    false))]
               {:content [{:type "text"
                           :text (json/generate-string
@@ -756,7 +700,7 @@
                                                   "\n⚠️  Could not write port file"))}
                                  {:pretty true})}]}))
           (catch Exception e
-            (log :error "Failed to start Babashka nREPL server:" (.getMessage e))
+            (utils/log state :error "Failed to start Babashka nREPL server:" (.getMessage e))
             {:content [{:type "text"
                         :text (json/generate-string
                                {:status "error"
@@ -824,7 +768,7 @@
       {:content [{:type "text"
                   :text context-content}]})
     (catch Exception e
-      (log :error "Failed to read context document:" (.getMessage e))
+      (utils/log state :error "Failed to read context document:" (.getMessage e))
       {:content [{:type "text"
                   :text (str "# MCP-nREPL Server Context\n\n"
                              "## Overview\n\n"
@@ -1123,7 +1067,7 @@
     :or {include-performance true include-integration true verbose false}}]
   (if-let [conn (:nrepl-conn @state)]
     (try
-      (log :info "Running comprehensive health check...")
+      (utils/log state :info "Running comprehensive health check...")
       (let [health-results (run-comprehensive-health-check conn
                                                            :include-performance include-performance
                                                            :include-integration include-integration
@@ -1137,7 +1081,7 @@
         {:content [{:type "text" :text report}]
          :isError (not is-healthy)})
       (catch Exception e
-        (log :error "Comprehensive health check failed:" (.getMessage e))
+        (utils/log state :error "Comprehensive health check failed:" (.getMessage e))
         {:content [{:type "text"
                     :text (str "❌ Comprehensive health check failed: " (.getMessage e))}]
          :isError true}))
@@ -1159,12 +1103,12 @@
       (try
         (let [conn (:connection conn-result)
               async-result (nrepl/queue-message-async conn message :timeout-ms timeout-ms)]
-          (log :debug "Queued async message:" (pr-str async-result))
+          (utils/log state :debug "Queued async message:" (pr-str async-result))
 
           {:content [{:type "text"
                       :text (json/generate-string async-result {:pretty true})}]})
         (catch Exception e
-          (log :error "Failed to queue async message:" (.getMessage e))
+          (utils/log state :error "Failed to queue async message:" (.getMessage e))
           {:content [{:type "text"
                       :text (str "❌ Failed to queue message: " (.getMessage e))}]
            :isError true}))
@@ -1181,7 +1125,7 @@
   (if message-id
     (try
       (let [result (nrepl/fetch-result message-id)]
-        (log :debug "Fetched async result:" (pr-str result))
+        (utils/log state :debug "Fetched async result:" (pr-str result))
 
         (case (:status result)
           :completed
@@ -1213,7 +1157,7 @@
                       :text (str "❌ Message ID not found: " message-id)}]
            :isError true}))
       (catch Exception e
-        (log :error "Failed to fetch async result:" (.getMessage e))
+        (utils/log state :error "Failed to fetch async result:" (.getMessage e))
         {:content [{:type "text"
                     :text (str "❌ Failed to fetch result: " (.getMessage e))}]
          :isError true}))
@@ -1223,130 +1167,8 @@
 
 ;; MCP Protocol Handlers
 
-(def tool-definitions
-  [{:name "nrepl-connect"
-    :description "EXPLICIT CONNECTION: Connect to an nREPL server by specifying the exact port. No auto-discovery - you must provide the port explicitly. Read the port from server's port file (e.g., .test-nrepl-server-port, .bb-nrepl-server-port). RETURNS: Success message with connection details or error message."
-    :inputSchema {:type "object"
-                  :properties {:host {:type "string" :description "nREPL host (default: localhost)"}
-                               :port {:type "number" :description "nREPL port (REQUIRED - no auto-discovery)"}}
-                  :required ["port"]}}
-
-   {:name "nrepl-eval"
-    :description "PRIMARY TOOL: Execute any Clojure code in the connected nREPL session. Use this for: running calculations, calling VS Code functions, defining variables, requiring namespaces, or any Clojure expression. For VS Code automation, use expressions like (vscode/window.showInformationMessage \"Hello\"). RETURNS: Evaluation result (numbers, strings, data structures) or error details with stack trace."
-    :inputSchema {:type "object"
-                  :properties {:code {:type "string" :description "Clojure code to evaluate"}
-                               :session {:type "string" :description "Session ID (optional)"}
-                               :ns {:type "string" :description "Namespace context (optional)"}}
-                  :required ["code"]}}
-
-   {:name "nrepl-status"
-    :description "DIAGNOSTIC: Check if nREPL connection is active and get current session information. Use this to verify connection before other operations or when troubleshooting. RETURNS: Connection status, active sessions list, server info, and recent command history."
-    :inputSchema {:type "object"}}
-
-   {:name "nrepl-new-session"
-    :description "SESSION MANAGEMENT: Create isolated evaluation context for complex workflows. Use when you need variable isolation or want to run parallel evaluations without interference. Each session maintains separate namespace and variable state. RETURNS: New session ID string for use in other function calls."
-    :inputSchema {:type "object"}}
-
-   {:name "nrepl-test"
-    :description "QUICK VALIDATION: Run basic nREPL functionality tests to verify the connection works properly. Use this after connecting or when experiencing issues. Tests basic evaluation, session management, and server communication. RETURNS: Test results summary with pass/fail status for each test."
-    :inputSchema {:type "object"}}
-
-   {:name "nrepl-health-check"
-    :description "COMPREHENSIVE DIAGNOSTICS: Run detailed system health analysis across 6 categories - environment, connectivity, functionality, integration, performance, and configuration. Use this for troubleshooting, performance analysis, or when starting work in a new environment. Essential first step for AI assistants. TIP: If no nREPL server is connected, start the built-in Babashka nREPL server first with babashka-nrepl({op: 'start'}) for testing. RETURNS: Color-coded diagnostic report with detailed status, timing, and recommendations."
-    :inputSchema {:type "object"
-                  :properties {:include-performance {:type "boolean" :description "Include performance benchmarks (default: true)"}
-                               :include-integration {:type "boolean" :description "Include integration tests (default: true)"}
-                               :verbose {:type "boolean" :description "Include detailed diagnostic information (default: false)"}}}}
-
-   {:name "nrepl-load-file"
-    :description "FILE OPERATIONS: Load and evaluate a complete Clojure source file into the session. Use this to load utility functions, configuration, or library code from files. The file content is evaluated as if typed directly. Essential for loading reusable code modules. RETURNS: Success confirmation with namespace info or detailed error with line numbers."
-    :inputSchema {:type "object"
-                  :properties {:file-path {:type "string" :description "Path to the Clojure file to load"}
-                               :session {:type "string" :description "Session ID (optional)"}
-                               :ns {:type "string" :description "Namespace context (optional)"}}
-                  :required ["file-path"]}}
-
-   {:name "nrepl-doc"
-    :description "SYMBOL DOCUMENTATION: Get detailed documentation for any Clojure symbol or function. Use this to understand function parameters, usage examples, and behavior before using unfamiliar functions. Works with built-in functions (map, reduce), your own functions, and VS Code API functions. RETURNS: Formatted documentation with parameters, description, and examples, or 'No documentation found' message."
-    :inputSchema {:type "object"
-                  :properties {:symbol {:type "string" :description "Symbol to get documentation for"}
-                               :session {:type "string" :description "Session ID (optional)"}
-                               :ns {:type "string" :description "Namespace context (optional)"}}
-                  :required ["symbol"]}}
-
-   {:name "nrepl-source"
-    :description "SOURCE CODE INSPECTION: View the actual source code implementation of Clojure functions. Use this to understand how functions work internally, learn implementation patterns, or debug issues. Particularly useful for exploring custom functions and macros. RETURNS: Source code with line numbers and file location, or 'Source not found' for built-in functions."
-    :inputSchema {:type "object"
-                  :properties {:symbol {:type "string" :description "Symbol to get source code for"}
-                               :session {:type "string" :description "Session ID (optional)"}
-                               :ns {:type "string" :description "Namespace context (optional)"}}
-                  :required ["symbol"]}}
-
-   {:name "nrepl-complete"
-    :description "AUTO-COMPLETION: Get available symbol completions for partial input. Use this when you know part of a function name and want to see all possible completions. Helpful for discovering VS Code API functions, exploring namespaces, or finding the right function name. Essential for interactive development. RETURNS: List of matching symbols with brief descriptions or empty list if no matches."
-    :inputSchema {:type "object"
-                  :properties {:prefix {:type "string" :description "Symbol prefix to complete"}
-                               :session {:type "string" :description "Session ID (optional)"}
-                               :ns {:type "string" :description "Namespace context (optional)"}
-                               :context {:type "string" :description "Completion context (optional)"}}
-                  :required ["prefix"]}}
-
-   {:name "nrepl-apropos"
-    :description "SYMBOL DISCOVERY: Search for functions and symbols by name pattern or keywords. Use this when you don't know exact function names but remember part of the name or functionality. Great for exploring available functions, finding utilities, or rediscovering forgotten function names. RETURNS: List of matching symbols with their namespaces and brief descriptions."
-    :inputSchema {:type "object"
-                  :properties {:query {:type "string" :description "Query pattern to search for"}
-                               :session {:type "string" :description "Session ID (optional)"}
-                               :ns {:type "string" :description "Namespace context (optional)"}
-                               :search-ns {:type "string" :description "Namespace to search in (optional)"}
-                               :privates? {:type "boolean" :description "Include private symbols (default: false)"}
-                               :case-sensitive? {:type "boolean" :description "Case-sensitive search (default: false)"}}
-                  :required ["query"]}}
-
-   {:name "nrepl-require"
-    :description "NAMESPACE MANAGEMENT: Load additional Clojure namespaces and libraries into the current session. Use this to access external functions, load utility libraries, or import VS Code-specific namespaces. Essential for working with modular code and accessing extended functionality. RETURNS: Success confirmation or detailed error if namespace not found."
-    :inputSchema {:type "object"
-                  :properties {:namespace {:type "string" :description "Namespace symbol to require"}
-                               :session {:type "string" :description "Session ID (optional)"}
-                               :as {:type "string" :description "Alias for the namespace (optional)"}
-                               :refer {:type "array" :description "Symbols to refer (optional)"}
-                               :reload {:type "boolean" :description "Force reload (default: false)"}}
-                  :required ["namespace"]}}
-
-   {:name "nrepl-interrupt"
-    :description "EMERGENCY STOP: Interrupt long-running or stuck evaluations. Use this when code is taking too long, appears frozen, or you need to stop an infinite loop. Essential safety tool for interactive development. Does not affect the session state or variables. RETURNS: Confirmation that interrupt signal was sent."
-    :inputSchema {:type "object"
-                  :properties {:session {:type "string" :description "Session ID (optional)"}
-                               :interrupt-id {:type "string" :description "Specific evaluation ID to interrupt (optional)"}}}}
-
-   {:name "nrepl-stacktrace"
-    :description "ERROR DEBUGGING: Get detailed error information and stack trace for the most recent exception. Use this immediately after an error occurs to understand what went wrong, where it happened, and how to fix it. Provides file locations, line numbers, and call chain. RETURNS: Formatted stack trace with error details and source locations."
-    :inputSchema {:type "object"
-                  :properties {:session {:type "string" :description "Session ID (optional)"}}}}
-
-   {:name "get-mcp-nrepl-context"
-    :description "🚨 MANDATORY FIRST STEP: Get comprehensive context document that explains the MCP-nREPL server's purpose, architecture, and workflows. AI assistants MUST read this context before using any other MCP functions to understand what this server does, how the 15 functions work together, and essential patterns for success. CRITICAL: This provides the roadmap for effective usage. RETURNS: Complete markdown context document with examples, use cases, and best practices."
-    :inputSchema {:type "object"}}
-
-   {:name "nrepl-send-message-async"
-    :description "🚀 ASYNC MESSAGE SENDING: Send an nREPL message asynchronously and return immediately with a message-id. This queues the message for background processing using the complete async transport layer with timeout handling. Use nrepl-get-result-async with the returned message-id to retrieve results. Perfect for long-running operations where you don't want to block. RETURNS: JSON with message-id, status (pending), and timeout-ms."
-    :inputSchema {:type "object"
-                  :properties {:message {:type "object" :description "nREPL message map (e.g., {:op \"eval\" :code \"(+ 1 2 3)\"})"}
-                               :timeout-ms {:type "number" :description "Timeout in milliseconds (default: 30000)"}}
-                  :required ["message"]}}
-
-   {:name "nrepl-get-result-async"
-    :description "📥 ASYNC RESULT RETRIEVAL: Get the result of an async message by message-id. This is the companion function to nrepl-send-message-async. Use the message-id returned by nrepl-send-message-async to check completion status and retrieve results. Supports polling pattern for long-running operations. RETURNS: JSON with status (pending/completed/failed/expired), message-id, and result data or error info."
-    :inputSchema {:type "object"
-                  :properties {:message-id {:type "string" :description "Message ID returned by nrepl-send-message-async"}}
-                  :required ["message-id"]}}
-
-   {:name "babashka-nrepl"
-    :description "DEVELOPMENT TOOLS: Manage Babashka nREPL server for debugging and introspection. Start/stop/status operations for the integrated Babashka server that enables Calva and other tools to connect for development. Use 'start' to launch server, 'stop' to shut down, 'status' to check current state. RETURNS: JSON status with port, files, and connection details."
-    :inputSchema {:type "object"
-                  :properties {:op {:type "string" :enum ["start" "stop" "status"] :description "Operation: start, stop, or status"}
-                               :port {:type "number" :description "Port number (default: 7889)"}
-                               :port-path {:type "string" :description "Path to port file (default: .babashka-nrepl-port)"}}
-                  :required ["op"]}}])
+;; Tool definitions moved to config namespace
+(def tool-definitions config/tool-definitions)
 
 (defn- call-tool
   "Execute an MCP tool by name"
@@ -1386,13 +1208,13 @@
   (try
     (let [tool-name (get-in request [:params :name])
           args (get-in request [:params :arguments] {})]
-      (log :debug "Calling tool:" tool-name "with args:" args)
+      (utils/log state :debug "Calling tool:" tool-name "with args:" args)
       (let [result (call-tool tool-name args)]
         {:jsonrpc "2.0"
          :id (or (:id request) (str (System/currentTimeMillis)))
          :result result}))
     (catch Exception e
-      (log :error "Tool call failed:" (.getMessage e))
+      (utils/log state :error "Tool call failed:" (.getMessage e))
       {:jsonrpc "2.0"
        :id (or (:id request) (str (System/currentTimeMillis)))
        :error {:code -32603
@@ -1450,7 +1272,7 @@
 (defn- handle-request
   "Route MCP requests to appropriate handlers"
   [request]
-  (log :debug "Handling request:" (:method request))
+  (utils/log state :debug "Handling request:" (:method request))
   (case (:method request)
     "initialize" (handle-initialize request)
     "tools/list" (handle-list-tools request)
@@ -1466,20 +1288,20 @@
 (defn- stdio-server-loop
   "MCP server loop for stdin/stdout transport"
   []
-  (log :info "🚀 MCP-nREPL proxy server starting (stdio)")
-  (log :info "📡 Listening for MCP messages on stdin")
+  (utils/log state :info "🚀 MCP-nREPL proxy server starting (stdio)")
+  (utils/log state :info "📡 Listening for MCP messages on stdin")
 
   (try
     (loop []
       (when-let [line (read-line)]
         (try
           (let [request (json/parse-string line true)]
-            (log :debug "📥 Received:" (:method request))
+            (utils/log state :debug "📥 Received:" (:method request))
             (let [response (handle-request request)]
               (println (json/generate-string response))
               (flush)))
           (catch Exception e
-            (log :error "❌ Error processing message:" (.getMessage e))
+            (utils/log state :error "❌ Error processing message:" (.getMessage e))
             (try
               (let [request (json/parse-string line true)]
                 (println (json/generate-string
@@ -1488,16 +1310,16 @@
                            :error {:code -32700
                                    :message "Parse error"}})))
               (catch Exception _
-                (log :error "Could not send error response")))))
+                (utils/log state :error "Could not send error response")))))
         (recur)))
     (catch Exception e
-      (log :error "💥 Server loop error:" (.getMessage e)))))
+      (utils/log state :error "💥 Server loop error:" (.getMessage e)))))
 
 (defn- http-handler
   "HTTP handler for MCP JSON-RPC requests"
   [request]
   (try
-    (log :debug "📥 HTTP request:" (:request-method request) (:uri request))
+    (utils/log state :debug "📥 HTTP request:" (:request-method request) (:uri request))
 
     (cond
       ;; Handle MCP JSON-RPC POST requests
@@ -1506,7 +1328,7 @@
       (let [body-str (slurp (:body request))
             mcp-request (json/parse-string body-str true)
             response (handle-request mcp-request)]
-        (log :debug "📤 HTTP response for method:" (:method mcp-request))
+        (utils/log state :debug "📤 HTTP response for method:" (:method mcp-request))
         {:status 200
          :headers {"Content-Type" "application/json"
                    "Access-Control-Allow-Origin" "*"
@@ -1537,7 +1359,7 @@
        :body (json/generate-string {:error "Not found"})})
 
     (catch Exception e
-      (log :error "❌ HTTP handler error:" (.getMessage e))
+      (utils/log state :error "❌ HTTP handler error:" (.getMessage e))
       {:status 500
        :headers {"Content-Type" "application/json"}
        :body (json/generate-string {:error "Internal server error"
@@ -1546,24 +1368,24 @@
 (defn- start-http-server
   "Start HTTP server for MCP requests"
   [port]
-  (log :info "🚀 MCP-nREPL proxy server starting (HTTP)")
-  (log :info "📡 Listening for HTTP MCP requests on port" port)
-  (log :info "🔗 MCP endpoint: http://localhost:" port "/mcp")
-  (log :info "💚 Health check: http://localhost:" port "/health")
+  (utils/log state :info "🚀 MCP-nREPL proxy server starting (HTTP)")
+  (utils/log state :info "📡 Listening for HTTP MCP requests on port" port)
+  (utils/log state :info "🔗 MCP endpoint: http://localhost:" port "/mcp")
+  (utils/log state :info "💚 Health check: http://localhost:" port "/health")
 
   (try
     (let [server (httpkit/run-server http-handler {:port port})]
-      (log :info "✅ HTTP server started on port" port)
+      (utils/log state :info "✅ HTTP server started on port" port)
       (.addShutdownHook (Runtime/getRuntime)
                         (Thread. #(do
-                                    (log :info "🛑 Shutting down HTTP server...")
+                                    (utils/log state :info "🛑 Shutting down HTTP server...")
                                     (server))))
       ;; Keep the main thread alive
       (loop []
         (Thread/sleep 1000)
         (recur)))
     (catch Exception e
-      (log :error "💥 HTTP server error:" (.getMessage e)))))
+      (utils/log state :error "💥 HTTP server error:" (.getMessage e)))))
 
 (defn -main
   "Main entry point for Babashka MCP-nREPL proxy"
@@ -1582,13 +1404,13 @@
                                          7889)}]
     (swap! state assoc :config config)
 
-    (log :info "🔧 MCP-nREPL Proxy Configuration:")
-    (log :info "   Debug mode:" (:debug config))
-    (log :info "   Workspace:" (:workspace config))
-    (log :info "   Transport:" (:transport config))
+    (utils/log state :info "🔧 MCP-nREPL Proxy Configuration:")
+    (utils/log state :info "   Debug mode:" (:debug config))
+    (utils/log state :info "   Workspace:" (:workspace config))
+    (utils/log state :info "   Transport:" (:transport config))
     (when (= :http (:transport config))
-      (log :info "   HTTP port:" (:http-port config)))
-    (log :info "   Babashka nREPL port:" (:babashka-nrepl-port config))
+      (utils/log state :info "   HTTP port:" (:http-port config)))
+    (utils/log state :info "   Babashka nREPL port:" (:babashka-nrepl-port config))
 
     ;; Start heartbeat monitor
     (start-heartbeat-monitor)
@@ -1597,7 +1419,7 @@
     (when false ;; TEMPORARILY DISABLED - debugging JSON output issue
       (when-let [bb-nrepl-port (:babashka-nrepl-port config)]
         (try
-          (log :info "🔧 Starting Babashka nREPL server on port:" bb-nrepl-port)
+          (utils/log state :info "🔧 Starting Babashka nREPL server on port:" bb-nrepl-port)
           (let [server (let [captured-output (atom "")
                              original-out *out*]
                          (binding [*out* (java.io.StringWriter.)]
@@ -1609,13 +1431,13 @@
                                  (print @captured-output)))
                              result)))]
             (swap! state assoc :babashka-nrepl-server server)
-            (log :info "✅ Babashka nREPL server started - connect Calva to localhost:" bb-nrepl-port)
+            (utils/log state :info "✅ Babashka nREPL server started - connect Calva to localhost:" bb-nrepl-port)
             (spit ".nrepl-port-babashka" bb-nrepl-port))
           (catch Exception e
-            (log :warn "⚠️  Failed to start Babashka nREPL server:" (.getMessage e))))))
+            (utils/log state :warn "⚠️  Failed to start Babashka nREPL server:" (.getMessage e))))))
 
     ;; No auto-connection - use nrepl-connect tool explicitly
-    (log :info "💡 Use nrepl-connect tool to connect to an nREPL server")
+    (utils/log state :info "💡 Use nrepl-connect tool to connect to an nREPL server")
 
     ;; Start appropriate server
     (if (= :http (:transport config))
