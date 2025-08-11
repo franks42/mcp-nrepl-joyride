@@ -16,8 +16,15 @@ Last updated: 2025-08-10
   - [x] Test Step 2: Unit test promise timeout behavior with `(deref promise timeout-ms :timeout)` ✅
 - [x] **Step 3: Create send-message-async calling collect-responses-async** ✅
   - [x] Test Step 3: Integration test with multiple nREPL servers (real nREPL server tested) ✅
-- [ ] **Step 4: Add connection state management (basic atom)**
-  - [ ] Test Step 4: Verify state tracking works correctly
+- [x] **Step 4: Add connection state management (basic atom)** ✅
+  - [x] Test Step 4: Verify state tracking works correctly ✅
+  - [x] **Enhancement: RFC 9562 UUID v7 with NO fallback guarantee** ✅
+    - [x] Format: `<uuid-v7>-<operation>` enables perfect temporal sorting ✅
+    - [x] Example: `0198974c-d9d6-7000-8001-00006c73abd1-eval` ✅
+    - [x] 26-bit sequence counter = 67 million unique IDs per millisecond ✅
+    - [x] NO random fallback - waits for next millisecond on overflow ✅
+    - [x] Thread-safe compare-and-swap (CAS) atomic operations ✅
+    - [x] Separate uuid_v7.clj module for reusability ✅
 
 **Implementation Method**: Use Babashka's verified async capabilities: `(deref promise timeout-ms :timeout)` 
 **Preserve**: Keep existing `send-message` function for backward compatibility
@@ -30,22 +37,25 @@ Last updated: 2025-08-10
 **Tag**: `v0.x.0-async-transport`
 
 ### Phase 2: Internal Layer Implementation
-- [ ] **Create nrepl-raw-async-int as pure nREPL interface**
-  - [ ] Implement `nrepl-raw-async-int` using `send-message-async`
-  - [ ] Add message validation and error handling
-  - [ ] Standardize response format
-  - [ ] **Implement queue lifecycle management for connection state changes**
-    - [ ] Track pending messages per connection in queue
-    - [ ] On connection close/reset: mark queued messages as failed (not disappeared)
-    - [ ] Failure record structure: `{:message-id, :status :failed, :error-type, :error-message, :timestamp}`
-    - [ ] Error types: `:connection-closed`, `:connection-lost`, `:connection-reset`, `:timeout`, `:queue-overflow`
+- [x] **Create nrepl-raw-async-int as pure nREPL interface** ✅ **PARTIAL - Step 3B IN PROGRESS**
+  - [x] ✅ **COMPLETED**: UUID v7 import and generate-id function updated
+  - [x] ✅ **COMPLETED**: Message queue atoms added (pending-messages, message-records, failure-records)
+  - [x] ✅ **COMPLETED**: track-pending-message function with atomic queue management
+  - [x] ✅ **VALIDATED**: All changes follow Clojure Quality Protocol (format.sh + clj-kondo)
+  - [x] ✅ **VERIFIED**: 100% test success rate maintained (7/7 tests passing)
+  - [ ] **IN PROGRESS**: Complete queue lifecycle management implementation
+    - [ ] Add update-message-status function for state transitions
+    - [ ] Add mark-connection-messages-failed function for connection cleanup
+    - [ ] Update close-connection to mark pending messages as failed
+    - [ ] Complete nrepl-raw-async-int with full queue lifecycle tracking
     - [ ] Message states: `:pending`, `:sending`, `:sent`, `:completed`, `:failed`, `:expired`
+    - [ ] Error types: `:connection-closed`, `:connection-lost`, `:connection-reset`, `:timeout`, `:queue-overflow`
     - [ ] Cleanup strategy: Keep failure records for 5 minutes or last N failures
     - [ ] Prevent sending on closed connections
-  - [ ] Write integration tests with real nREPL server
+  - [ ] Write integration tests with real nREPL server for connection lifecycle scenarios
   - [ ] Test: all nREPL operations, error messages, performance parity, connection lifecycle scenarios
-  - **Commit**: `feat: implement nrepl-raw-async-int with queue lifecycle management` 
-  - **Tag**: `v0.x.0-async-internal`
+  - **Commit**: `feat: implement queue lifecycle management foundation with UUID v7`
+  - **Tag**: `v0.x.0-async-internal-foundation`
 
 ### Phase 3: MCP Layer Implementation  
 - [ ] **Create nrepl-raw-async MCP function with full protocol compliance**

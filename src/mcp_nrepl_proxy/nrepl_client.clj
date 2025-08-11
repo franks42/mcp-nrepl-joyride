@@ -4,6 +4,7 @@
    Joyride's nREPL server uses bencode encoding for messages, not plain text.
    This implementation properly encodes/decodes messages using bencode."
   (:require [bencode.core :as bencode]
+            [mcp-nrepl-proxy.uuid-v7 :as uuid]
             [clojure.string :as str])
   (:import [java.net Socket]
            [java.io InputStream OutputStream PushbackInputStream]))
@@ -13,10 +14,34 @@
   (atom {:connections {}      ; Map of connection-id -> connection details
          :counter 0}))        ; Counter for generating unique connection IDs
 
+;; Message Queue Lifecycle Management
+(defonce ^:private message-queues
+  (atom {:pending-messages {}     ; Map of connection-id -> #{message-ids}
+         :message-records {}      ; Map of message-id -> message record
+         :failure-records []}))   ; Vector of failure records (temporal ordered)
+
 (defn- generate-connection-id
   "Generate a unique connection identifier"
   []
   (str "conn-" (:counter (swap! connection-state update :counter inc))))
+
+(defn- track-pending-message
+  "Add a message to the pending queue for a connection."
+  [connection-id message-id message]
+  (let [record {:message-id message-id
+                :connection-id connection-id
+                :message message
+                :status :pending
+                :created-at (System/currentTimeMillis)
+                :last-updated (System/currentTimeMillis)}]
+    (swap! message-queues
+           (fn [queues]
+             (-> queues
+                 (update-in [:pending-messages connection-id]
+                            (fn [pending-set]
+                              (conj (or pending-set #{}) message-id)))
+                 (assoc-in [:message-records message-id] record))))
+    record))
 
 (defn connect
   "Connect to nREPL server and return connection map with tracking"
@@ -84,9 +109,9 @@
                            conns))))))
 
 (defn generate-id
-  "Generate unique message ID"
-  []
-  (str (java.util.UUID/randomUUID)))
+  "Generate RFC 9562 compliant UUID v7 with operation tag suffix."
+  [& {:keys [tag] :or {tag "msg"}}]
+  (uuid/uuid-v7-with-tag :tag tag))
 
 (defn- bytes-to-string
   "Convert byte array to UTF-8 string"
