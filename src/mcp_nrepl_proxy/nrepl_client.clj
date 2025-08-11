@@ -80,6 +80,68 @@
         ;; Error case - return what we have so far
         responses))))
 
+(defn- collect-responses-async
+  "Async version of collect-responses with promise-based timeout handling.
+  
+  Args:
+    in - Input stream for reading nREPL responses
+    message-id - Message ID to collect responses for
+    timeout-ms - Timeout in milliseconds (required for async version)
+  
+  Returns:
+    {:status :success :responses [...]} on success
+    {:status :timeout :responses [...]} on timeout
+    {:status :error :responses [...] :error exception} on error
+  
+  Implementation:
+    Uses promise-based timeout with (deref promise timeout-ms :timeout) pattern
+    as verified working in Babashka runtime environment."
+  [in message-id timeout-ms]
+  (let [result-promise (promise)
+        worker-future (future
+                        (try
+                          (let [responses (loop [responses []]
+                                            (let [read-result (try
+                                                                (let [raw-response (bencode/read-bencode in)
+                                                                      converted-response (convert-bencode-response raw-response)]
+                                                                  (binding [*out* *err*]
+                                                                    (println "[nREPL] 📥 Async received response:" converted-response))
+                                                                  {:success true :response converted-response})
+                                                                (catch Exception e
+                                                                  (binding [*out* *err*]
+                                                                    (println "[nREPL] ❌ Async error reading response:" (.getMessage e)))
+                                                                  {:success false :error e}))]
+                                              (if (:success read-result)
+                                                (let [response (:response read-result)
+                                                      new-responses (conj responses response)
+                                                      status (:status response)]
+                                                  ;; Continue reading until we get a "done" status
+                                                  (if (and status (some #(= "done" %) status))
+                                                    new-responses
+                                                    (recur new-responses)))
+                                                ;; Error case - return what we have so far with error
+                                                (do
+                                                  (deliver result-promise {:status :error
+                                                                           :responses responses
+                                                                           :error (:error read-result)})
+                                                  responses))))]
+                            (deliver result-promise {:status :success :responses responses}))
+                          (catch Exception e
+                            (binding [*out* *err*]
+                              (println "[nREPL] ❌ Async worker error:" (.getMessage e)))
+                            (deliver result-promise {:status :error :responses [] :error e}))))]
+
+    ;; Use promise-based timeout as verified in Babashka
+    (let [result (deref result-promise timeout-ms :timeout)]
+      (if (= result :timeout)
+        (do
+          ;; Cancel the worker future and return timeout result
+          (future-cancel worker-future)
+          (binding [*out* *err*]
+            (println "[nREPL] ⏰ Async timeout after" timeout-ms "ms"))
+          {:status :timeout :responses [] :timeout-ms timeout-ms})
+        result))))
+
 (defn- merge-responses
   "Merge multiple nREPL responses into a single response, concatenating output fields"
   [responses]
