@@ -201,6 +201,53 @@
         (println "[nREPL] 📥 Final merged response:" merged-response))
       merged-response)))
 
+(defn send-message-async
+  "Async version of send-message using promise-based timeout handling.
+  
+  Args:
+    connection - Map with :out and :in streams
+    message - nREPL message to send  
+    timeout-ms - Timeout in milliseconds (required for async version)
+  
+  Returns:
+    {:status :success :response merged-response} on success
+    {:status :timeout :responses [...] :timeout-ms timeout-ms} on timeout
+    {:status :error :responses [...] :error exception} on error
+  
+  Implementation:
+    Uses send-message-async -> collect-responses-async pipeline
+    for full async message handling with timeout support."
+  [{:keys [out in]} message timeout-ms]
+  (let [msg-with-id (assoc message :id (generate-id))]
+    ;; Log outgoing message
+    (binding [*out* *err*]
+      (println "[nREPL] 📤 Async sending:" (pr-str msg-with-id)))
+
+    ;; Send bencode-encoded message
+    (bencode/write-bencode out msg-with-id)
+    (.flush out)
+
+    ;; Use async collection with timeout
+    (let [async-result (collect-responses-async in (:id msg-with-id) timeout-ms)]
+      (case (:status async-result)
+        :success
+        (let [merged-response (merge-responses (:responses async-result))]
+          (binding [*out* *err*]
+            (println "[nREPL] 📥 Async final merged response:" merged-response))
+          {:status :success :response merged-response})
+
+        :timeout
+        (do
+          (binding [*out* *err*]
+            (println "[nREPL] ⏰ Async send-message timeout after" timeout-ms "ms"))
+          async-result)
+
+        :error
+        (do
+          (binding [*out* *err*]
+            (println "[nREPL] ❌ Async send-message error:" (pr-str (:error async-result))))
+          async-result)))))
+
 (defn eval-code
   "Evaluate code in nREPL session"
   [conn code & {:keys [session ns]}]
