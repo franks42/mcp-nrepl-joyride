@@ -5,7 +5,8 @@
    This implementation properly encodes/decodes messages using bencode."
   (:require [bencode.core :as bencode]
             [mcp-nrepl-proxy.uuid-v7 :as uuid]
-            [clojure.string :as str])
+            [clojure.string :as str]
+            [clojure.set :as set])
   (:import [java.net Socket]
            [java.io InputStream OutputStream PushbackInputStream]))
 
@@ -327,36 +328,67 @@
         result))))
 
 (defn- merge-responses
-  "Merge multiple nREPL responses into a single response, concatenating output fields"
+  "Merge multiple nREPL responses into a single response, preserving ALL fields.
+  
+  Special handling:
+  - :out, :err - concatenated from all responses
+  - :value, :ex, :ns, :session - take last non-nil value
+  - :status - take from last response
+  - All other fields - use first non-nil value (most operations return single response)
+  
+  This ensures no nREPL response data is lost."
   [responses]
-  (let [;; Concatenate all output fields
-        all-out (apply str (keep :out responses))
-        all-err (apply str (keep :err responses))
-        ;; Take the last non-nil value for these fields
-        final-value (last (keep :value responses))
-        final-ex (last (keep :ex responses))
-        final-ns (last (keep :ns responses))
-        final-session (last (keep :session responses))
-        final-status (:status (last responses))
+  (if (empty? responses)
+    {}
+    (let [;; Special concatenation fields
+          all-out (apply str (keep :out responses))
+          all-err (apply str (keep :err responses))
 
-        ;; For describe operation, preserve ops and versions from first response
-        ops (some :ops responses)
-        versions (some :versions responses)
-        aux (some :aux responses)
+          ;; Fields that should use the last non-nil value
+          final-value (last (keep :value responses))
+          final-ex (last (keep :ex responses))
+          final-ns (last (keep :ns responses))
+          final-session (last (keep :session responses))
+          final-status (:status (last responses))
 
-        ;; Build the merged response
-        merged (cond-> {}
-                 (not-empty all-out) (assoc :out all-out)
-                 (not-empty all-err) (assoc :err all-err)
-                 final-value (assoc :value final-value)
-                 final-ex (assoc :ex final-ex)
-                 final-ns (assoc :ns final-ns)
-                 final-session (assoc :session final-session)
-                 final-status (assoc :status final-status)
-                 ops (assoc :ops ops)
-                 versions (assoc :versions versions)
-                 aux (assoc :aux aux))]
-    merged))
+          ;; Get all unique keys from all responses
+          all-keys (->> responses
+                        (mapcat keys)
+                        (into #{}))
+
+          ;; Fields with special handling (don't process with generic logic)
+          special-fields #{:out :err :value :ex :ns :session :status}
+
+          ;; Generic fields - use first non-nil value
+          generic-fields (set/difference all-keys special-fields)
+
+          ;; Build merged response starting with special fields
+          base-merged (cond-> {}
+                        (not-empty all-out) (assoc :out all-out)
+                        (not-empty all-err) (assoc :err all-err)
+                        final-value (assoc :value final-value)
+                        final-ex (assoc :ex final-ex)
+                        final-ns (assoc :ns final-ns)
+                        final-session (assoc :session final-session)
+                        final-status (assoc :status final-status))
+
+          ;; Add all generic fields using first non-nil value
+          full-merged (reduce
+                       (fn [merged-map field-key]
+                         (if-let [field-value (some field-key responses)]
+                           (assoc merged-map field-key field-value)
+                           merged-map))
+                       base-merged
+                       generic-fields)]
+
+      ;; Log any unknown fields for debugging (only in debug mode)
+      (when (and (System/getenv "MCP_DEBUG")
+                 (not-empty generic-fields))
+        (binding [*out* *err*]
+          (println "[nREPL] 🔍 Merged response contains fields:"
+                   (str/join ", " (map name (sort (keys full-merged)))))))
+
+      full-merged)))
 
 (defn send-message
   "Send nREPL message using bencode and collect all response messages.
