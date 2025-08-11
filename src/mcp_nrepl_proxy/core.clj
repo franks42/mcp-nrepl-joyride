@@ -10,6 +10,7 @@
             [mcp-nrepl-proxy.config :as config]
             [mcp-nrepl-proxy.utils :as utils]
             [mcp-nrepl-proxy.server :as server]
+            [mcp-nrepl-proxy.protocol :as protocol]
             [babashka.fs :as fs]
             [clojure.string :as str]
             [babashka.nrepl.server :as nrepl-server]))
@@ -1195,100 +1196,11 @@
     {:content [{:type "text" :text (str "❌ Unknown tool: " tool-name)}]
      :isError true}))
 
-(defn- handle-list-tools
-  "Handle MCP tools/list request"
-  [request]
-  {:jsonrpc "2.0"
-   :id (or (:id request) (str (System/currentTimeMillis)))
-   :result {:tools tool-definitions}})
-
-(defn- handle-call-tool
-  "Handle MCP tools/call request"
-  [request]
-  (try
-    (let [tool-name (get-in request [:params :name])
-          args (get-in request [:params :arguments] {})]
-      (utils/log state :debug "Calling tool:" tool-name "with args:" args)
-      (let [result (call-tool tool-name args)]
-        {:jsonrpc "2.0"
-         :id (or (:id request) (str (System/currentTimeMillis)))
-         :result result}))
-    (catch Exception e
-      (utils/log state :error "Tool call failed:" (.getMessage e))
-      {:jsonrpc "2.0"
-       :id (or (:id request) (str (System/currentTimeMillis)))
-       :error {:code -32603
-               :message "Internal error"
-               :data {:error (.getMessage e)}}})))
-
-(defn- handle-initialize
-  "Handle MCP initialize request"
-  [request]
-  {:jsonrpc "2.0"
-   :id (or (:id request) (str (System/currentTimeMillis)))
-   :result {:protocolVersion "2024-11-05"
-            :capabilities {:tools {}
-                           :resources {}}
-            :serverInfo {:name "mcp-nrepl-proxy"
-                         :version "0.1.0"
-                         :description "Babashka MCP server bridging Claude Code with Joyride nREPL"}}})
-
-(defn- handle-list-resources
-  "Handle MCP resources/list request"
-  [request]
-  (let [commands (:recent-commands @state)]
-    {:jsonrpc "2.0"
-     :id (or (:id request) (str (System/currentTimeMillis)))
-     :result {:resources (map-indexed
-                          (fn [idx cmd]
-                            {:uri (str "nrepl://commands/" idx)
-                             :name (str "Command: " (subs (:code cmd) 0 (min 50 (count (:code cmd)))))
-                             :description (str "Executed at " (:timestamp cmd))
-                             :mimeType "application/json"})
-                          commands)}}))
-
-(defn- handle-read-resource
-  "Handle MCP resources/read request"
-  [request]
-  (let [uri (:uri (:params request))
-        commands (:recent-commands @state)]
-    (if-let [match (re-matches #"nrepl://commands/(\d+)" uri)]
-      (let [idx (Integer/parseInt (second match))]
-        (if (< idx (count commands))
-          {:jsonrpc "2.0"
-           :id (or (:id request) (str (System/currentTimeMillis)))
-           :result {:contents [{:uri uri
-                                :mimeType "application/json"
-                                :text (json/generate-string (nth commands idx) {:pretty true})}]}}
-          {:jsonrpc "2.0"
-           :id (or (:id request) (str (System/currentTimeMillis)))
-           :error {:code -32602
-                   :message "Resource not found"}}))
-      {:jsonrpc "2.0"
-       :id (or (:id request) (str (System/currentTimeMillis)))
-       :error {:code -32602
-               :message "Invalid resource URI"}})))
-
-(defn- handle-request
-  "Route MCP requests to appropriate handlers"
-  [request]
-  (utils/log state :debug "Handling request:" (:method request))
-  (case (:method request)
-    "initialize" (handle-initialize request)
-    "tools/list" (handle-list-tools request)
-    "tools/call" (handle-call-tool request)
-    "resources/list" (handle-list-resources request)
-    "resources/read" (handle-read-resource request)
-    ;; Unknown method
-    {:jsonrpc "2.0"
-     :id (or (:id request) (str (System/currentTimeMillis)))
-     :error {:code -32601
-             :message "Method not found"}}))
-
 (defn -main
   "Main entry point for Babashka MCP-nREPL proxy"
   [& args]
-  (apply server/server-main state handle-request start-heartbeat-monitor args))
+  (let [handle-request (partial protocol/handle-request state call-tool)]
+    (apply server/server-main state handle-request start-heartbeat-monitor args)))
 
 ;; Enable direct script execution with shebang
 (when (= *file* (System/getProperty "babashka.file"))
