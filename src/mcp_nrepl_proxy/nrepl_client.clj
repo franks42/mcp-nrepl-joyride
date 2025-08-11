@@ -572,3 +572,100 @@
   (let [msg (cond-> {:op "stacktrace"}
               session (assoc :session session))]
     (send-message conn msg)))
+
+;; === ASYNC QUEUE MANAGEMENT ===
+
+(defn get-message-status
+  "Get the status of a message by message-id.
+  
+  Returns:
+    {:status :pending/:sending/:sent/:completed/:failed/:expired
+     :message-id message-id
+     :created-at timestamp
+     :last-updated timestamp  
+     :result response-data (if completed)
+     :error-info error-details (if failed/expired)}
+  
+  Returns nil if message-id not found."
+  [message-id]
+  (when-let [record (get-in @message-queues [:message-records message-id])]
+    record))
+
+(defn queue-message-async
+  "Queue an nREPL message for async processing.
+  
+  Args:
+    connection - nREPL connection  
+    message - nREPL message map
+    timeout-ms - Optional timeout in milliseconds (default: 30000)
+  
+  Returns:
+    {:message-id id :status :pending :timeout-ms timeout-ms}
+  
+  The message will be processed in the background using send-message-async.
+  Use get-message-status to check completion and get results."
+  [connection message & {:keys [timeout-ms] :or {timeout-ms 30000}}]
+  (let [message-id (generate-id)
+        msg-with-id (assoc message :id message-id)]
+
+    ;; Track the pending message
+    (when (:id connection)
+      (track-pending-message (:id connection) message-id message))
+
+    ;; Start async processing in background
+    (future
+      (try
+        (let [result (send-message-async connection msg-with-id timeout-ms)]
+          ;; Store the result in the message record
+          (case (:status result)
+            :success
+            (swap! message-queues assoc-in [:message-records message-id :result] (:response result))
+
+            (:timeout :error)
+            (swap! message-queues assoc-in [:message-records message-id :error-info]
+                   (select-keys result [:status :error :timeout-ms :responses]))))
+        (catch Exception e
+          ;; Handle unexpected errors
+          (update-message-status message-id :failed
+                                 :error-info {:type :system-error
+                                              :error (.getMessage e)
+                                              :message "Unexpected error during async processing"}))))
+
+    ;; Return immediately with message-id
+    {:message-id message-id
+     :status :pending
+     :timeout-ms timeout-ms}))
+
+(defn fetch-result
+  "Fetch the result of an async message by message-id.
+  
+  Args:
+    message-id - The message ID returned by queue-message-async
+  
+  Returns:
+    {:status :pending} - Still processing
+    {:status :completed :result response-data} - Successfully completed
+    {:status :failed/:expired :error-info {...}} - Failed or timed out
+    {:status :not-found} - Message ID not found
+  
+  For completed messages, :result contains the merged nREPL response.
+  For failed/expired messages, :error-info contains error details."
+  [message-id]
+  (if-let [record (get-message-status message-id)]
+    (case (:status record)
+      :completed
+      {:status :completed
+       :result (:result record)
+       :message-id message-id}
+
+      (:failed :expired)
+      {:status (:status record)
+       :error-info (:error-info record)
+       :message-id message-id}
+
+      ;; Still processing (:pending, :sending, :sent)
+      {:status :pending
+       :message-id message-id})
+
+    {:status :not-found
+     :message-id message-id}))

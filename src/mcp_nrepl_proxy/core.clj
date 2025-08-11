@@ -1145,6 +1145,82 @@
                 :text "❌ No nREPL connection available. Use nrepl-connect first."}]
      :isError true}))
 
+(defn- tool-nrepl-raw-async
+  "Queue an nREPL message for async processing and return message-id immediately.
+  
+  This function implements the raw async interface described in the sync-async 
+  queuing architecture. It puts the message on the send queue and returns 
+  immediately with a message-id that can be used to fetch results later.
+  
+  Use nrepl-fetch-result with the returned message-id to get the result."
+  [{:keys [message timeout-ms] :or {timeout-ms 30000}}]
+  (let [conn-result (ensure-nrepl-connection)]
+    (if (:success conn-result)
+      (try
+        (let [conn (:connection conn-result)
+              async-result (nrepl/queue-message-async conn message :timeout-ms timeout-ms)]
+          (log :debug "Queued async message:" (pr-str async-result))
+
+          {:content [{:type "text"
+                      :text (json/generate-string async-result {:pretty true})}]})
+        (catch Exception e
+          (log :error "Failed to queue async message:" (.getMessage e))
+          {:content [{:type "text"
+                      :text (str "❌ Failed to queue message: " (.getMessage e))}]
+           :isError true}))
+      {:content [{:type "text"
+                  :text (str "❌ No nREPL connection: " (:error conn-result))}]
+       :isError true})))
+
+(defn- tool-nrepl-fetch-result
+  "Fetch the result of an async message by message-id.
+  
+  This is the companion function to nrepl-raw-async. Use the message-id 
+  returned by nrepl-raw-async to fetch the result."
+  [{:keys [message-id]}]
+  (if message-id
+    (try
+      (let [result (nrepl/fetch-result message-id)]
+        (log :debug "Fetched async result:" (pr-str result))
+
+        (case (:status result)
+          :completed
+          {:content [{:type "text"
+                      :text (json/generate-string
+                             {:status "completed"
+                              :message-id message-id
+                              :result (:result result)}
+                             {:pretty true})}]}
+
+          :pending
+          {:content [{:type "text"
+                      :text (json/generate-string
+                             {:status "pending"
+                              :message-id message-id}
+                             {:pretty true})}]}
+
+          (:failed :expired)
+          {:content [{:type "text"
+                      :text (json/generate-string
+                             {:status (:status result)
+                              :message-id message-id
+                              :error-info (:error-info result)}
+                             {:pretty true})}]
+           :isError true}
+
+          :not-found
+          {:content [{:type "text"
+                      :text (str "❌ Message ID not found: " message-id)}]
+           :isError true}))
+      (catch Exception e
+        (log :error "Failed to fetch async result:" (.getMessage e))
+        {:content [{:type "text"
+                    :text (str "❌ Failed to fetch result: " (.getMessage e))}]
+         :isError true}))
+    {:content [{:type "text"
+                :text "❌ Message ID is required"}]
+     :isError true}))
+
 ;; MCP Protocol Handlers
 
 (def tool-definitions
@@ -1251,6 +1327,19 @@
     :description "🚨 MANDATORY FIRST STEP: Get comprehensive context document that explains the MCP-nREPL server's purpose, architecture, and workflows. AI assistants MUST read this context before using any other MCP functions to understand what this server does, how the 15 functions work together, and essential patterns for success. CRITICAL: This provides the roadmap for effective usage. RETURNS: Complete markdown context document with examples, use cases, and best practices."
     :inputSchema {:type "object"}}
 
+   {:name "nrepl-raw-async"
+    :description "🚀 ASYNC QUEUING: Queue an nREPL message for asynchronous processing and return immediately with a message-id. This implements the raw async interface from the sync-async queuing architecture. The message is processed in the background using the complete async transport layer. Use nrepl-fetch-result with the returned message-id to get results. Perfect for long-running operations where you don't want to block. RETURNS: JSON with message-id, status (pending), and timeout-ms."
+    :inputSchema {:type "object"
+                  :properties {:message {:type "object" :description "nREPL message map (e.g., {:op \"eval\" :code \"(+ 1 2 3)\"})"}
+                               :timeout-ms {:type "number" :description "Timeout in milliseconds (default: 30000)"}}
+                  :required ["message"]}}
+
+   {:name "nrepl-fetch-result"
+    :description "📥 ASYNC RESULT: Fetch the result of an async message by message-id. This is the companion function to nrepl-raw-async. Use the message-id returned by nrepl-raw-async to check completion status and retrieve results. Supports polling pattern for long-running operations. RETURNS: JSON with status (pending/completed/failed/expired), message-id, and result data or error info."
+    :inputSchema {:type "object"
+                  :properties {:message-id {:type "string" :description "Message ID returned by nrepl-raw-async"}}
+                  :required ["message-id"]}}
+
    {:name "babashka-nrepl"
     :description "DEVELOPMENT TOOLS: Manage Babashka nREPL server for debugging and introspection. Start/stop/status operations for the integrated Babashka server that enables Calva and other tools to connect for development. Use 'start' to launch server, 'stop' to shut down, 'status' to check current state. RETURNS: JSON status with port, files, and connection details."
     :inputSchema {:type "object"
@@ -1278,6 +1367,8 @@
     "nrepl-stacktrace" (tool-nrepl-stacktrace args)
     "nrepl-health-check" (tool-nrepl-health-check args)
     "get-mcp-nrepl-context" (tool-get-mcp-nrepl-context args)
+    "nrepl-raw-async" (tool-nrepl-raw-async args)
+    "nrepl-fetch-result" (tool-nrepl-fetch-result args)
     "babashka-nrepl" (tool-babashka-nrepl args)
     {:content [{:type "text" :text (str "❌ Unknown tool: " tool-name)}]
      :isError true}))
