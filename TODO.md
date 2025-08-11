@@ -10,8 +10,8 @@ Last updated: 2025-08-10
 **Strategy**: Small steps with testing along the way
 **CONFIRMED**: Full async support available in Babashka runtime (promises, futures, Java concurrency)
 
-- [ ] **Step 1: Add timeout parameter to collect-responses function (minimal change)**
-  - [ ] Test Step 1: Verify timeout parameter works with simple timeout test
+- [x] **Step 1: Add timeout parameter to collect-responses function (minimal change)** ✅
+  - [x] Test Step 1: Verify timeout parameter works with simple timeout test ✅
 - [ ] **Step 2: Create collect-responses-async using promise-based timeout**  
   - [ ] Test Step 2: Unit test promise timeout behavior with `(deref promise timeout-ms :timeout)`
 - [ ] **Step 3: Create send-message-async calling collect-responses-async**

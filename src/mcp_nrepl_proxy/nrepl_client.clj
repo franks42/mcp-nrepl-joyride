@@ -48,8 +48,16 @@
     :else (bytes-to-string obj)))
 
 (defn- collect-responses
-  "Collect multiple nREPL response messages until 'done' status"
-  [in message-id]
+  "Collect multiple nREPL response messages until 'done' status.
+  
+  Args:
+    in - Input stream for reading nREPL responses
+    message-id - Message ID to collect responses for
+    timeout-ms - Optional timeout in milliseconds (default: no timeout)
+  
+  Returns:
+    Vector of response messages collected until 'done' status"
+  [in message-id & {:keys [timeout-ms]}]
   (loop [responses []]
     (let [read-result (try
                         (let [raw-response (bencode/read-bencode in)
@@ -105,8 +113,16 @@
     merged))
 
 (defn send-message
-  "Send nREPL message using bencode and collect all response messages"
-  [{:keys [out in]} message]
+  "Send nREPL message using bencode and collect all response messages.
+  
+  Args:
+    connection - Map with :out and :in streams
+    message - nREPL message to send
+    timeout-ms - Optional timeout in milliseconds (default: no timeout)
+  
+  Returns:
+    Merged response from nREPL server"
+  [{:keys [out in]} message & {:keys [timeout-ms]}]
   (let [msg-with-id (assoc message :id (generate-id))]
     ;; Log outgoing message
     (binding [*out* *err*]
@@ -117,7 +133,7 @@
     (.flush out)
 
     ;; Collect all response messages until "done"
-    (let [responses (collect-responses in (:id msg-with-id))
+    (let [responses (collect-responses in (:id msg-with-id) :timeout-ms timeout-ms)
           merged-response (merge-responses responses)]
       (binding [*out* *err*]
         (println "[nREPL] 📥 Final merged response:" merged-response))
