@@ -34,9 +34,17 @@ Last updated: 2025-08-10
   - [ ] Implement `nrepl-raw-async-int` using `send-message-async`
   - [ ] Add message validation and error handling
   - [ ] Standardize response format
+  - [ ] **Implement queue lifecycle management for connection state changes**
+    - [ ] Track pending messages per connection in queue
+    - [ ] On connection close/reset: mark queued messages as failed (not disappeared)
+    - [ ] Failure record structure: `{:message-id, :status :failed, :error-type, :error-message, :timestamp}`
+    - [ ] Error types: `:connection-closed`, `:connection-lost`, `:connection-reset`, `:timeout`, `:queue-overflow`
+    - [ ] Message states: `:pending`, `:sending`, `:sent`, `:completed`, `:failed`, `:expired`
+    - [ ] Cleanup strategy: Keep failure records for 5 minutes or last N failures
+    - [ ] Prevent sending on closed connections
   - [ ] Write integration tests with real nREPL server
-  - [ ] Test: all nREPL operations, error messages, performance parity
-  - **Commit**: `feat: implement nrepl-raw-async-int foundation` 
+  - [ ] Test: all nREPL operations, error messages, performance parity, connection lifecycle scenarios
+  - **Commit**: `feat: implement nrepl-raw-async-int with queue lifecycle management` 
   - **Tag**: `v0.x.0-async-internal`
 
 ### Phase 3: MCP Layer Implementation  

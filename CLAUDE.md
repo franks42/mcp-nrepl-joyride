@@ -2,9 +2,22 @@
 
 This file contains important information for Claude Code when working with the MCP-nREPL Joyride project.
 
-## 🎯 Project Status: ✅ COMPLETED + ENHANCED (January 2025)
+## 🎯 Project Status: 🚧 PHASE 1 ASYNC ARCHITECTURE COMPLETED ✅ (January 2025)
 
-The MCP-nREPL Joyride bridge is fully implemented, tested, and enhanced with explicit connection architecture. All core functionality is working with **100% test reliability**.
+**Phase 1: Transport Layer Foundation** - **✅ COMPLETED**
+- Complete async architecture transport layer implemented with Babashka
+- Connection state management with lifecycle tracking and activity monitoring
+- Promise-based timeout handling verified and tested
+- send-message-async with structured result handling
+- All tests passing at 100% success rate (11/11 tests)
+- Fixed connection ID generation and cleanup function logic
+
+**Phase 2: Internal Layer Implementation** - **⏳ NEXT**
+- Queue-based message management with lifecycle handling
+- Enhanced error reporting and failure tracking for better MCP caller visibility
+- Pure nREPL async interface implementation (nrepl-raw-async-int)
+
+The MCP-nREPL Joyride bridge foundation is solid with explicit connection architecture and async capabilities ready for production queuing layer.
 
 ## 🏗️ Implementation Approach
 
@@ -18,6 +31,13 @@ The MCP-nREPL Joyride bridge is fully implemented, tested, and enhanced with exp
 - **🆕 Explicit connection architecture** - Robust connection management, no auto-discovery
 - **🆕 Dynamic port allocation** - Eliminates port conflicts and broken pipe errors
 - **🆕 100% test reliability** - Complete test suite passes consistently
+- **⭐ Phase 1 Async Architecture:** 
+  - **Connection state management** - Atom-based tracking with unique IDs
+  - **Activity monitoring** - Timestamp tracking on message sends  
+  - **Lifecycle management** - Connect/close state tracking with cleanup
+  - **Promise-based async** - `send-message-async` with timeout handling
+  - **Structured results** - `{:status :success/:timeout/:error}` format
+  - **Babashka verified** - Full async primitives tested and working
 
 ### 🔧 Key Technical Decisions
 1. **No TypeScript** - User explicitly rejected TypeScript, implemented pure Babashka solution
