@@ -616,14 +616,24 @@
     (future
       (try
         (let [result (send-message-async connection msg-with-id timeout-ms)]
-          ;; Store the result in the message record
+          ;; Store the result in the message record and update status
           (case (:status result)
             :success
-            (swap! message-queues assoc-in [:message-records message-id :result] (:response result))
+            (do
+              ;; Update message status to completed and store result
+              (update-message-status message-id :completed)
+              (swap! message-queues assoc-in [:message-records message-id :result] (:response result)))
 
             (:timeout :error)
-            (swap! message-queues assoc-in [:message-records message-id :error-info]
-                   (select-keys result [:status :error :timeout-ms :responses]))))
+            (do
+              ;; Update message status to appropriate failure state
+              (update-message-status message-id
+                                     (case (:status result)
+                                       :timeout :expired
+                                       :error :failed)
+                                     :error-info (select-keys result [:status :error :timeout-ms :responses]))
+              (swap! message-queues assoc-in [:message-records message-id :error-info]
+                     (select-keys result [:status :error :timeout-ms :responses])))))
         (catch Exception e
           ;; Handle unexpected errors
           (update-message-status message-id :failed
