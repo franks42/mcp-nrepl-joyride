@@ -43,6 +43,98 @@
                  (assoc-in [:message-records message-id] record))))
     record))
 
+(defn- update-message-status
+  "Update message status and handle state transitions.
+  
+  Args:
+    message-id - ID of message to update
+    new-status - New status (:sending, :sent, :completed, :failed, :expired)
+    error-info - Optional map with error details for failed messages
+  
+  State transitions:
+    :pending -> :sending -> :sent -> :completed
+    :pending/:sending/:sent -> :failed (with error-info)
+    :pending/:sending/:sent -> :expired (timeout)
+  
+  Returns:
+    Updated message record or nil if message not found"
+  [message-id new-status & {:keys [error-info]}]
+  (let [current-time (System/currentTimeMillis)
+        result (atom nil)]
+    (swap! message-queues
+           (fn [queues]
+             (if-let [existing-record (get-in queues [:message-records message-id])]
+               (let [updated-record (cond-> (assoc existing-record
+                                                   :status new-status
+                                                   :last-updated current-time)
+                                      error-info (assoc :error error-info))
+                     connection-id (:connection-id existing-record)]
+                 (reset! result updated-record)
+                 ;; Update message record
+                 (let [updated-queues (assoc-in queues [:message-records message-id] updated-record)]
+                   ;; If message completed/failed, remove from pending
+                   (if (#{:completed :failed :expired} new-status)
+                     (-> updated-queues
+                         (update-in [:pending-messages connection-id] disj message-id)
+                         (update :failure-records
+                                 (fn [failures]
+                                   (if (#{:failed :expired} new-status)
+                                     (conj failures {:message-id message-id
+                                                     :connection-id connection-id
+                                                     :status new-status
+                                                     :error error-info
+                                                     :failed-at current-time})
+                                     failures))))
+                     updated-queues)))
+               ;; Message not found
+               (do
+                 (reset! result nil)
+                 queues))))
+    @result))
+
+(defn- mark-connection-messages-failed
+  "Mark all pending messages for a connection as failed.
+  
+  Args:
+    connection-id - Connection ID to mark messages failed for
+    error-type - Error type (:connection-closed, :connection-lost, :connection-reset, :timeout)
+    error-message - Human-readable error message
+  
+  Returns:
+    Number of messages marked as failed"
+  [connection-id error-type error-message]
+  (let [current-time (System/currentTimeMillis)
+        marked-count (atom 0)]
+    (swap! message-queues
+           (fn [queues]
+             (if-let [pending-message-ids (get-in queues [:pending-messages connection-id])]
+               (let [error-info {:type error-type
+                                 :message error-message
+                                 :connection-id connection-id}]
+                 (reset! marked-count (count pending-message-ids))
+                 ;; Update all pending messages to failed status
+                 (reduce
+                  (fn [updated-queues message-id]
+                    (let [message-record (get-in updated-queues [:message-records message-id])
+                          failed-record (assoc message-record
+                                               :status :failed
+                                               :last-updated current-time
+                                               :error error-info)]
+                      (-> updated-queues
+                          (assoc-in [:message-records message-id] failed-record)
+                          (update :failure-records conj {:message-id message-id
+                                                         :connection-id connection-id
+                                                         :status :failed
+                                                         :error error-info
+                                                         :failed-at current-time}))))
+                  (update queues :pending-messages dissoc connection-id)
+                  pending-message-ids))
+               ;; No pending messages for this connection
+               (do
+                 (reset! marked-count 0)
+                 queues))))
+    @marked-count))
+
 (defn connect
   "Connect to nREPL server and return connection map with tracking"
   [host port]
@@ -67,12 +159,21 @@
     conn))
 
 (defn close-connection
-  "Close nREPL connection and update state"
+  "Close nREPL connection and update state. 
+  Marks all pending messages for this connection as failed."
   [{:keys [socket id]}]
   (when socket
     (.close socket))
-  ;; Update connection state
+  ;; Mark pending messages as failed before updating connection state
   (when id
+    (let [failed-count (mark-connection-messages-failed
+                        id
+                        :connection-closed
+                        "Connection closed")]
+      (when (> failed-count 0)
+        (binding [*out* *err*]
+          (println (str "[Queue] Marked " failed-count " pending messages as failed for connection " id)))))
+    ;; Update connection state
     (swap! connection-state update-in [:connections id]
            assoc :status :closed
            :closed-at (System/currentTimeMillis))))
@@ -306,11 +407,17 @@
     Uses send-message-async -> collect-responses-async pipeline
     for full async message handling with timeout support."
   [{:keys [out in id] :as conn} message timeout-ms]
-  (let [msg-with-id (assoc message :id (generate-id))]
+  (let [msg-with-id (assoc message :id (generate-id))
+        message-id (:id msg-with-id)]
     ;; Update last activity timestamp
     (when id
       (swap! connection-state update-in [:connections id]
              assoc :last-activity (System/currentTimeMillis)))
+
+    ;; Track pending message in queue
+    (when id
+      (track-pending-message id message-id message)
+      (update-message-status message-id :sending))
 
     ;; Log outgoing message
     (binding [*out* *err*]
@@ -320,23 +427,42 @@
     (bencode/write-bencode out msg-with-id)
     (.flush out)
 
+    ;; Update message status to sent
+    (when id
+      (update-message-status message-id :sent))
+
     ;; Use async collection with timeout
-    (let [async-result (collect-responses-async in (:id msg-with-id) timeout-ms)]
+    (let [async-result (collect-responses-async in message-id timeout-ms)]
       (case (:status async-result)
         :success
         (let [merged-response (merge-responses (:responses async-result))]
+          ;; Mark message as completed
+          (when id
+            (update-message-status message-id :completed))
           (binding [*out* *err*]
             (println "[nREPL] 📥 Async final merged response:" merged-response))
           {:status :success :response merged-response})
 
         :timeout
         (do
+          ;; Mark message as expired due to timeout
+          (when id
+            (update-message-status message-id :expired
+                                   :error-info {:type :timeout
+                                                :timeout-ms timeout-ms
+                                                :message "Message timed out waiting for response"}))
           (binding [*out* *err*]
             (println "[nREPL] ⏰ Async send-message timeout after" timeout-ms "ms"))
           async-result)
 
         :error
         (do
+          ;; Mark message as failed due to error
+          (when id
+            (update-message-status message-id :failed
+                                   :error-info {:type :communication-error
+                                                :error (:error async-result)
+                                                :message "Message failed due to communication error"}))
           (binding [*out* *err*]
             (println "[nREPL] ❌ Async send-message error:" (pr-str (:error async-result))))
           async-result)))))

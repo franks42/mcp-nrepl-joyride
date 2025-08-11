@@ -9,11 +9,11 @@
             [clojure.string :as str]))
 
 (defn wait-for-port-file [timeout-ms]
-  "Wait for .nrepl-port file to appear"
+  "Wait for test-nrepl/.test-nrepl-server-port file to appear"
   (let [end-time (+ (System/currentTimeMillis) timeout-ms)]
     (loop []
-      (if (fs/exists? ".nrepl-port")
-        (Integer/parseInt (str/trim (slurp ".nrepl-port")))
+      (if (fs/exists? "test-nrepl/.test-nrepl-server-port")
+        (Integer/parseInt (str/trim (slurp "test-nrepl/.test-nrepl-server-port")))
         (if (< (System/currentTimeMillis) end-time)
           (do (Thread/sleep 100) (recur))
           nil)))))
@@ -39,11 +39,11 @@
   (println "==================================")
   
   ;; Clean up any existing port file
-  (fs/delete-if-exists ".nrepl-port")
+  (fs/delete-if-exists "test-nrepl/.test-nrepl-server-port")
   
   ;; Start test nREPL server
   (println "1️⃣ Starting test nREPL server...")
-  (let [nrepl-proc (p/process ["./test-nrepl-server.clj"] {:err :inherit})]
+  (let [nrepl-proc (p/process ["./nrepl-test" "start"] {:err :inherit})]
     
     (try
       ;; Wait for server to start

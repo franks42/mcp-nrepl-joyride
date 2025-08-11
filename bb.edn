@@ -27,8 +27,8 @@
    :task (shell "bb" "uberjar" "mcp-nrepl-proxy.jar" "-m" "mcp-nrepl-proxy.core")}
   
   test-nrepl-server
-  {:doc "Start simple test nREPL server for development"
-   :task (exec "./test-nrepl-server.clj")}
+  {:doc "Start real Clojure nREPL server for development"
+   :task (exec "./nrepl-test" "start")}
   
   joyride-mock-server
   {:doc "Start enhanced Joyride/Calva mock nREPL server"

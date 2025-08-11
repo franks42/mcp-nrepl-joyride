@@ -1479,9 +1479,9 @@
   [& args]
   (let [http-port (some->> args first Integer/parseInt)
         use-http (or http-port (System/getenv "MCP_HTTP_PORT"))
-        port (or http-port
-                 (some->> (System/getenv "MCP_HTTP_PORT") Integer/parseInt)
-                 3000)
+        port (when use-http
+               (or http-port
+                   (some->> (System/getenv "MCP_HTTP_PORT") Integer/parseInt)))
         config {:debug (= "true" (System/getenv "MCP_DEBUG"))
                 :workspace (or (System/getenv "JOYRIDE_WORKSPACE")
                                (System/getProperty "user.dir"))
