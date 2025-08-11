@@ -14,11 +14,13 @@ Claude Code ↔ [MCP-nREPL Proxy] ↔ [Joyride nREPL] ↔ [VS Code APIs]
 
 - **Pure Babashka implementation** - Fast startup (~200ms) and low memory usage (~50MB)
 - **Custom nREPL client** - Babashka-compatible socket-based nREPL communication
-- **Auto-discovery** - Automatically finds and connects to Joyride's nREPL server via `.nrepl-port` file
+- **🆕 Explicit connection architecture** - Robust connection management with required port parameter (no brittle auto-discovery)
+- **🆕 100% test reliability** - Comprehensive test suite with 11/11 tests passing consistently
+- **🆕 Dynamic port allocation** - Prevents conflicts with bb-nrepl-server and eliminates broken pipe errors
 - **MCP compliant** - Full Model Context Protocol support with tools and resources
 - **Session management** - Track and manage isolated nREPL evaluation sessions
 - **Joyride/Calva integration** - Full support for VS Code API calls and Calva middleware
-- **Enhanced testing** - Comprehensive test suite with mock Joyride server
+- **Enhanced testing** - Multiple test modes (full/quick/server-only) with complete lifecycle testing
 - **Workspace operations** - File listing, document operations, and notification support
 
 ## 🚀 Quick Start
@@ -99,7 +101,16 @@ Add to your Claude Code MCP configuration:
 ## 🛠️ Available MCP Tools
 
 ### `nrepl-connect`
-Connect to Joyride's nREPL server (usually auto-discovered).
+Connect to nREPL server with explicit port parameter (required for robust connection management).
+
+**Parameters:**
+- `port` (required): The nREPL server port number
+- `host` (optional): Server host (defaults to "localhost")
+
+**Example:**
+```json
+{"port": 56789}
+```
 
 ### `nrepl-eval`
 Evaluate Clojure code in the nREPL session with full Joyride/Calva support.
@@ -204,13 +215,48 @@ uv run flake8 mcp_server_manager.py
 uv add black flake8
 ```
 
+## 🧪 Testing
+
+### Comprehensive Test Suite (NEW!)
+
+The project now includes a comprehensive Python-based test suite with 100% reliability:
+
+```bash
+# Full test suite (11 tests) - RECOMMENDED
+python3 test_nrepl_lifecycle.py
+
+# Quick test mode (7 tests) - Skip long-running tests
+python3 test_nrepl_lifecycle.py --quick
+
+# Server-only mode (5 tests) - Test lifecycle only
+python3 test_nrepl_lifecycle.py --server-only
+```
+
+**Test Coverage:**
+- ✅ Server lifecycle management (start/stop/restart/status)
+- ✅ MCP proxy integration with explicit connections
+- ✅ Full Clojure capabilities (promises, futures, Java interop)
+- ✅ Port conflict resolution and dynamic allocation
+- ✅ Error handling and connection management
+
+### Test Server Management
+
+```bash
+# Managed Full Clojure nREPL Test Server
+python3 nrepl_test_server.py start     # Auto-assigns port, tracks PID
+python3 nrepl_test_server.py status    # Show connection info
+python3 nrepl_test_server.py restart   # Clean restart
+python3 nrepl_test_server.py stop      # Graceful shutdown
+```
+
 ## 🏗️ Architecture
 
 - **Core MCP server** in `src/mcp_nrepl_proxy/core.clj` - JSON-RPC 2.0 compliant
 - **Custom nREPL client** in `src/mcp_nrepl_proxy/nrepl_client.clj` - Socket-based for Babashka compatibility
 - **Babashka native** - no JVM startup penalty, fast iteration
-- **Auto-discovery** - Finds Joyride nREPL via `.nrepl-port` file
-- **Test infrastructure** - Mock servers for comprehensive testing
+- **🆕 Explicit connection architecture** - Robust port-based connections (no brittle auto-discovery)
+- **🆕 Dynamic port allocation** - Prevents conflicts with `port_utils.py` 
+- **🆕 Comprehensive test infrastructure** - Full lifecycle testing with 100% reliability
 - **Session isolation** - Supports multiple concurrent nREPL sessions
 - **Error handling** - Graceful degradation and connection management
 

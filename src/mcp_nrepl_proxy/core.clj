@@ -190,10 +190,9 @@
 ;; MCP Tool Implementations
 
 (defn- tool-nrepl-connect
-  "Connect to nREPL server"
+  "Connect to nREPL server - explicit connection only (no auto-discovery)"
   [{:keys [host port]}]
-  (let [host (or host "localhost")
-        port (or port (discover-nrepl-port (get-in @state [:config :workspace])))]
+  (let [host (or host "localhost")]
     (if port
       (let [result (connect-to-nrepl host port)]
         (if (:success result)
@@ -203,7 +202,7 @@
                       :text (str "❌ Connection failed: " (:error result))}]
            :isError true}))
       {:content [{:type "text"
-                  :text "❌ No port specified and could not discover .nrepl-port file"}]
+                  :text "❌ Port is required. Use nrepl-connect({\"port\": YOUR_PORT})"}]
        :isError true})))
 
 (defn- tool-nrepl-eval
@@ -1150,10 +1149,11 @@
 
 (def tool-definitions
   [{:name "nrepl-connect"
-    :description "FIRST-TIME SETUP: Connect to a Joyride nREPL server running in VS Code. Use this when starting a new session or if you get connection errors. Auto-discovers the port from .nrepl-port file, but you can specify custom host/port. RETURNS: Success message with connection details or error message."
+    :description "EXPLICIT CONNECTION: Connect to an nREPL server by specifying the exact port. No auto-discovery - you must provide the port explicitly. Read the port from server's port file (e.g., .test-nrepl-server-port, .bb-nrepl-server-port). RETURNS: Success message with connection details or error message."
     :inputSchema {:type "object"
                   :properties {:host {:type "string" :description "nREPL host (default: localhost)"}
-                               :port {:type "number" :description "nREPL port (auto-discovered if not provided)"}}}}
+                               :port {:type "number" :description "nREPL port (REQUIRED - no auto-discovery)"}}
+                  :required ["port"]}}
 
    {:name "nrepl-eval"
     :description "PRIMARY TOOL: Execute any Clojure code in the connected nREPL session. Use this for: running calculations, calling VS Code functions, defining variables, requiring namespaces, or any Clojure expression. For VS Code automation, use expressions like (vscode/window.showInformationMessage \"Hello\"). RETURNS: Evaluation result (numbers, strings, data structures) or error details with stack trace."
@@ -1523,14 +1523,8 @@
           (catch Exception e
             (log :warn "⚠️  Failed to start Babashka nREPL server:" (.getMessage e))))))
 
-    ;; Try to auto-discover and connect to Joyride nREPL
-    (when-let [nrepl-port (or (some->> (System/getenv "NREPL_PORT") Integer/parseInt)
-                              (discover-nrepl-port (:workspace config)))]
-      (log :info "🔍 Found nREPL port:" nrepl-port)
-      (let [result (connect-to-nrepl "localhost" nrepl-port)]
-        (if (:success result)
-          (log :info "✅ Auto-connected to Joyride nREPL")
-          (log :warn "⚠️  Auto-connection failed, use nrepl-connect tool"))))
+    ;; No auto-connection - use nrepl-connect tool explicitly
+    (log :info "💡 Use nrepl-connect tool to connect to an nREPL server")
 
     ;; Start appropriate server
     (if (= :http (:transport config))

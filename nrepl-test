@@ -1,0 +1,6 @@
+#!/bin/bash
+
+# Convenient wrapper for nrepl_test_server.py
+# Usage: ./nrepl-test [start|stop|restart|status]
+
+python3 nrepl_test_server.py "$@"

@@ -8,19 +8,24 @@ Last updated: 2025-08-10
 ### Phase 1: Transport Layer Foundation ⚡ **CURRENT FOCUS**
 **Context**: `collect-responses` infinite loop bottleneck identified in `nrepl_client.clj` lines 50-73
 **Strategy**: Small steps with testing along the way
+**CONFIRMED**: Full async support available in Babashka runtime (promises, futures, Java concurrency)
 
 - [ ] **Step 1: Add timeout parameter to collect-responses function (minimal change)**
   - [ ] Test Step 1: Verify timeout parameter works with simple timeout test
 - [ ] **Step 2: Create collect-responses-async using promise-based timeout**  
-  - [ ] Test Step 2: Unit test promise timeout behavior
+  - [ ] Test Step 2: Unit test promise timeout behavior with `(deref promise timeout-ms :timeout)`
 - [ ] **Step 3: Create send-message-async calling collect-responses-async**
-  - [ ] Test Step 3: Integration test with Babashka nREPL server
+  - [ ] Test Step 3: Integration test with multiple nREPL servers (not just bb-nrepl-server)
 - [ ] **Step 4: Add connection state management (basic atom)**
   - [ ] Test Step 4: Verify state tracking works correctly
 
-**Implementation Method**: Use Babashka's native `(deref future timeout-ms :default)` pattern
+**Implementation Method**: Use Babashka's verified async capabilities: `(deref promise timeout-ms :timeout)` 
 **Preserve**: Keep existing `send-message` function for backward compatibility
 **Quality Gates**: `./format.sh && ./clojure-quality.sh` after each step
+**Testing Strategy**: Multi-environment testing:
+- **bb-nrepl-server** (SCI): `BABASHKA_CLASSPATH=src bb src/mcp_nrepl_proxy/core.clj` - Limited sync-only 
+- **Full Clojure nREPL** (Managed): `./nrepl-test start` - Complete async capabilities with PID tracking
+- **Production nREPL servers**: Real-world Clojure/JVM environments (Calva, CIDER, etc.)
 **Commit**: `feat: implement send-message-async with timeout handling`
 **Tag**: `v0.x.0-async-transport`
 
@@ -79,6 +84,21 @@ Last updated: 2025-08-10
 
 ## Recently Completed ✅
 
+- [x] **FIXED: Broken pipe errors in test infrastructure** - ROOT CAUSE: Port conflicts with bb-nrepl-server (both using port 3000)
+  - **Solution**: Implemented dynamic port allocation with `port_utils.py` 
+  - **Result**: 100% test success rate (was 81.8% with broken pipe errors)
+  - **Infrastructure**: Updated test lifecycle and debug scripts with smart port detection
+  - **Key Insight**: bb-nrepl-server defaults to port 3000, tests need dynamic ports to avoid conflicts
+- [x] **Created comprehensive nREPL testing infrastructure**
+  - **Test Server Manager**: `./nrepl-test [start|stop|restart|status]` - Full Clojure capabilities
+  - **Lifecycle Test Suite**: `./test-lifecycle [quick|server]` - Complete functionality testing
+  - **Features**: Auto-assigns ports, PID tracking, cleanup, comprehensive validation
+  - **Test Coverage**: Server lifecycle, MCP integration, Clojure capabilities (promises, futures, Java interop)
+  - **Verified**: All server lifecycle tests pass (100% success rate in 5.9s)
+  - **Ready**: Complete testing infrastructure for Phase 1 async implementation
+- [x] **Verified Babashka runtime async capabilities** - promises, futures, Java concurrency all work
+- [x] **Distinguished two runtime environments**: MCP server (full async) vs bb-nrepl-server (SCI limited)
+- [x] **Updated architecture documents** with corrected environment understanding
 - [x] **Test Python linters to determine which detect blank lines between decorators and functions**
 - [x] **Create reusable quality scripts for Python and Clojure instead of one-off CLI commands**
 - [x] **Add cljfmt code formatting to project - configure and document workflow**

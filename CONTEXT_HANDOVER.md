@@ -142,13 +142,29 @@ See `docs/sync-async-queuing-architecture.md` sections:
 - Likes step-by-step approaches with clear milestones
 - Wants working functionality preserved while building new features
 
+## CRITICAL UPDATE: Runtime Environment Clarification (2025-01-10)
+
+**MAJOR DISCOVERY**: The async architecture IS viable! Previous corrections were based on conflating two different runtime environments.
+
+### Environment Distinction:
+1. **MCP Server Runtime (Babashka)**: ✅ Full async support (promises, futures, complex coordination)
+2. **Babashka nREPL Test Server (SCI)**: ❌ Limited sync-only (this is just our test server)
+
+**Verified Babashka Capabilities**:
+- `promise`/`deliver`/`deref` with timeout - ✅ WORKS
+- `future`/`future-done?` - ✅ WORKS  
+- Java concurrency primitives - ✅ WORKS
+- `reify` with interfaces - ✅ WORKS
+
+**Impact**: The original 4-phase async architecture plan in `TODO.md` is **VALID and should proceed**.
+
 ## Session Handover Validation
 
 **To validate successful handover, new session should**:
 1. Read this context file
 2. Verify access to enhanced tree-sitter MCP server  
-3. Confirm understanding of async architecture plan
-4. Be ready to continue with Phase 1 implementation
+3. Confirm understanding that async architecture plan is VIABLE (not invalidated)
+4. Be ready to continue with Phase 1 implementation using full async patterns
 5. Ask user for confirmation before proceeding with code changes
 
 ## Files Modified in Previous Session

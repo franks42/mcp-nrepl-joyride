@@ -1,0 +1,26 @@
+#!/bin/bash
+
+# Convenient wrapper for test_nrepl_lifecycle.py
+# Usage: 
+#   ./test-lifecycle              # Full test suite
+#   ./test-lifecycle quick        # Skip long tests  
+#   ./test-lifecycle server       # Server lifecycle only
+
+case "${1:-}" in
+    "quick")
+        python3 test_nrepl_lifecycle.py --quick
+        ;;
+    "server") 
+        python3 test_nrepl_lifecycle.py --server-only
+        ;;
+    "")
+        python3 test_nrepl_lifecycle.py
+        ;;
+    *)
+        echo "Usage: $0 [quick|server]"
+        echo "  quick  - Skip long-running tests (promises, futures)"
+        echo "  server - Test only server lifecycle, skip MCP integration"
+        echo "  (no args) - Full test suite"
+        exit 1
+        ;;
+esac
