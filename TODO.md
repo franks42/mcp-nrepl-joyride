@@ -108,8 +108,8 @@ Last updated: 2025-08-10
 
 **GOAL**: Continue refactoring large core.clj (1,206 LOC) and nrepl_client.clj (712 LOC) into focused, modular namespaces.
 
-**PROGRESS**: Completed Phase 1-3 extractions (config, utils, server, protocol namespaces created) ✅
-**REMAINING**: Extract 6 additional namespaces from core.clj and 3 from nrepl_client.clj
+**PROGRESS**: Completed Phase 1-4 extractions (config, utils, server, protocol + 5 MCP tool namespaces created) ✅
+**REMAINING**: Extract 4 additional namespaces from core.clj and 3 from nrepl_client.clj
 
 ### 📋 Phase 4: Extract MCP Tool Implementations from core.clj
 
@@ -147,26 +147,46 @@ Last updated: 2025-08-10
   - [x] **Testing**: 11/11 tests passed (100% success rate) ✅
   - [x] **Commit**: `v0.8.4-modular-control` ✅
 
-- [ ] **Create mcp-nrepl-proxy.tools.async namespace**
-  - [ ] Extract: `tool-nrepl-send-message-async`, `tool-nrepl-get-result-async`
-  - [ ] Functions: Async messaging interface for MCP
-  - [ ] Dependencies: nrepl_client async functions
-  - [ ] Size estimate: ~90 LOC
+- [x] **Create mcp-nrepl-proxy.tools.async namespace** ✅ **COMPLETED**
+  - [x] Extract: `tool-nrepl-send-message-async`, `tool-nrepl-get-result-async` ✅
+  - [x] Functions: Async messaging interface for MCP ✅
+  - [x] Dependencies: nrepl_client async functions ✅
+  - [x] Size estimate: ~90 LOC (actual: 75 LOC) ✅
+  - [x] **Testing**: 11/11 tests passed (100% success rate) ✅
+  - [x] **Commit**: `v0.8.5-modular-async` ✅
 
-### 📋 Phase 5: Extract Monitoring & Health from core.clj
+### 📋 Phase 5: Extract Additional Core Functions (REVISED)
 
-**Target**: Move health check and monitoring functions (~200 LOC)
+**Current core.clj**: 751 LOC (15 functions) - Still too large!
+**Target**: Reduce to ~200 LOC (3-4 functions) via 4 additional namespace extractions
 
-- [ ] **Create mcp-nrepl-proxy.monitoring namespace**
-  - [ ] Extract: `tool-nrepl-health-check`, `run-comprehensive-health-check`, `format-health-check-report`
-  - [ ] Functions: `run-health-test`, `heartbeat-test`, `start-heartbeat-monitor` 
-  - [ ] Health monitoring and diagnostic functions
+- [ ] **Create mcp-nrepl-proxy.connection namespace** - **PRIORITY 1**
+  - [ ] Extract: `discover-nrepl-port`, `connect-to-nrepl`, `ensure-nrepl-connection`, `get-joyride-connection`
+  - [ ] Functions: Connection management and discovery
+  - [ ] Size estimate: ~120 LOC
+  - [ ] **Why first**: Foundation for all other MCP tools
+
+- [ ] **Create mcp-nrepl-proxy.monitoring namespace** - **PRIORITY 2**
+  - [ ] Extract: `heartbeat-test`, `start-heartbeat-monitor`, `run-health-test`
+  - [ ] Extract: `run-comprehensive-health-check`, `format-health-check-report`, `tool-nrepl-health-check`
+  - [ ] Functions: Health monitoring and diagnostic functions
   - [ ] Size estimate: ~150 LOC
+  - [ ] **Why second**: Large impact, depends on connection namespace
 
-- [ ] **Create mcp-nrepl-proxy.context namespace**
+- [ ] **Create mcp-nrepl-proxy.context namespace** - **PRIORITY 3**
   - [ ] Extract: `tool-get-mcp-nrepl-context`
   - [ ] Functions: Context and metadata retrieval
-  - [ ] Size estimate: ~50 LOC
+  - [ ] Size estimate: ~80 LOC
+
+- [ ] **Create mcp-nrepl-proxy.devtools namespace** - **PRIORITY 4**
+  - [ ] Extract: `tool-nrepl-test`, `tool-babashka-nrepl`
+  - [ ] Functions: Development and debugging utilities
+  - [ ] Size estimate: ~100 LOC
+
+**Expected Final Result:**
+- **core.clj: ~200 LOC** (73% reduction from 751 LOC)
+- **Minimal orchestration only**: `call-tool`, `-main`, state atoms, imports
+- **9 total extracted namespaces** from original monolithic architecture
 
 ### 📋 Phase 6: Extract Connection Management from nrepl_client.clj
 

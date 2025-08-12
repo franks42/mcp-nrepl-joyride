@@ -16,6 +16,7 @@
             [mcp-nrepl-proxy.tools.session :as session-tools]
             [mcp-nrepl-proxy.tools.control :as control-tools]
             [mcp-nrepl-proxy.tools.async :as async-tools]
+            [mcp-nrepl-proxy.connection :as connection]
             [babashka.fs :as fs]
             [clojure.string :as str]
             [babashka.nrepl.server :as nrepl-server]))
@@ -35,22 +36,6 @@
                   :max-cached-commands 10
                   :heartbeat-interval-ms 45000
                   :babashka-nrepl-port 7889}}))
-
-(defn- discover-nrepl-port
-  "Discover nREPL port from .nrepl-port file in workspace or .joyride subdirectory"
-  [workspace-path]
-  (let [port-files [(fs/file workspace-path ".nrepl-port")
-                    (fs/file workspace-path ".joyride" ".nrepl-port")]]
-    (some (fn [port-file]
-            (when (fs/exists? port-file)
-              (try
-                (let [port (Integer/parseInt (str/trim (slurp port-file)))]
-                  (utils/log state :info "Found nREPL port" port "in" (str port-file))
-                  port)
-                (catch Exception e
-                  (utils/log state :warn "Could not parse .nrepl-port file:" (.getMessage e))
-                  nil))))
-          port-files)))
 
 (defn- heartbeat-test
   "Simple heartbeat test using nREPL describe operation"
@@ -89,43 +74,16 @@
                          (get-in @state [:health-status :heartbeat-failures]))))))
       (recur))))
 
-(defn- connect-to-nrepl
-  "Connect to nREPL server with connection pooling and heartbeat monitoring"
-  [host port]
-  (try
-    (utils/log state :info "Connecting to nREPL at" (str host ":" port))
-    (let [conn (nrepl/connect host port)]
-      (swap! state assoc :nrepl-conn conn)
-      (swap! state update-in [:health-status] assoc
-             :connected true
-             :last-heartbeat (System/currentTimeMillis)
-             :heartbeat-failures 0)
-      (utils/log state :info "Connected to nREPL successfully")
-      {:success true :connection conn})
-    (catch Exception e
-      (utils/log state :error "nREPL connection failed:" (.getMessage e))
-      (swap! state update-in [:health-status] assoc :connected false)
-      {:success false :error (.getMessage e)})))
-
+;; Connection adapter functions
 (defn- ensure-nrepl-connection
-  "Ensure we have a valid nREPL connection"
+  "Adapter function for connection namespace"
   []
-  (if-let [conn (:nrepl-conn @state)]
-    {:success true :connection conn}
-    (let [workspace (get-in @state [:config :workspace])]
-      (if-let [port (discover-nrepl-port workspace)]
-        (connect-to-nrepl "localhost" port)
-        {:success false :error "No nREPL connection and could not discover port"}))))
+  (connection/ensure-nrepl-connection state))
 
-;; Helper functions for Calva introspection
-
-(defn get-joyride-connection
-  "Get current Joyride nREPL connection details"
-  []
-  (when-let [conn (:nrepl-conn @state)]
-    {:host (:host conn)
-     :port (:port conn)
-     :connected true}))
+(defn- connect-to-nrepl
+  "Adapter function for connection namespace"
+  [host port]
+  (connection/connect-to-nrepl state host port))
 
 ;; MCP Tool Implementations
 
