@@ -139,11 +139,13 @@ Last updated: 2025-08-10
   - [x] **Testing**: 11/11 tests passed (100% success rate) ✅
   - [x] **Commit**: `v0.8.3-modular-session` ✅
 
-- [ ] **Create mcp-nrepl-proxy.tools.control namespace**
-  - [ ] Extract: `tool-nrepl-interrupt`, `tool-nrepl-stacktrace` 
-  - [ ] Functions: Runtime control and debugging tools
-  - [ ] Dependencies: nrepl_client functions  
-  - [ ] Size estimate: ~60 LOC
+- [x] **Create mcp-nrepl-proxy.tools.control namespace** ✅ **COMPLETED**
+  - [x] Extract: `tool-nrepl-interrupt`, `tool-nrepl-stacktrace` ✅
+  - [x] Functions: Runtime control and debugging tools ✅
+  - [x] Dependencies: nrepl_client functions ✅
+  - [x] Size estimate: ~60 LOC (actual: 46 LOC) ✅
+  - [x] **Testing**: 11/11 tests passed (100% success rate) ✅
+  - [x] **Commit**: `v0.8.4-modular-control` ✅
 
 - [ ] **Create mcp-nrepl-proxy.tools.async namespace**
   - [ ] Extract: `tool-nrepl-send-message-async`, `tool-nrepl-get-result-async`
