@@ -17,6 +17,7 @@
             [mcp-nrepl-proxy.tools.control :as control-tools]
             [mcp-nrepl-proxy.tools.async :as async-tools]
             [mcp-nrepl-proxy.connection :as connection]
+            [mcp-nrepl-proxy.monitoring :as monitoring]
             [babashka.fs :as fs]
             [clojure.string :as str]
             [babashka.nrepl.server :as nrepl-server]))
@@ -691,7 +692,7 @@
     "nrepl-require" (evaluation-tools/tool-nrepl-require state ensure-nrepl-connection args)
     "nrepl-interrupt" (control-tools/tool-nrepl-interrupt state ensure-nrepl-connection args)
     "nrepl-stacktrace" (control-tools/tool-nrepl-stacktrace state ensure-nrepl-connection args)
-    "nrepl-health-check" (tool-nrepl-health-check args)
+    "nrepl-health-check" (monitoring/tool-nrepl-health-check state ensure-nrepl-connection args)
     "get-mcp-nrepl-context" (tool-get-mcp-nrepl-context args)
     "nrepl-send-message-async" (async-tools/tool-nrepl-send-message-async state ensure-nrepl-connection args)
     "nrepl-get-result-async" (async-tools/tool-nrepl-get-result-async state ensure-nrepl-connection args)

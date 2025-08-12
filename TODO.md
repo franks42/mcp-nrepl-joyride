@@ -160,11 +160,13 @@ Last updated: 2025-08-10
 **Current core.clj**: 751 LOC (15 functions) - Still too large!
 **Target**: Reduce to ~200 LOC (3-4 functions) via 4 additional namespace extractions
 
-- [ ] **Create mcp-nrepl-proxy.connection namespace** - **PRIORITY 1**
-  - [ ] Extract: `discover-nrepl-port`, `connect-to-nrepl`, `ensure-nrepl-connection`, `get-joyride-connection`
-  - [ ] Functions: Connection management and discovery
-  - [ ] Size estimate: ~120 LOC
-  - [ ] **Why first**: Foundation for all other MCP tools
+- [x] **Create mcp-nrepl-proxy.connection namespace** - **PRIORITY 1** ✅ **COMPLETED**
+  - [x] Extract: `discover-nrepl-port`, `connect-to-nrepl`, `ensure-nrepl-connection`, `get-joyride-connection` ✅
+  - [x] Functions: Connection management and discovery ✅
+  - [x] Size estimate: ~120 LOC (actual: 42 LOC + adapter functions) ✅
+  - [x] **Testing**: 11/11 tests passed (100% success rate) ✅
+  - [x] **Commit**: `v0.9.0-modular-connection` ✅
+  - [x] **Result**: core.clj reduced from 751 → 709 LOC ✅
 
 - [ ] **Create mcp-nrepl-proxy.monitoring namespace** - **PRIORITY 2**
   - [ ] Extract: `heartbeat-test`, `start-heartbeat-monitor`, `run-health-test`
