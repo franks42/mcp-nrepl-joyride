@@ -185,15 +185,22 @@ Last updated: 2025-08-10
   - [x] **Commit**: `v0.9.2-modular-context` ✅
   - [x] **Result**: core.clj reduced from 709 → 683 LOC ✅
 
-- [ ] **Create mcp-nrepl-proxy.devtools namespace** - **PRIORITY 4**
-  - [ ] Extract: `tool-nrepl-test`, `tool-babashka-nrepl`
-  - [ ] Functions: Development and debugging utilities
-  - [ ] Size estimate: ~100 LOC
+- [x] **Create mcp-nrepl-proxy.devtools namespace** - **PRIORITY 4** ✅ **COMPLETED**
+  - [x] Extract: `tool-nrepl-test`, `tool-babashka-nrepl`, `run-health-test` ✅
+  - [x] Functions: Development and debugging utilities ✅
+  - [x] Size estimate: ~100 LOC (actual: 259 LOC) ✅
+  - [x] **Testing**: 7/7 tests passed (100% success rate) ✅
+  - [x] **Commit**: `v0.9.3-modular-devtools-PHASE5-COMPLETE` ✅
+  - [x] **Result**: core.clj reduced from 683 → 427 LOC ✅
 
-**Expected Final Result:**
-- **core.clj: ~200 LOC** (73% reduction from 751 LOC)
-- **Minimal orchestration only**: `call-tool`, `-main`, state atoms, imports
-- **9 total extracted namespaces** from original monolithic architecture
+**🎯 PHASE 5 COMPLETE - ACHIEVED RESULTS:**
+- **core.clj: 427 LOC** (64.6% reduction from 1,206 LOC original) ✅
+- **Extracted 9 focused namespaces** ✅
+  - **Phase 4 tools**: evaluation (167 LOC), introspection (115 LOC), session (69 LOC), control (46 LOC), async (75 LOC)
+  - **Phase 5 core**: connection (52 LOC), monitoring (50 LOC), context (33 LOC), devtools (259 LOC)
+- **Minimal orchestration**: `call-tool`, `-main`, state atoms, heartbeat monitoring, imports only ✅
+- **100% test success rate maintained** throughout all extractions ✅
+- **Total extracted: ~779 LOC** into focused, modular namespaces ✅
 
 ### 📋 Phase 6: Extract Connection Management from nrepl_client.clj
 
