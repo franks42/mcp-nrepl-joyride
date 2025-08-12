@@ -177,10 +177,13 @@ Last updated: 2025-08-10
   - [x] **Commit**: Basic structure created ✅
   - [ ] **TODO**: Replace placeholder functions with full implementations from core.clj
 
-- [ ] **Create mcp-nrepl-proxy.context namespace** - **PRIORITY 3**
-  - [ ] Extract: `tool-get-mcp-nrepl-context`
-  - [ ] Functions: Context and metadata retrieval
-  - [ ] Size estimate: ~80 LOC
+- [x] **Create mcp-nrepl-proxy.context namespace** - **PRIORITY 3** ✅ **COMPLETED**
+  - [x] Extract: `tool-get-mcp-nrepl-context` ✅
+  - [x] Functions: Context and metadata retrieval ✅
+  - [x] Size estimate: ~80 LOC (actual: 33 LOC) ✅
+  - [x] **Testing**: 7/7 tests passed (100% success rate) ✅
+  - [x] **Commit**: `v0.9.2-modular-context` ✅
+  - [x] **Result**: core.clj reduced from 709 → 683 LOC ✅
 
 - [ ] **Create mcp-nrepl-proxy.devtools namespace** - **PRIORITY 4**
   - [ ] Extract: `tool-nrepl-test`, `tool-babashka-nrepl`
