@@ -14,6 +14,7 @@
             [mcp-nrepl-proxy.tools.evaluation :as evaluation-tools]
             [mcp-nrepl-proxy.tools.introspection :as introspection-tools]
             [mcp-nrepl-proxy.tools.session :as session-tools]
+            [mcp-nrepl-proxy.tools.control :as control-tools]
             [babashka.fs :as fs]
             [clojure.string :as str]
             [babashka.nrepl.server :as nrepl-server]))
@@ -268,51 +269,6 @@
     {:content [{:type "text"
                 :text "❌ No nREPL connection available for testing"}]
      :isError true}))
-
-(defn- tool-nrepl-interrupt
-  "Interrupt running evaluation"
-  [{:keys [session interrupt-id]}]
-  (let [conn-result (ensure-nrepl-connection)]
-    (if (:success conn-result)
-      (try
-        (let [conn (:connection conn-result)
-              result (nrepl/interrupt conn :session session :interrupt-id interrupt-id)]
-          {:content [{:type "text"
-                      :text (str "🛑 Interrupt signal sent"
-                                 (when session (str " to session " session))
-                                 (when interrupt-id (str " for evaluation " interrupt-id)))}]})
-        (catch Exception e
-          (utils/log state :error "Interrupt failed:" (.getMessage e))
-          {:content [{:type "text"
-                      :text (str "❌ Interrupt failed: " (.getMessage e))}]
-           :isError true}))
-      {:content [{:type "text"
-                  :text "❌ No nREPL connection available. Use nrepl-connect first."}]
-       :isError true})))
-
-(defn- tool-nrepl-stacktrace
-  "Get stacktrace for the last exception"
-  [{:keys [session]}]
-  (let [conn-result (ensure-nrepl-connection)]
-    (if (:success conn-result)
-      (try
-        (let [conn (:connection conn-result)
-              result (nrepl/stacktrace conn :session session)
-              stacktrace (:stacktrace result)]
-          (if stacktrace
-            {:content [{:type "text"
-                        :text (str "🔍 Stacktrace:\n\n" stacktrace)}]}
-            {:content [{:type "text"
-                        :text "❌ No stacktrace available"}]
-             :isError true}))
-        (catch Exception e
-          (utils/log state :error "Stacktrace lookup failed:" (.getMessage e))
-          {:content [{:type "text"
-                      :text (str "❌ Stacktrace lookup failed: " (.getMessage e))}]
-           :isError true}))
-      {:content [{:type "text"
-                  :text "❌ No nREPL connection available. Use nrepl-connect first."}]
-       :isError true})))
 
 (defn- tool-babashka-nrepl
   "Manage Babashka nREPL server for debugging tools"
@@ -850,8 +806,8 @@
     "nrepl-complete" (introspection-tools/tool-nrepl-complete state ensure-nrepl-connection args)
     "nrepl-apropos" (introspection-tools/tool-nrepl-apropos state ensure-nrepl-connection args)
     "nrepl-require" (evaluation-tools/tool-nrepl-require state ensure-nrepl-connection args)
-    "nrepl-interrupt" (tool-nrepl-interrupt args)
-    "nrepl-stacktrace" (tool-nrepl-stacktrace args)
+    "nrepl-interrupt" (control-tools/tool-nrepl-interrupt state ensure-nrepl-connection args)
+    "nrepl-stacktrace" (control-tools/tool-nrepl-stacktrace state ensure-nrepl-connection args)
     "nrepl-health-check" (tool-nrepl-health-check args)
     "get-mcp-nrepl-context" (tool-get-mcp-nrepl-context args)
     "nrepl-send-message-async" (tool-nrepl-send-message-async args)
