@@ -123,11 +123,13 @@ Last updated: 2025-08-10
   - [x] **Testing**: 11/11 tests passed (100% success rate) ✅
   - [x] **Commit**: `v0.8.1-modular-evaluation` ✅
 
-- [ ] **Create mcp-nrepl-proxy.tools.introspection namespace**  
-  - [ ] Extract: `tool-nrepl-doc`, `tool-nrepl-source`, `tool-nrepl-apropos`, `tool-nrepl-complete`
-  - [ ] Functions: Documentation and code exploration tools
-  - [ ] Dependencies: nrepl_client functions
-  - [ ] Size estimate: ~100 LOC
+- [x] **Create mcp-nrepl-proxy.tools.introspection namespace** ✅ **COMPLETED**
+  - [x] Extract: `tool-nrepl-doc`, `tool-nrepl-source`, `tool-nrepl-apropos`, `tool-nrepl-complete` ✅
+  - [x] Functions: Documentation and code exploration tools ✅
+  - [x] Dependencies: nrepl_client functions ✅
+  - [x] Size estimate: ~100 LOC (actual: 115 LOC) ✅
+  - [x] **Testing**: 11/11 tests passed (100% success rate) ✅
+  - [x] **Commit**: `v0.8.2-modular-introspection` ✅
 
 - [ ] **Create mcp-nrepl-proxy.tools.session namespace**
   - [ ] Extract: `tool-nrepl-connect`, `tool-nrepl-new-session`, `tool-nrepl-status` 
