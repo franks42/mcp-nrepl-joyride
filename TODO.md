@@ -380,6 +380,33 @@ uv run python test_nrepl_lifecycle.py
 - [ ] **Consider daemon-based persistent MCP connections**
 - [ ] **Consider unified MCP/nREPL client with direct nREPL support**
 
+## Revolutionary Pattern Exploration
+
+- [ ] **Explore Dynamic Application Orchestration Pattern** ⭐ **HIGH POTENTIAL**
+  - [ ] **Create VS Code automation toolkit** - Leverage Joyride + nREPL for IDE control
+    - [ ] Workspace management functions (create, configure, organize)
+    - [ ] Extension automation (install, configure, manage)
+    - [ ] Development workflow orchestration (test, build, deploy cycles)
+    - [ ] Calva integration (REPL management, debugging workflows)
+  - [ ] **Build toolkit library ecosystem** - Standardized automation modules
+    - [ ] Git workflow automation (branch, commit, merge, deploy patterns)
+    - [ ] Docker orchestration utilities (build, deploy, container management)
+    - [ ] Project template generators (Clojure, React, microservices)
+    - [ ] CI/CD pipeline automation (testing, building, deployment)
+  - [ ] **Develop cross-application orchestration** - Multi-tool coordination
+    - [ ] IDE + Git + Docker integration workflows
+    - [ ] Development environment setup automation
+    - [ ] Deployment pipeline orchestration across tools
+    - [ ] Monitoring and alerting integration
+  - [ ] **Research AI-driven workflow composition** - Intelligent automation
+    - [ ] Claude Code learning from toolkit usage patterns
+    - [ ] Automatic workflow optimization based on success metrics
+    - [ ] Context-aware toolkit loading and selection
+    - [ ] Iterative improvement of automation scripts
+  - **Impact**: Transforms MCP from static tool calling to dynamic application programming
+  - **Vision**: Claude Code as universal application conductor with live extensibility
+  - **Applications**: IDE automation, DevOps orchestration, multi-tool workflow composition
+
 ---
 
 ## 🎯 BREAKTHROUGH RESOLUTION (2025-08-11) ✅
@@ -403,6 +430,35 @@ uv run python test_nrepl_lifecycle.py
 **ASYNC QUEUE SYSTEM WORKING PERFECTLY**: All timeout handling, promise-based async, and queue lifecycle management verified working with real nREPL server.
 
 ## Recently Completed ✅
+
+### ✅ **Debug Tools for Live Introspection (2025-08-13)**
+**COMPLETED**: Comprehensive debugging toolkit for MCP server runtime introspection
+
+**Features Implemented:**
+- [x] **debug-eval tool** - Execute arbitrary Clojure code in server runtime ✅
+- [x] **debug-load-file tool** - Load complete debugging toolkits from files ✅
+- [x] **debug-toolkit.clj** - Comprehensive helper functions and shortcuts ✅
+- [x] **State parameter elimination** - Debug tools don't need dependency injection ✅
+- [x] **SCI restriction bypass** - Access private vars with helper functions ✅
+- [x] **Persistent debugging environment** - Functions persist across calls ✅
+
+**Key Architectural Discovery:**
+- **State parameter is unnecessary** for many MCP tools
+- Debug tools prove cleaner implementation is possible without dependency injection
+- Functions can access namespace vars directly in SCI runtime environment
+- This previews the direction for upcoming architectural refactoring
+
+**Usage Examples:**
+```bash
+# Load complete toolkit
+python3 ./mcp_nrepl_client.py --tool debug-load-file --args '{"file-path": "debug-toolkit.clj"}'
+
+# Use shortcuts for analysis
+python3 ./mcp_nrepl_client.py --tool debug-eval --args '{"code": "(ds)"}'  # debug summary
+python3 ./mcp_nrepl_client.py --tool debug-eval --args '{"code": "(aa)"}'  # architecture analysis
+```
+
+**Commit**: `v0.12.0-debug-tools-simplified` ✅
 
 ### ✅ **Namespace Refactoring - Complete Modularization (2025-01-11)**
 **COMPLETED**: Successfully refactored monolithic core.clj (1,627 lines) into focused, modular namespaces
