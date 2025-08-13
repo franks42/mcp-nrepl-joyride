@@ -4,6 +4,46 @@
 
 This document describes a robust queuing architecture that bridges the synchronous Model Context Protocol (MCP) with the asynchronous nREPL protocol. The design emphasizes simplicity, using Clojure's built-in persistent data structures within atoms rather than complex async frameworks. The architecture provides graceful timeout handling, connection state management, and transparent backpressure mechanisms while maintaining a clean separation between async core operations and sync convenience facades.
 
+## Namespace Architecture (Updated 2025-01-14)
+
+The implementation follows a clear namespace hierarchy that separates concerns:
+
+```
+nrepl-mcp-server/              ; Top-level project namespace
+  core.clj                     ; Main entry point, minimal bootstrap
+  state.clj                    ; Centralized state atoms and queues
+  
+  mcp/                         ; MCP protocol implementation
+    server.clj                 ; stdio server, JSON-RPC handling
+    dispatch.clj               ; Tool routing and dispatch table
+    tools/                     ; One file per MCP tool function
+      debug_eval.clj           ; debug-eval tool
+      debug_load_file.clj      ; debug-load-file tool
+      nrepl_connect.clj        ; nREPL connect operation
+      nrepl_disconnect.clj     ; nREPL disconnect operation
+      nrepl_status.clj         ; nREPL status operation
+      send_message_async.clj   ; Async message sending
+      get_result_async.clj     ; Async result retrieval
+      send_message_sync.clj    ; Sync wrapper combining send+get
+  
+  nrepl_client/                ; nREPL client implementation
+    connection.clj             ; TCP connection management
+    protocol.clj               ; bencode encoding/decoding, message framing
+    handlers.clj               ; State watchers and queue processors
+    
+  utils/                       ; Shared utilities
+    uuid_v7.clj                ; UUID v7 generation for message IDs
+    async.clj                  ; Promise and timeout utilities
+```
+
+### Design Principles
+
+1. **One file per MCP tool** - Each tool function gets its own file for clarity
+2. **Clear separation of concerns** - MCP protocol vs nREPL client vs state management
+3. **Reactive architecture** - State atoms are separate from handlers that react to them
+4. **Client perspective** - `nrepl_client` (not `nrepl_server`) since we're the client to nREPL servers
+5. **Centralized state** - All state atoms live in the top-level `state.clj` for easy introspection
+
 ## 1. Architecture Overview
 
 ### 1.1 Core Problem Statement
