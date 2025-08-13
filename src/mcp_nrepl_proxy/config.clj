@@ -183,7 +183,14 @@
     :inputSchema {:type "object"
                   :properties {:op {:type "string"
                                     :description "Operation: start, stop, or status"}}
-                  :required ["op"]}}])
+                  :required ["op"]}}
+
+   {:name "debug-eval"
+    :description "DEBUG TOOL: Evaluate Clojure code within the MCP server runtime itself. This provides REPL-like access to the running server for introspection and debugging. Can inspect atoms, check queues, modify functions, reload namespaces. WARNING: Powerful tool - use with caution! Examples: '@mcp-nrepl-proxy.core/server-state', '(keys @mcp-nrepl-proxy.state/message-queues)'"
+    :inputSchema {:type "object"
+                  :properties {:code {:type "string"
+                                      :description "Clojure code to evaluate in the server runtime"}}
+                  :required ["code"]}}])
 
 ;; ============================================================================
 ;; Resource Definitions

@@ -549,6 +549,77 @@ python3 ./mcp_nrepl_client.py --tool nrepl-health-check --quiet
 3. **Missing operations** → Examine Tool Integration status
 4. **Environment errors** → Analyze Environment Diagnostics
 
+## 🔍 Debug-Eval Tool for Live Server Introspection
+
+**NEW CAPABILITY**: Direct REPL access into the running MCP server for debugging and introspection.
+
+### Debug-Eval Features (✅ IMPLEMENTED)
+- **🔍 Live Introspection**: Inspect atoms, state, queues, and connections in real-time
+- **🛠️ Hot Code Modification**: Modify functions and reload namespaces without restart
+- **📊 State Analysis**: Examine internal data structures and message queues
+- **🐛 Debug Architecture**: Understand the actual runtime state vs intended design
+- **⚡ Immediate Feedback**: Execute arbitrary Clojure code in the server runtime
+
+### Debug-Eval Usage
+```bash
+# Simple arithmetic evaluation
+python3 ./mcp_nrepl_client.py --tool debug-eval --args '{"code": "(+ 1 2 3)"}'
+
+# Inspect server state
+python3 ./mcp_nrepl_client.py --tool debug-eval --args '{"code": "(keys @mcp-nrepl-proxy.core/state)"}'
+
+# Access private vars (need double deref for private atoms)
+python3 ./mcp_nrepl_client.py --tool debug-eval --args '{"code": "(keys @@#'\''mcp-nrepl-proxy.state/message-queues)"}'
+
+# Check message queue contents
+python3 ./mcp_nrepl_client.py --tool debug-eval --args '{"code": "(:pending-messages @@#'\''mcp-nrepl-proxy.state/message-queues)"}'
+
+# Modify functions on the fly
+python3 ./mcp_nrepl_client.py --tool debug-eval --args '{"code": "(defn my-fn [] :modified)"}'
+
+# Reload namespace
+python3 ./mcp_nrepl_client.py --tool debug-eval --args '{"code": "(require '\''mcp-nrepl-proxy.core :reload)"}'
+```
+
+### Accessing Private Vars
+Since we're running under Babashka's SCI interpreter, namespace switching with `in-ns` is restricted. Instead, use the var reader macro approach:
+- **Public vars**: `@namespace/var-name`
+- **Private vars**: `@#'namespace/var-name`
+- **Private atoms**: `@@#'namespace/atom-name` (double deref)
+
+### Common Debug Targets
+```clojure
+;; Server state
+@mcp-nrepl-proxy.core/state
+
+;; Message queues (private atom)
+@@#'mcp-nrepl-proxy.state/message-queues
+
+;; Connection details
+(:nrepl-conn @mcp-nrepl-proxy.core/state)
+
+;; Recent commands
+(:recent-commands @mcp-nrepl-proxy.core/state)
+
+;; Health status
+(:health-status @mcp-nrepl-proxy.core/state)
+```
+
+### Architectural Debugging
+This tool is particularly useful for understanding the current architectural issues:
+```bash
+# See all pending messages
+python3 ./mcp_nrepl_client.py --tool debug-eval --args '{"code": "(:pending-messages @@#'\''mcp-nrepl-proxy.state/message-queues)"}'
+
+# Check message records
+python3 ./mcp_nrepl_client.py --tool debug-eval --args '{"code": "(count (:message-records @@#'\''mcp-nrepl-proxy.state/message-queues))"}'
+
+# Inspect failure records
+python3 ./mcp_nrepl_client.py --tool debug-eval --args '{"code": "(:failure-records @@#'\''mcp-nrepl-proxy.state/message-queues)"}'
+```
+
+**WARNING**: This is a powerful debugging tool - use with caution in production environments!
+
 ### Cookbook Integration
 
 Health check documentation has been integrated into all three main cookbooks:

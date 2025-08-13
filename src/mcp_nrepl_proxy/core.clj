@@ -15,6 +15,7 @@
             [mcp-nrepl-proxy.tools.session :as session-tools]
             [mcp-nrepl-proxy.tools.control :as control-tools]
             [mcp-nrepl-proxy.tools.async :as async-tools]
+            [mcp-nrepl-proxy.tools.debug :as debug-tools]
             [mcp-nrepl-proxy.connection :as connection]
             [mcp-nrepl-proxy.monitoring :as monitoring]
             [mcp-nrepl-proxy.context :as context]
@@ -414,6 +415,7 @@
     "nrepl-send-message-async" (async-tools/tool-nrepl-send-message-async state ensure-nrepl-connection args)
     "nrepl-get-result-async" (async-tools/tool-nrepl-get-result-async state ensure-nrepl-connection args)
     "babashka-nrepl" (devtools/tool-babashka-nrepl state args)
+    "debug-eval" (debug-tools/tool-debug-eval state args)
     {:content [{:type "text" :text (str "❌ Unknown tool: " tool-name)}]
      :isError true}))
 
