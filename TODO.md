@@ -36,18 +36,41 @@ Last updated: 2025-08-13
   - `./scripts/test-phase3.sh` - Future real nREPL communication tests
   - `./scripts/test-master.sh` - **Master orchestrator** with individual phase control
 
-### **Phase 2: Three Core MCP Functions**
+### **Phase 2: Three Core MCP Functions** 🏗️ **IN PROGRESS**
 
-- [ ] **Implement nrepl-connect** 
-  - Connection storage strategy (discuss approach)
-  - Connection detection and health monitoring
-  - Cleanup operations (disconnect/reconnect)
-  - Queue reset procedures
+#### **2a: Reactive Connection Management** ✅ **COMPLETED**
+- [x] **Create state namespace** (`src/mcp_server/state.clj`)
+  - Connection state atom with status tracking
+  - Helper functions for state updates
+  - Expose state for debug-eval introspection
+  
+- [x] **Create connection namespace** (`src/mcp_server/connection.clj`)
+  - Connection parameter resolution (host:port, port, file, env)
+  - TCP connection operations (connect/disconnect)
+  - Connection handler watcher for reactive state changes
+  
+- [x] **Implement nrepl-server MCP tool** (`src/mcp_server/tools/nrepl.clj`)
+  - Clean MCP interface with ops: connect, disconnect, status
+  - Delegates to connection namespace for operations
+  - Configurable timeout (default 5000ms)
+
+- [x] **Refactor for clean separation** - Split overloaded namespace into three focused ones
+- [x] **Comprehensive testing** - All 12 Phase 2a tests passing (100% success rate)
+  
+**Architecture Achievement**: Clean separation of concerns with three focused namespaces:
+- `state` - Central state management
+- `connection` - Connection logic and handlers  
+- `tools/nrepl` - MCP tool interface only
+
+**Test Coverage**: `./scripts/test-phase2a-simple.sh` validates all functionality
+
+#### **2b: Message Queue Infrastructure** (After connection works)
 - [ ] **Implement send-message** 
   - Hand-off message to queue → get message-id
   - UUID v7 generation + utils namespace
-  - Fail if no connection (discuss behavior)
+  - Fail if no connection (check state atom)
   - **Isolated from actual nREPL communication**
+  
 - [ ] **Implement get-result**
   - Create result queue with promise waiting
   - Wait on promise for message-id results
@@ -283,6 +306,12 @@ uv run python stdio_mcp_client.py \
 - Debug toolkit patterns (`debug-toolkit.clj`)
 - MCP protocol compliance patterns
 - Connection state management atoms
+
+---
+
+## 🔍 **RESEARCH ITEMS**
+
+- [ ] **Investigate ls-sessions scope** - Determine if `ls-sessions` lists ALL server sessions or only current connection's sessions via testing or nREPL documentation
 
 ---
 

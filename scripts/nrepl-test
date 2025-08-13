@@ -3,4 +3,7 @@
 # Convenient wrapper for nrepl_test_server.py
 # Usage: ./nrepl-test [start|stop|restart|status]
 
-python3 nrepl_test_server.py "$@"
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+python3 "$SCRIPT_DIR/nrepl_test_server.py" "$@"

@@ -1,6 +1,7 @@
 (ns mcp-server.mcp
   "MCP protocol handlers and routing"
-  (:require [mcp-server.debug :as debug]))
+  (:require [mcp-server.debug :as debug]
+            [mcp-server.tools.nrepl :as nrepl]))
 
 ;; =============================================================================
 ;; MCP Protocol Handlers
@@ -30,7 +31,18 @@
             :inputSchema {:type "object"
                           :properties {:file-path {:type "string"
                                                    :description "Path to Clojure file to load"}}
-                          :required ["file-path"]}}]})
+                          :required ["file-path"]}}
+           {:name "nrepl-server"
+            :description "Manage nREPL server connection"
+            :inputSchema {:type "object"
+                          :properties {:op {:type "string"
+                                            :description "Operation: connect, disconnect, or status"
+                                            :enum ["connect" "disconnect" "status"]}
+                                       :connection {:type "string"
+                                                    :description "Connection info: host:port, port, or file path (for connect)"}
+                                       :timeout {:type "integer"
+                                                 :description "Operation timeout in milliseconds (default 5000)"}}
+                          :required ["op"]}}]})
 
 ;; =============================================================================
 ;; Tool Routing/Dispatch
@@ -39,7 +51,8 @@
 (def mcp-tool-dispatch
   "Dispatch table mapping MCP tool names to their implementation functions"
   {"debug-eval" debug/debug-eval
-   "debug-load-file" debug/debug-load-file})
+   "debug-load-file" debug/debug-load-file
+   "nrepl-server" nrepl/nrepl-server})
 
 (defn get-available-tools
   "Get list of available tool names from dispatch table"

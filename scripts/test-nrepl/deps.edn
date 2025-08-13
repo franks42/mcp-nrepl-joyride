@@ -1,0 +1,4 @@
+{:paths ["."]
+ :deps {org.clojure/clojure {:mvn/version "1.11.1"}
+        nrepl/nrepl {:mvn/version "1.3.1"}}
+ :aliases {:test-server {:main-opts ["-m" "test-server"]}}}
