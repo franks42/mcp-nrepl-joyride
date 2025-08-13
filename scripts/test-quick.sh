@@ -11,7 +11,7 @@ cd "$PROJECT_ROOT"
 
 # Test basic protocol + debug-eval in one call
 uv run python scripts/stdio_mcp_client.py \
-  --server-cmd "bb -cp src src/mcp_server/core.clj" \
+  --server-cmd "bb -cp src src/nrepl_mcp_server/core.clj" \
   --tool debug-eval --args '{"code": "(+ 1 2 3)"}' --quiet
 
 echo "✅ Quick test passed"

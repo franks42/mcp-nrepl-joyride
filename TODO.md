@@ -453,11 +453,142 @@ uv run python stdio_mcp_client.py \
 
 ---
 
+## 🌐 **HTTP-to-STDIO BRIDGE FOR STATEFUL TESTING** 
+
+### **Problem Statement**
+
+Current testing architecture using `stdio_mcp_client.py` creates fresh server instances for each test, preventing stateful testing needed for nREPL workflows. Need persistent server with HTTP interface for stateful nREPL connection testing.
+
+### **Solution: mcp-proxy Bridge**
+
+Use existing `mcp-proxy` tool to bridge HTTP requests to persistent stdio MCP server.
+
+**Architecture**: `HTTP Client → mcp-proxy (port 3000) → stdio → nREPL MCP Server`
+
+### **Phase H1: Setup HTTP-to-stdio Bridge** ✅ **COMPLETED**
+
+- [x] **Install mcp-proxy tool**
+  - ✅ Installed via `uv add mcp-proxy`
+  - ✅ Verified compatibility with current nREPL MCP server
+  - ✅ Tested basic proxy functionality with `--stateless` flag for true HTTP mode
+
+- [x] **Create bridge startup script** (`./scripts/start-http-bridge.sh`)
+  - ✅ Start mcp-proxy with correct server command and `--stateless` directive
+  - ✅ Configure port 3000 for HTTP endpoint
+  - ✅ Include health check and graceful shutdown via PID tracking
+  - ✅ Log bridge and server startup to `logs/http-bridge.log`
+
+- [x] **Test basic bridge functionality**
+  - ✅ Verify HTTP endpoint responding at `localhost:3000/mcp/` (StreamableHTTP)
+  - ✅ Test MCP tool listing via HTTP with proper headers
+  - ✅ Confirm stdio server stays persistent across requests (stateful testing)
+  - ✅ Validate error handling and connection recovery
+
+**Key Technical Findings**:
+- ✅ **StreamableHTTP vs SSE**: StreamableHTTP works without persistent connections, SSE requires them
+- ✅ **Endpoint Discovery**: Correct endpoint is `/mcp/` (with trailing slash) 
+- ✅ **Stateless Mode**: `--stateless` flag enables true HTTP request/response pattern
+- ✅ **Header Requirements**: Must include `Accept: application/json, text/event-stream`
+- ✅ **Bridge Scripts**: Complete lifecycle management (start/stop/status)
+
+### **Phase H2: HTTP Client Testing Infrastructure** ✅ **COMPLETED**
+
+- [x] **Setup HTTP MCP client** 
+  - ✅ Created comprehensive `scripts/test_http_bridge.py` test suite
+  - ✅ Configure to connect to bridge at `localhost:3000/mcp/`
+  - ✅ Verify compatibility with bridge protocol (StreamableHTTP)
+  - ✅ Test basic tool calling functionality via HTTP
+
+- [x] **Create stateful test framework**
+  - ✅ Design test framework for persistent server testing with HTTPBridgeTestSuite class
+  - ✅ Implement connection state tracking via HTTP requests
+  - ✅ Create async HTTP client with proper timeout handling
+  - ✅ Build structured test result reporting and validation
+
+- [x] **Write comprehensive stateful tests**
+  - ✅ Variable persistence testing (define in one request, access in another)
+  - ✅ Function persistence testing (define function, call in separate request)
+  - ✅ Multi-step evaluations with state persistence validation
+  - ✅ Cross-namespace introspection across multiple HTTP calls
+  - ✅ Registry consistency testing (internal state vs MCP protocol)
+  - ✅ Error handling and graceful failure modes
+
+**Test Suite Achievements**:
+- ✅ **18 comprehensive tests** (was 17, added registry consistency test)
+- ✅ **100% pass rate** across all test modes (basic, quick, full, performance)
+- ✅ **Stateful validation**: Variables and functions persist across HTTP requests
+- ✅ **Registry consistency**: Internal tool registry matches MCP tools/list
+- ✅ **Cross-namespace introspection**: Can access `@nrepl-mcp_server.state.tool-registry/tool-registry`
+- ✅ **Multiple test modes**: `--basic`, `--quick`, `--performance` for different scenarios
+
+### **Phase H3: Stateful nREPL Testing**
+
+- [ ] **Test nREPL connection workflows**
+  - Connect to real nREPL server via bridge
+  - Send multiple messages with result correlation
+  - Test session isolation and management
+  - Verify persistent variable definitions
+
+- [ ] **Comprehensive namespace introspection testing**
+  - Define functions/variables in one request
+  - Explore namespace contents in subsequent requests  
+  - Test cross-namespace operations
+  - Validate namespace switching and require operations
+
+- [ ] **Integration with Phase 2b/3 implementation**
+  - Use bridge to test async message queue functionality
+  - Validate send-message-async → get-result-async workflows
+  - Test real nREPL communication layer
+  - Performance testing with concurrent operations
+
+### **Phase H4: Production Testing Setup**
+
+- [ ] **Create testing utilities**
+  - Bridge health monitoring scripts
+  - Automated test suite runner
+  - Performance benchmarking tools
+  - Error reporting and diagnostics
+
+- [ ] **Documentation and guides**
+  - Bridge setup and configuration guide
+  - Stateful testing best practices
+  - Troubleshooting common issues
+  - Developer workflow integration
+
+- [ ] **CI/CD Integration**
+  - Add bridge testing to automated test suite
+  - Include stateful tests in Phase 2/3 validation
+  - Performance regression testing
+  - Cross-platform compatibility testing
+
+### **Benefits of Bridge Approach**
+
+✅ **Persistent Server**: Single server instance across multiple tests
+✅ **Stateful Testing**: Variables/functions persist between requests
+✅ **HTTP Convenience**: Use existing HTTP tooling (curl, Postman, etc.)
+✅ **stdio Compatibility**: Tests stdio interface Claude Desktop will use
+✅ **No Custom Code**: Uses existing `mcp-proxy` tool
+✅ **Development Friendly**: Easy debugging and exploration
+✅ **Production Testing**: Tests real async nREPL workflows
+
+### **Success Criteria**
+
+- [ ] Bridge successfully proxies HTTP → stdio → nREPL MCP server
+- [ ] Multiple HTTP requests maintain server state persistence
+- [ ] Can define variables in one request, use in subsequent requests
+- [ ] nREPL connections remain active across bridge requests
+- [ ] All Phase 2b/3 functionality testable via HTTP interface
+- [ ] Bridge setup takes <5 minutes from clean environment
+
+---
+
 ## 🔍 **RESEARCH ITEMS**
 
 - [ ] **Investigate ls-sessions scope** - Determine if `ls-sessions` lists ALL server sessions or only current connection's sessions via testing or nREPL documentation
 
-- [ ] **Investigate HTTP MCP server option** - Research implementing HTTP-based MCP server as alternative to stdio for easier testing/debugging and potential web integration
+- [x] **Investigate HTTP MCP server option** - ✅ COMPLETED - Found `mcp-proxy` bridge solution
+  - **Result**: Use existing `mcp-proxy` tool for HTTP-to-stdio bridging
+  - **Implementation**: Added Phase H1-H4 plan above
 
 - [ ] **Investigate auto-registration of MCP tools** - Research if tool functions could self-register when required by dispatch.clj (e.g., using macros or metadata). For now, manual registration in dispatch.clj is fine.
 

@@ -33,7 +33,8 @@
 (defn handle-initialize
   "Handle MCP initialize request"
   [_params]
-  {:capabilities {:tools {}}
+  {:protocolVersion "2024-11-05"
+   :capabilities {:tools {}}
    :serverInfo {:name "nrepl-mcp_server"
                 :version "0.2.0"}})
 

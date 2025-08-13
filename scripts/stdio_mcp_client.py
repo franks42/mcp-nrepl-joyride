@@ -562,9 +562,8 @@ Examples:
                     sys.exit(1)
 
             elif args.interactive:
-                # Interactive mode implementation would go here
-                print("Interactive mode not yet implemented")
-                sys.exit(1)
+                # Interactive mode - keep server running
+                client.run_interactive_mode()
 
             else:
                 # Default: show server info and tools

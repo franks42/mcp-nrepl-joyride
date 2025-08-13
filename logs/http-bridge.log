@@ -1,0 +1,240 @@
+[D 2025-08-13 14:00:49,972.972 mcp_proxy.__main__] Configuring stdio client(s) and SSE server
+[I 2025-08-13 14:00:49,972.972 mcp_proxy.__main__] Configured default server: bb -cp src src/nrepl_mcp_server/core.clj
+[D 2025-08-13 14:00:49,973.973 asyncio] Using selector: KqueueSelector
+[I 2025-08-13 14:00:49,973.973 mcp_proxy.mcp_server] Setting up default server: bb -cp src src/nrepl_mcp_server/core.clj
+[D 2025-08-13 14:00:49,980.980 mcp_proxy.proxy_server] Sending initialization request to remote MCP server...
+🔧 Registered 3 MCP tools: ["debug-eval" "debug-load-file" "nrepl-server"]
+🚀 Starting nREPL-MCP server...
+[D 2025-08-13 14:00:49,999.999 mcp_proxy.proxy_server] Configuring proxied MCP server...
+[D 2025-08-13 14:00:49,999.999 mcp.server.lowlevel.server] Initializing server 'nrepl-mcp_server'
+[D 2025-08-13 14:00:49,999.999 mcp_proxy.proxy_server] Capabilities: adding Tools...
+[D 2025-08-13 14:00:49,999.999 mcp_proxy.mcp_server] Creating routes for a single MCP server instance (stateless: False)
+[D 2025-08-13 14:00:49,999.999 mcp.server.sse] SseServerTransport initialized with endpoint: /messages/
+[I 2025-08-13 14:00:50,000.000 mcp.server.streamable_http_manager] StreamableHTTP session manager started
+[I 2025-08-13 14:00:50,000.000 mcp_proxy.mcp_server] Serving MCP Servers via SSE:
+[I 2025-08-13 14:00:50,000.000 mcp_proxy.mcp_server]   - http://127.0.0.1:3000/sse
+[D 2025-08-13 14:00:50,000.000 mcp_proxy.mcp_server] Serving incoming MCP requests on 127.0.0.1:3000
+INFO:     Started server process [63966]
+INFO:     Waiting for application startup.
+[I 2025-08-13 14:00:50,007.007 mcp_proxy.mcp_server] Main application lifespan starting...
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:3000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:51930 - "POST / HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:51962 - "POST /mcp HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:51979 - "GET / HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:51996 - "POST /messages HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:52020 - "POST / HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:52308 - "POST /sse HTTP/1.1" 405 Method Not Allowed
+[D 2025-08-13 14:07:02,148.148 mcp.server.sse] Setting up SSE connection
+[D 2025-08-13 14:07:02,149.149 mcp.server.sse] Created new session with ID: 9c7d20a4-a709-4e66-9188-bfe086b20cbf
+[D 2025-08-13 14:07:02,149.149 mcp.server.sse] Starting SSE response task
+[D 2025-08-13 14:07:02,149.149 mcp.server.sse] Yielding read and write streams
+INFO:     127.0.0.1:52325 - "GET /sse HTTP/1.1" 200 OK
+[D 2025-08-13 14:07:02,151.151 mcp.server.sse] Starting SSE writer
+[D 2025-08-13 14:07:02,151.151 mcp.server.sse] Sent endpoint event: /messages/?session_id=9c7d20a4a7094e669188bfe086b20cbf
+[D 2025-08-13 14:07:02,151.151 sse_starlette.sse] chunk: b'event: endpoint\r\ndata: /messages/?session_id=9c7d20a4a7094e669188bfe086b20cbf\r\n\r\n'
+[D 2025-08-13 14:07:17,152.152 sse_starlette.sse] ping: b': ping - 2025-08-13 21:07:17.152550+00:00\r\n\r\n'
+[D 2025-08-13 14:07:32,154.154 sse_starlette.sse] ping: b': ping - 2025-08-13 21:07:32.154157+00:00\r\n\r\n'
+[D 2025-08-13 14:07:47,156.156 sse_starlette.sse] ping: b': ping - 2025-08-13 21:07:47.156307+00:00\r\n\r\n'
+[D 2025-08-13 14:08:02,164.164 sse_starlette.sse] ping: b': ping - 2025-08-13 21:08:02.164175+00:00\r\n\r\n'
+[D 2025-08-13 14:08:17,165.165 sse_starlette.sse] ping: b': ping - 2025-08-13 21:08:17.165853+00:00\r\n\r\n'
+[D 2025-08-13 14:08:22,268.268 sse_starlette.sse] Got event: http.disconnect. Stop streaming.
+[D 2025-08-13 14:08:22,269.269 root] Client session disconnected 9c7d20a4-a709-4e66-9188-bfe086b20cbf
+[D 2025-08-13 14:08:33,686.686 mcp.server.sse] Handling POST message
+[D 2025-08-13 14:08:33,687.687 mcp.server.sse] Parsed session ID: 9c7d20a4-a709-4e66-9188-bfe086b20cbf
+[D 2025-08-13 14:08:33,687.687 mcp.server.sse] Received JSON: b'{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2024-11-05", "capabilities": {}, "clientInfo": {"name": "test-client", "version": "1.0"}}}'
+[D 2025-08-13 14:08:33,687.687 mcp.server.sse] Validated client message: root=JSONRPCRequest(method='initialize', params={'protocolVersion': '2024-11-05', 'capabilities': {}, 'clientInfo': {'name': 'test-client', 'version': '1.0'}}, jsonrpc='2.0', id=1)
+[D 2025-08-13 14:08:33,687.687 mcp.server.sse] Sending session message to writer: SessionMessage(message=JSONRPCMessage(root=JSONRPCRequest(method='initialize', params={'protocolVersion': '2024-11-05', 'capabilities': {}, 'clientInfo': {'name': 'test-client', 'version': '1.0'}}, jsonrpc='2.0', id=1)), metadata=ServerMessageMetadata(related_request_id=None, request_context=<starlette.requests.Request object at 0x1077a0c80>))
+INFO:     127.0.0.1:52407 - "POST /messages/?session_id=9c7d20a4a7094e669188bfe086b20cbf HTTP/1.1" 202 Accepted
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/franksiebenlist/Development/mcp-nrepl-joyride/.venv/lib/python3.13/site-packages/uvicorn/protocols/http/h11_impl.py", line 403, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        self.scope, self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/franksiebenlist/Development/mcp-nrepl-joyride/.venv/lib/python3.13/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/franksiebenlist/Development/mcp-nrepl-joyride/.venv/lib/python3.13/site-packages/starlette/applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/franksiebenlist/Development/mcp-nrepl-joyride/.venv/lib/python3.13/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/Users/franksiebenlist/Development/mcp-nrepl-joyride/.venv/lib/python3.13/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/franksiebenlist/Development/mcp-nrepl-joyride/.venv/lib/python3.13/site-packages/starlette/middleware/cors.py", line 85, in __call__
+    await self.app(scope, receive, send)
+  File "/Users/franksiebenlist/Development/mcp-nrepl-joyride/.venv/lib/python3.13/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/franksiebenlist/Development/mcp-nrepl-joyride/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/franksiebenlist/Development/mcp-nrepl-joyride/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/franksiebenlist/Development/mcp-nrepl-joyride/.venv/lib/python3.13/site-packages/starlette/routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/franksiebenlist/Development/mcp-nrepl-joyride/.venv/lib/python3.13/site-packages/starlette/routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "/Users/franksiebenlist/Development/mcp-nrepl-joyride/.venv/lib/python3.13/site-packages/starlette/routing.py", line 462, in handle
+    await self.app(scope, receive, send)
+  File "/Users/franksiebenlist/Development/mcp-nrepl-joyride/.venv/lib/python3.13/site-packages/mcp/server/sse.py", line 249, in handle_post_message
+    await writer.send(session_message)
+  File "/Users/franksiebenlist/Development/mcp-nrepl-joyride/.venv/lib/python3.13/site-packages/anyio/streams/memory.py", line 243, in send
+    self.send_nowait(item)
+    ~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/franksiebenlist/Development/mcp-nrepl-joyride/.venv/lib/python3.13/site-packages/anyio/streams/memory.py", line 212, in send_nowait
+    raise ClosedResourceError
+anyio.ClosedResourceError
+INFO:     127.0.0.1:52429 - "POST /sse HTTP/1.1" 405 Method Not Allowed
+INFO:     127.0.0.1:52949 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:52951 - "POST / HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:52970 - "POST /mcp HTTP/1.1" 404 Not Found
+[D 2025-08-13 14:20:51,523.523 mcp.server.sse] Setting up SSE connection
+[D 2025-08-13 14:20:51,523.523 mcp.server.sse] Created new session with ID: 28d47f85-8194-4dff-a02c-ccf888449f22
+[D 2025-08-13 14:20:51,523.523 mcp.server.sse] Starting SSE response task
+[D 2025-08-13 14:20:51,523.523 mcp.server.sse] Yielding read and write streams
+INFO:     127.0.0.1:53212 - "GET /sse HTTP/1.1" 200 OK
+[D 2025-08-13 14:20:51,525.525 mcp.server.sse] Starting SSE writer
+[D 2025-08-13 14:20:51,525.525 mcp.server.sse] Sent endpoint event: /messages/?session_id=28d47f8581944dffa02cccf888449f22
+[D 2025-08-13 14:20:51,525.525 sse_starlette.sse] chunk: b'event: endpoint\r\ndata: /messages/?session_id=28d47f8581944dffa02cccf888449f22\r\n\r\n'
+[D 2025-08-13 14:20:51,526.526 sse_starlette.sse] Got event: http.disconnect. Stop streaming.
+[D 2025-08-13 14:20:51,526.526 root] Client session disconnected 28d47f85-8194-4dff-a02c-ccf888449f22
+[D 2025-08-13 14:20:51,542.542 mcp.server.sse] Handling POST message
+[D 2025-08-13 14:20:51,542.542 mcp.server.sse] Parsed session ID: 28d47f85-8194-4dff-a02c-ccf888449f22
+[D 2025-08-13 14:20:51,542.542 mcp.server.sse] Received JSON: b'{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"sse-test-client","version":"1.0"}}}'
+[D 2025-08-13 14:20:51,543.543 mcp.server.sse] Validated client message: root=JSONRPCRequest(method='initialize', params={'protocolVersion': '2024-11-05', 'capabilities': {}, 'clientInfo': {'name': 'sse-test-client', 'version': '1.0'}}, jsonrpc='2.0', id=1)
+[D 2025-08-13 14:20:51,543.543 mcp.server.sse] Sending session message to writer: SessionMessage(message=JSONRPCMessage(root=JSONRPCRequest(method='initialize', params={'protocolVersion': '2024-11-05', 'capabilities': {}, 'clientInfo': {'name': 'sse-test-client', 'version': '1.0'}}, jsonrpc='2.0', id=1)), metadata=ServerMessageMetadata(related_request_id=None, request_context=<starlette.requests.Request object at 0x1076d1ef0>))
+INFO:     127.0.0.1:53214 - "POST /messages/?session_id=28d47f8581944dffa02cccf888449f22 HTTP/1.1" 202 Accepted
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/franksiebenlist/Development/mcp-nrepl-joyride/.venv/lib/python3.13/site-packages/uvicorn/protocols/http/h11_impl.py", line 403, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        self.scope, self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/franksiebenlist/Development/mcp-nrepl-joyride/.venv/lib/python3.13/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/franksiebenlist/Development/mcp-nrepl-joyride/.venv/lib/python3.13/site-packages/starlette/applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/franksiebenlist/Development/mcp-nrepl-joyride/.venv/lib/python3.13/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/Users/franksiebenlist/Development/mcp-nrepl-joyride/.venv/lib/python3.13/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/franksiebenlist/Development/mcp-nrepl-joyride/.venv/lib/python3.13/site-packages/starlette/middleware/cors.py", line 85, in __call__
+    await self.app(scope, receive, send)
+  File "/Users/franksiebenlist/Development/mcp-nrepl-joyride/.venv/lib/python3.13/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/franksiebenlist/Development/mcp-nrepl-joyride/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/franksiebenlist/Development/mcp-nrepl-joyride/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/franksiebenlist/Development/mcp-nrepl-joyride/.venv/lib/python3.13/site-packages/starlette/routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/franksiebenlist/Development/mcp-nrepl-joyride/.venv/lib/python3.13/site-packages/starlette/routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "/Users/franksiebenlist/Development/mcp-nrepl-joyride/.venv/lib/python3.13/site-packages/starlette/routing.py", line 462, in handle
+    await self.app(scope, receive, send)
+  File "/Users/franksiebenlist/Development/mcp-nrepl-joyride/.venv/lib/python3.13/site-packages/mcp/server/sse.py", line 249, in handle_post_message
+    await writer.send(session_message)
+  File "/Users/franksiebenlist/Development/mcp-nrepl-joyride/.venv/lib/python3.13/site-packages/anyio/streams/memory.py", line 243, in send
+    self.send_nowait(item)
+    ~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/franksiebenlist/Development/mcp-nrepl-joyride/.venv/lib/python3.13/site-packages/anyio/streams/memory.py", line 212, in send_nowait
+    raise ClosedResourceError
+anyio.ClosedResourceError
+[D 2025-08-13 14:20:52,581.581 mcp.server.sse] Handling POST message
+[D 2025-08-13 14:20:52,581.581 mcp.server.sse] Parsed session ID: 28d47f85-8194-4dff-a02c-ccf888449f22
+[D 2025-08-13 14:20:52,581.581 mcp.server.sse] Received JSON: b'{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}'
+[D 2025-08-13 14:20:52,581.581 mcp.server.sse] Validated client message: root=JSONRPCRequest(method='tools/list', params={}, jsonrpc='2.0', id=2)
+[D 2025-08-13 14:20:52,581.581 mcp.server.sse] Sending session message to writer: SessionMessage(message=JSONRPCMessage(root=JSONRPCRequest(method='tools/list', params={}, jsonrpc='2.0', id=2)), metadata=ServerMessageMetadata(related_request_id=None, request_context=<starlette.requests.Request object at 0x1077837f0>))
+INFO:     127.0.0.1:53216 - "POST /messages/?session_id=28d47f8581944dffa02cccf888449f22 HTTP/1.1" 202 Accepted
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/franksiebenlist/Development/mcp-nrepl-joyride/.venv/lib/python3.13/site-packages/uvicorn/protocols/http/h11_impl.py", line 403, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        self.scope, self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/franksiebenlist/Development/mcp-nrepl-joyride/.venv/lib/python3.13/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/franksiebenlist/Development/mcp-nrepl-joyride/.venv/lib/python3.13/site-packages/starlette/applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/franksiebenlist/Development/mcp-nrepl-joyride/.venv/lib/python3.13/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/Users/franksiebenlist/Development/mcp-nrepl-joyride/.venv/lib/python3.13/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/franksiebenlist/Development/mcp-nrepl-joyride/.venv/lib/python3.13/site-packages/starlette/middleware/cors.py", line 85, in __call__
+    await self.app(scope, receive, send)
+  File "/Users/franksiebenlist/Development/mcp-nrepl-joyride/.venv/lib/python3.13/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/franksiebenlist/Development/mcp-nrepl-joyride/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/franksiebenlist/Development/mcp-nrepl-joyride/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/franksiebenlist/Development/mcp-nrepl-joyride/.venv/lib/python3.13/site-packages/starlette/routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/franksiebenlist/Development/mcp-nrepl-joyride/.venv/lib/python3.13/site-packages/starlette/routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "/Users/franksiebenlist/Development/mcp-nrepl-joyride/.venv/lib/python3.13/site-packages/starlette/routing.py", line 462, in handle
+    await self.app(scope, receive, send)
+  File "/Users/franksiebenlist/Development/mcp-nrepl-joyride/.venv/lib/python3.13/site-packages/mcp/server/sse.py", line 249, in handle_post_message
+    await writer.send(session_message)
+  File "/Users/franksiebenlist/Development/mcp-nrepl-joyride/.venv/lib/python3.13/site-packages/anyio/streams/memory.py", line 243, in send
+    self.send_nowait(item)
+    ~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/franksiebenlist/Development/mcp-nrepl-joyride/.venv/lib/python3.13/site-packages/anyio/streams/memory.py", line 212, in send_nowait
+    raise ClosedResourceError
+anyio.ClosedResourceError
+[D 2025-08-13 14:20:53,622.622 mcp.server.sse] Handling POST message
+[D 2025-08-13 14:20:53,622.622 mcp.server.sse] Parsed session ID: 28d47f85-8194-4dff-a02c-ccf888449f22
+[D 2025-08-13 14:20:53,622.622 mcp.server.sse] Received JSON: b'{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"debug-eval","arguments":{"code":"(+ 1 2 3)"}}}'
+[D 2025-08-13 14:20:53,622.622 mcp.server.sse] Validated client message: root=JSONRPCRequest(method='tools/call', params={'name': 'debug-eval', 'arguments': {'code': '(+ 1 2 3)'}}, jsonrpc='2.0', id=3)
+[D 2025-08-13 14:20:53,622.622 mcp.server.sse] Sending session message to writer: SessionMessage(message=JSONRPCMessage(root=JSONRPCRequest(method='tools/call', params={'name': 'debug-eval', 'arguments': {'code': '(+ 1 2 3)'}}, jsonrpc='2.0', id=3)), metadata=ServerMessageMetadata(related_request_id=None, request_context=<starlette.requests.Request object at 0x1077837f0>))
+INFO:     127.0.0.1:53219 - "POST /messages/?session_id=28d47f8581944dffa02cccf888449f22 HTTP/1.1" 202 Accepted
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/franksiebenlist/Development/mcp-nrepl-joyride/.venv/lib/python3.13/site-packages/uvicorn/protocols/http/h11_impl.py", line 403, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        self.scope, self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/franksiebenlist/Development/mcp-nrepl-joyride/.venv/lib/python3.13/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/franksiebenlist/Development/mcp-nrepl-joyride/.venv/lib/python3.13/site-packages/starlette/applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/franksiebenlist/Development/mcp-nrepl-joyride/.venv/lib/python3.13/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/Users/franksiebenlist/Development/mcp-nrepl-joyride/.venv/lib/python3.13/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/franksiebenlist/Development/mcp-nrepl-joyride/.venv/lib/python3.13/site-packages/starlette/middleware/cors.py", line 85, in __call__
+    await self.app(scope, receive, send)
+  File "/Users/franksiebenlist/Development/mcp-nrepl-joyride/.venv/lib/python3.13/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/franksiebenlist/Development/mcp-nrepl-joyride/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/franksiebenlist/Development/mcp-nrepl-joyride/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/franksiebenlist/Development/mcp-nrepl-joyride/.venv/lib/python3.13/site-packages/starlette/routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/franksiebenlist/Development/mcp-nrepl-joyride/.venv/lib/python3.13/site-packages/starlette/routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "/Users/franksiebenlist/Development/mcp-nrepl-joyride/.venv/lib/python3.13/site-packages/starlette/routing.py", line 462, in handle
+    await self.app(scope, receive, send)
+  File "/Users/franksiebenlist/Development/mcp-nrepl-joyride/.venv/lib/python3.13/site-packages/mcp/server/sse.py", line 249, in handle_post_message
+    await writer.send(session_message)
+  File "/Users/franksiebenlist/Development/mcp-nrepl-joyride/.venv/lib/python3.13/site-packages/anyio/streams/memory.py", line 243, in send
+    self.send_nowait(item)
+    ~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/franksiebenlist/Development/mcp-nrepl-joyride/.venv/lib/python3.13/site-packages/anyio/streams/memory.py", line 212, in send_nowait
+    raise ClosedResourceError
+anyio.ClosedResourceError

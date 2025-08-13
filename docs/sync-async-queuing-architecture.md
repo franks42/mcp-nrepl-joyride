@@ -821,3 +821,176 @@ The self-registering tools pattern completes the namespace refactoring by:
 5. **Following MCP Best Practices**: Tools discoverable and metadata-rich
 
 This pattern serves as the foundation for all future MCP tool development in the system.
+
+## 17. Cross-Namespace Introspection Capabilities (January 2025)
+
+### 17.1 Discovery Summary
+Phase 1 testing revealed powerful cross-namespace introspection capabilities within the SCI (Small Clojure Interpreter) runtime environment. The `debug-eval` tool can access and manipulate state across all loaded namespaces, providing comprehensive runtime visibility.
+
+### 17.2 Introspection Scope
+
+#### Available Namespace Operations
+```clojure
+;; List all loaded namespaces
+(mapv ns-name (all-ns))
+;; => [nrepl-mcp_server.core nrepl-mcp_server.state.tool-registry ...]
+
+;; Access current execution namespace
+*ns*
+;; => #namespace[nrepl-mcp_server.core]
+
+;; Find specific namespace
+(find-ns (symbol "nrepl-mcp_server.state.tool-registry"))
+;; => #namespace[nrepl-mcp_server.state.tool-registry]
+```
+
+#### Cross-Namespace Variable Access
+```clojure
+;; Access public vars from other namespaces
+@nrepl-mcp_server.state.tool-registry/tool-registry
+;; => {"debug-eval" {:handler ...} "debug-load-file" {:handler ...} ...}
+
+;; List public vars in any namespace
+(keys (ns-publics (find-ns (symbol "nrepl-mcp_server.state.connection"))))
+;; => (connect! disconnect! get-connection ...)
+```
+
+### 17.3 Tool Registry Introspection
+The tool registry atom can be fully accessed and modified:
+
+```clojure
+;; Get all tool names
+(keys @nrepl-mcp_server.state.tool-registry/tool-registry)
+;; => ("debug-eval" "debug-load-file" "nrepl-server")
+
+;; Inspect tool metadata
+(get-in @nrepl-mcp_server.state.tool-registry/tool-registry 
+        ["debug-eval" :metadata :description])
+;; => "Execute Clojure code within the MCP server runtime"
+
+;; Count registered tools
+(count @nrepl-mcp_server.state.tool-registry/tool-registry)
+;; => 3
+```
+
+### 17.4 Runtime State Monitoring
+All server state is accessible for debugging and monitoring:
+
+```clojure
+;; Monitor connection state
+@nrepl-mcp_server.state.connection/connection-state
+
+;; Inspect message queues (when implemented)
+@nrepl-mcp_server.state.messages/message-queues
+
+;; Check system health
+{:namespaces (count (all-ns))
+ :tools (count @nrepl-mcp_server.state.tool-registry/tool-registry)
+ :runtime-type (type *ns*)}
+```
+
+### 17.5 Architectural Implications
+
+#### Development Benefits
+1. **Live Debugging**: Can inspect and modify server state without restart
+2. **Runtime Validation**: Verify architectural assumptions during development  
+3. **State Consistency**: Compare internal state with external behavior
+4. **Performance Monitoring**: Track resource usage and identify bottlenecks
+
+#### Production Considerations
+1. **Security**: Full introspection provides powerful debugging but requires secure access
+2. **Stability**: Runtime modifications can affect server behavior
+3. **Observability**: Enables sophisticated monitoring and alerting
+4. **Debugging**: Simplifies troubleshooting complex state issues
+
+### 17.6 Testing Integration
+
+#### Registry Consistency Test
+The registry consistency test validates that internal tool registry matches the MCP protocol's exposed tools:
+
+```python
+async def test_registry_consistency(self) -> bool:
+    """Test that internal tool registry matches exposed MCP tools list."""
+    
+    # Get tools from MCP protocol
+    mcp_result = await self.client.list_tools()
+    mcp_tool_names = sorted([tool["name"] for tool in mcp_result["tools"]])
+    
+    # Get tools from internal registry via introspection
+    registry_result = await self.client.call_tool("debug-eval", {
+        "code": "(sort (keys @nrepl-mcp_server.state.tool-registry/tool-registry))"
+    })
+    
+    # Compare for consistency
+    assert mcp_tool_names == registry_tool_names
+```
+
+This test ensures:
+- No tools are missing from the MCP interface
+- No tools are exposed that aren't in the registry  
+- Internal state matches external API
+- Cross-namespace introspection works correctly
+
+### 17.7 Debug Toolkit Extensions
+
+#### Helper Functions for Common Operations
+```clojure
+;; Define convenience functions for frequent introspection
+(defn system-summary []
+  {:namespaces (count (all-ns))
+   :tools (keys @nrepl-mcp_server.state.tool-registry/tool-registry)
+   :current-ns (str *ns*)
+   :registry-size (count @nrepl-mcp_server.state.tool-registry/tool-registry)})
+
+;; Architecture analysis
+(defn architecture-analysis []
+  {:tool-registry-consistency 
+   (= (set (keys @nrepl-mcp_server.state.tool-registry/tool-registry))
+      (set ["debug-eval" "debug-load-file" "nrepl-server"]))
+   :namespace-health 
+   (> (count (all-ns)) 50)})
+```
+
+### 17.8 HTTP Bridge Testing
+The Phase H1 HTTP-to-stdio bridge testing validates these introspection capabilities work across transport layers:
+
+- **Stateful Testing**: Variables and functions persist across HTTP requests
+- **Cross-Transport Consistency**: Same introspection works via HTTP as stdio
+- **Registry Validation**: HTTP bridge test suite includes registry consistency test
+- **Performance Validation**: Rapid HTTP requests maintain state consistency
+
+### 17.9 Design Validation
+Cross-namespace introspection confirms several architectural decisions:
+
+1. **State Separation**: Different concerns properly isolated in separate namespaces
+2. **Registry Design**: Tool registry accessible and consistent with MCP protocol  
+3. **SCI Capabilities**: Runtime provides full introspection without JVM limitations
+4. **Transport Independence**: Introspection works regardless of MCP transport layer
+
+### 17.10 Future Enhancement Opportunities
+
+#### Monitoring Dashboard
+```clojure
+(defn monitoring-dashboard []
+  {:server-uptime (- (System/currentTimeMillis) start-time)
+   :active-tools (keys @nrepl-mcp_server.state.tool-registry/tool-registry)
+   :namespace-count (count (all-ns))
+   :memory-usage (System/getProperty "java.runtime.totalMemory")})
+```
+
+#### Health Check Integration
+The registry consistency test could be extended for comprehensive health monitoring:
+- Tool registration completeness
+- Namespace loading verification
+- State atom accessibility
+- Cross-namespace communication validation
+
+### 17.11 Key Achievements
+
+1. **Complete Visibility**: All server internals accessible via debug-eval
+2. **Architecture Validation**: Can verify design assumptions at runtime
+3. **Testing Enhancement**: Registry consistency test ensures API accuracy
+4. **Transport Independence**: Introspection works via stdio, HTTP, and future transports
+5. **Development Efficiency**: Live debugging without server restarts
+
+This introspection capability transforms development and testing workflows by providing unprecedented visibility into the running MCP server state across all architectural layers.
