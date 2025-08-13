@@ -1,6 +1,7 @@
 (ns nrepl-mcp_server.mcp_server.tools.debug-eval
   "Debug eval tool for MCP server introspection"
-  (:require [cheshire.core :as json]))
+  (:require [cheshire.core :as json]
+            [nrepl-mcp_server.state.tool-registry :as registry]))
 
 (defn handle
   "Evaluate Clojure code within the MCP server runtime"
@@ -52,3 +53,17 @@
                             :stacktrace (mapv str (.getStackTrace e))}
                            {:pretty true})}]
          :isError true}))))
+
+;; =============================================================================
+;; Self Registration
+;; =============================================================================
+
+;; Self-register this tool when namespace loads
+(registry/register-tool!
+ "debug-eval"
+ handle
+ {:description "Execute Clojure code within the MCP server runtime"
+  :inputSchema {:type "object"
+                :properties {:code {:type "string"
+                                    :description "Clojure code to evaluate"}}
+                :required ["code"]}})

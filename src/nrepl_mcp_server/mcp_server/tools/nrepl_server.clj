@@ -3,7 +3,8 @@
   (:require [nrepl-mcp_server.state.connection :as state]
             [nrepl-mcp_server.nrepl_client.connection :as conn]
             [nrepl-mcp_server.nrepl_client.handlers] ;; Load handlers to install watchers
-            [cheshire.core :as json]))
+            [cheshire.core :as json]
+            [nrepl-mcp_server.state.tool-registry :as registry]))
 
 ;; =============================================================================
 ;; Operation Handlers
@@ -169,3 +170,22 @@
                                     ". Use 'connect', 'disconnect', or 'status'")}
                        {:pretty true})}]
      :isError true}))
+
+;; =============================================================================
+;; Self Registration
+;; =============================================================================
+
+;; Self-register this tool when namespace loads
+(registry/register-tool!
+ "nrepl-server"
+ handle
+ {:description "nREPL server operations: connect, disconnect, status"
+  :inputSchema {:type "object"
+                :properties {:op {:type "string"
+                                  :description "Operation: 'connect', 'disconnect', or 'status'"
+                                  :enum ["connect" "disconnect" "status"]}
+                             :connection {:type "string"
+                                          :description "Connection info for connect: host:port, port, or file path"}
+                             :timeout {:type "integer"
+                                       :description "Timeout in milliseconds (default 5000)"}}
+                :required ["op"]}})

@@ -1,6 +1,7 @@
 (ns nrepl-mcp_server.mcp_server.tools.debug-load-file
   "Debug load-file tool for loading Clojure files in MCP server runtime"
-  (:require [cheshire.core :as json])
+  (:require [cheshire.core :as json]
+            [nrepl-mcp_server.state.tool-registry :as registry])
   (:import [java.io StringWriter PrintWriter]))
 
 (defn handle
@@ -62,3 +63,17 @@
                             :stacktrace (mapv str (.getStackTrace e))}
                            {:pretty true})}]
          :isError true}))))
+
+;; =============================================================================
+;; Self Registration
+;; =============================================================================
+
+;; Self-register this tool when namespace loads
+(registry/register-tool!
+ "debug-load-file"
+ handle
+ {:description "Load and evaluate a Clojure file in the MCP server runtime"
+  :inputSchema {:type "object"
+                :properties {:file-path {:type "string"
+                                         :description "Path to Clojure file to load"}}
+                :required ["file-path"]}})

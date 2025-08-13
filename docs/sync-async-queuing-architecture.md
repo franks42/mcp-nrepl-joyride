@@ -16,14 +16,16 @@ nrepl-mcp-server/              ; Top-level project namespace
     connection.clj             ; Connection state atom and helpers
     messages.clj               ; Message queue state management
     results.clj                ; Result queue state management
+    tool_registry.clj          ; Tool registry atom and helper functions
+    register_tools.clj         ; Tool registration orchestrator
   
   mcp-server/                  ; MCP server implementation
     server.clj                 ; stdio server, JSON-RPC handling
-    dispatch.clj               ; Tool routing and dispatch table
+    dispatch.clj               ; Tool routing via registry (purely generic)
     tools/                     ; One file per MCP tool function
-      debug_eval.clj           ; debug-eval tool
-      debug_load_file.clj      ; debug-load-file tool
-      nrepl_server.clj         ; Unified nREPL operations (connect, disconnect, status)
+      debug_eval.clj           ; debug-eval tool (self-registering)
+      debug_load_file.clj      ; debug-load-file tool (self-registering)
+      nrepl_server.clj         ; Unified nREPL operations (self-registering)
       send_message_async.clj   ; Async message sending (Phase 2b)
       get_result_async.clj     ; Async result retrieval (Phase 2b)
       send_message_sync.clj    ; Sync wrapper combining send+get (Phase 2b)
@@ -41,12 +43,14 @@ nrepl-mcp-server/              ; Top-level project namespace
 ### Design Principles
 
 1. **One file per MCP tool** - Each tool function gets its own file for clarity
-2. **Clear separation of concerns** - MCP server vs nREPL client vs state management
-3. **Domain-focused state** - State split by concern (connection, messages, results)
-4. **Reactive architecture** - State atoms are separate from handlers that react to them
-5. **Client perspective** - `nrepl-client` (not `nrepl-server`) since we're the client to nREPL servers
-6. **Parallel naming** - `mcp-server/*` and `nrepl-client/*` for clear architectural boundaries
-7. **Unified tool interfaces** - `nrepl-server` tool with `op` parameter (connect/disconnect/status) for consistency with nREPL patterns
+2. **Self-registering tools** - Tools register themselves when namespaces load for clean decoupling
+3. **Clear separation of concerns** - MCP server vs nREPL client vs state management vs tool registry
+4. **Domain-focused state** - State split by concern (connection, messages, results, tools)
+5. **Reactive architecture** - State atoms are separate from handlers that react to them
+6. **Client perspective** - `nrepl-client` (not `nrepl-server`) since we're the client to nREPL servers
+7. **Parallel naming** - `mcp-server/*` and `nrepl-client/*` for clear architectural boundaries
+8. **Unified tool interfaces** - `nrepl-server` tool with `op` parameter (connect/disconnect/status) for consistency with nREPL patterns
+9. **Generic dispatch** - `dispatch.clj` contains no tool-specific knowledge, purely registry-based routing
 
 ## 1. Architecture Overview
 
@@ -613,3 +617,207 @@ Will be implemented with message queue functionality:
 - Failed state requires explicit disconnect to retry
 - Timeouts return control to caller with clear status
 - All errors include actionable messages for debugging
+
+## 16. Self-Registering Tools Architecture (January 2025)
+
+### 16.1 Design Overview
+Phase 2 implements a self-registering tools pattern that eliminates tool-specific knowledge from the dispatcher, achieving clean separation of concerns through dynamic registration.
+
+### 16.2 Architecture Components
+
+#### Tool Registry (`state/tool_registry.clj`)
+```clojure
+(def tool-registry
+  "Atom containing all registered MCP tools"
+  (atom {}))
+
+(defn register-tool!
+  "Register a new MCP tool with handler and metadata"
+  [tool-name handler metadata]
+  (swap! tool-registry assoc tool-name {:handler handler :metadata metadata}))
+
+(defn get-tool
+  "Get tool by name, returns {:handler fn :metadata map} or nil"
+  [tool-name]
+  (get @tool-registry tool-name))
+```
+
+#### Registration Orchestrator (`state/register_tools.clj`)
+```clojure
+(ns nrepl-mcp_server.state.register-tools
+  (:require
+    [nrepl-mcp_server.state.tool-registry :as registry]
+    ;; Explicitly require all tool namespaces (triggers self-registration)
+    [nrepl-mcp_server.mcp_server.tools.debug-eval]
+    [nrepl-mcp_server.mcp_server.tools.debug-load-file]
+    [nrepl-mcp_server.mcp_server.tools.nrepl-server]))
+
+(defn register-tools!
+  "Make tool registration explicit and log results"
+  []
+  (let [tool-count (registry/registry-size)]
+    (binding [*out* *err*]
+      (println (str "🔧 Registered " tool-count " MCP tools: "
+                   (vec (registry/list-tool-names)))))
+    tool-count))
+```
+
+#### Self-Registering Tools
+Each tool file includes self-registration at namespace load:
+```clojure
+;; At end of each tool file:
+(registry/register-tool!
+ "debug-eval"
+ handle
+ {:description "Execute Clojure code within the MCP server runtime"
+  :inputSchema {:type "object"
+                :properties {:code {:type "string"
+                                    :description "Clojure code to evaluate"}}
+                :required ["code"]}})
+```
+
+#### Generic Dispatcher (`mcp_server/dispatch.clj`)
+```clojure
+(ns nrepl-mcp_server.mcp_server.dispatch
+  (:require [nrepl-mcp_server.state.tool-registry :as registry]
+            [nrepl-mcp_server.state.register-tools :as register]))
+
+;; Initialize tool registry (causes self-registration)
+(register/register-tools!)
+
+(defn call-tool
+  "Execute an MCP tool by name - purely generic dispatch"
+  [tool-name args]
+  (if-let [{:keys [handler]} (registry/get-tool tool-name)]
+    (handler args)
+    {:content [{:type "text" :text (str "❌ Unknown tool: " tool-name)}]
+     :isError true}))
+```
+
+### 16.3 Registration Flow
+
+```
+Server Startup
+     │
+     ▼
+dispatch.clj loads
+     │
+     ▼
+(register/register-tools!) called
+     │
+     ▼
+register-tools.clj requires tool namespaces
+     │
+     ▼
+Each tool namespace loads
+     │
+     ▼
+Tool calls (registry/register-tool! ...) 
+     │
+     ▼
+Tool added to registry atom
+     │
+     ▼
+Registration count logged: "🔧 Registered 3 MCP tools: [...]"
+     │
+     ▼
+MCP server ready with dynamically registered tools
+```
+
+### 16.4 Key Benefits
+
+1. **Complete Decoupling**: Dispatcher has zero knowledge of specific tools
+2. **Dynamic Discovery**: Tools can be added/removed by changing require statements
+3. **Clean Architecture**: Each tool is responsible for its own registration
+4. **Eager Registration**: All tools available when first `tools/list` is called
+5. **Separation of Data and Orchestration**: Registry (data) separate from registration (orchestration)
+6. **MCP Protocol Compliance**: Tools discoverable via standard `tools/list` endpoint
+
+### 16.5 Implementation Patterns
+
+#### Tool Structure Template
+```clojure
+(ns some.tool.namespace
+  (:require [nrepl-mcp_server.state.tool-registry :as registry]
+            [cheshire.core :as json]))
+
+(defn handle
+  "Tool implementation function"
+  [args]
+  ;; Tool logic here
+  {:content [{:type "text" :text "result"}]})
+
+;; Self-register when namespace loads
+(registry/register-tool!
+ "tool-name"
+ handle
+ {:description "Tool description"
+  :inputSchema {...}})
+```
+
+#### Registry Operations
+```clojure
+;; Check registry status
+(registry/registry-size)          ; => 3
+(registry/list-tool-names)        ; => ["debug-eval" "debug-load-file" "nrepl-server"]
+(registry/get-registered-tools)   ; => {"tool-name" {:handler fn :metadata map}}
+
+;; Runtime tool lookup (used by dispatcher)
+(registry/get-tool "debug-eval")  ; => {:handler fn :metadata map}
+```
+
+### 16.6 Testing and Validation
+
+#### Server Startup Confirmation
+```bash
+$ BABASHKA_CLASSPATH=src bb src/nrepl_mcp_server/core.clj
+🔧 Registered 3 MCP tools: ["debug-eval" "debug-load-file" "nrepl-server"]
+🚀 Starting nREPL-MCP server...
+```
+
+#### Runtime Introspection via debug-eval
+```clojure
+;; Verify registry state
+(debug-eval {:code "(count @nrepl-mcp_server.state.tool-registry/tool-registry)"})
+;; => 3
+
+;; List registered tools  
+(debug-eval {:code "(keys @nrepl-mcp_server.state.tool-registry/tool-registry)"})
+;; => ("debug-eval" "debug-load-file" "nrepl-server")
+
+;; Check tool metadata
+(debug-eval {:code "(:description (:metadata (get @nrepl-mcp_server.state.tool-registry/tool-registry \"debug-eval\")))"})
+;; => "Execute Clojure code within the MCP server runtime"
+```
+
+### 16.7 Design Rationale
+
+**Why Self-Registration?**
+- **Eliminates coupling**: Dispatcher doesn't need to know about specific tools
+- **Enables modularity**: Tools can be added/removed independently
+- **Follows Single Responsibility**: Each tool manages its own lifecycle
+- **Supports extension**: New tools just need to follow the pattern
+
+**Why Separate Registry and Orchestration?**
+- **Data vs Logic**: `tool_registry.clj` is pure data, `register_tools.clj` is orchestration
+- **Clear Dependencies**: Registry has no dependencies, orchestrator depends on tools
+- **Testing**: Can test registry operations independently
+- **Maintenance**: Changes to registration don't affect data structure
+
+**Why Eager Registration?**
+- **MCP Compliance**: Tools must be discoverable on first `tools/list` call
+- **Client Compatibility**: MCP clients may not handle dynamic tool changes well
+- **Predictable Behavior**: All tools available from server start
+- **Simplified Logic**: No lazy loading complexity
+
+### 16.8 Architecture Achievement
+
+The self-registering tools pattern completes the namespace refactoring by:
+
+1. **Achieving Clean Architecture**: No circular dependencies or architectural violations
+2. **Enabling Pure Generic Dispatch**: `dispatch.clj` is completely tool-agnostic
+3. **Providing Dynamic Extensibility**: New tools register automatically when required
+4. **Maintaining Backward Compatibility**: All existing functionality preserved
+5. **Following MCP Best Practices**: Tools discoverable and metadata-rich
+
+This pattern serves as the foundation for all future MCP tool development in the system.

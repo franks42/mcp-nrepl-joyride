@@ -158,6 +158,52 @@ nrepl-mcp-server/
 - [x] Run full test suite to verify functionality preserved
 - [x] Format and lint code
 
+#### **2a.8: Self-Registering Tools Pattern** ✅ **COMPLETED**
+
+**Goal**: Eliminate all tool-specific knowledge from dispatcher, achieving complete separation of concerns through dynamic tool registration.
+
+**Problem**: Current dispatcher contains tool-specific details, violating clean architecture principles and creating coupling between dispatcher and individual tools.
+
+**Solution**:
+1. **Create tool registry system** - `state/tool_registry.clj`
+   - Atom-based registry for storing tool handlers and metadata
+   - Helper functions for registration, lookup, and introspection
+   - Pure data management without orchestration logic
+
+2. **Create registration orchestrator** - `state/register_tools.clj`
+   - Explicit require statements for all tool namespaces
+   - Single function to make registration side effects explicit
+   - Centralized control over which tools are included
+
+3. **Implement self-registration pattern** - Each tool registers itself
+   - Tools call `(registry/register-tool! ...)` when namespace loads
+   - Includes handler function and MCP metadata (description, inputSchema)
+   - Zero coupling between tools and dispatcher
+
+4. **Refactor dispatcher to be purely generic** - `mcp_server/dispatch.clj`
+   - Remove all tool-specific knowledge and hardcoded logic
+   - Use registry atom for tool lookup and execution
+   - Clean separation of concerns achieved
+
+**Architecture Benefits**:
+- **Complete Decoupling**: Dispatcher has zero knowledge of specific tools
+- **Dynamic Discovery**: Tools can be added/removed by changing require statements
+- **Clean Architecture**: Each tool is responsible for its own registration
+- **MCP Protocol Compliance**: Tools discoverable via standard `tools/list` endpoint
+- **Separation of Data and Orchestration**: Registry (data) vs registration (orchestration)
+
+**Implementation Results**:
+- [x] Create `state/tool_registry.clj` with atom and helper functions
+- [x] Create `state/register_tools.clj` with explicit tool requires
+- [x] Update all tools to self-register at namespace load
+- [x] Refactor `dispatch.clj` to be purely registry-based
+- [x] Remove all tool-specific knowledge from dispatcher
+- [x] Test functionality: "🔧 Registered 3 MCP tools: ['debug-eval' 'debug-load-file' 'nrepl-server']"
+- [x] Format and lint code following best practices
+- [x] Update architecture documentation with self-registering tools pattern
+
+**Architecture Achievement**: Clean self-registering tools pattern serves as foundation for all future MCP tool development, with complete separation of concerns and zero coupling between dispatcher and tools.
+
 #### **2b: Message Queue Infrastructure** (After interface cleanup)
 - [ ] **Implement send-message-async tool** 
   - Hand-off message to queue → get message-id
