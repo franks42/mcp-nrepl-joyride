@@ -1,7 +1,7 @@
-(ns nrepl-mcp-server.nrepl-client.handlers
+(ns nrepl-mcp_server.nrepl_client.handlers
   "State watchers and reactive handlers for nREPL client"
-  (:require [nrepl-mcp-server.state :as state]
-            [nrepl-mcp-server.nrepl-client.connection :as conn]))
+  (:require [nrepl-mcp_server.state.connection :as state]
+            [nrepl-mcp_server.nrepl_client.connection :as conn]))
 
 ;; =============================================================================
 ;; Connection State Handlers

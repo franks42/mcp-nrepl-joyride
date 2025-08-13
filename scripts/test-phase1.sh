@@ -130,7 +130,7 @@ run_test "MCP introspection via debug-load-file" \
 # Test 14: Check namespace functionality
 run_test "Current namespace check" \
     'uv run python scripts/stdio_mcp_client.py --server-cmd "bb -cp src src/nrepl_mcp_server/core.clj" --tool debug-eval --args "{\"code\": \"(str *ns*)\"}" --quiet' \
-    'mcp-server.core'
+    'nrepl-mcp_server.core'
 
 # Test 15: Create and use simple tool registry
 run_test "Simple tool registry creation" \

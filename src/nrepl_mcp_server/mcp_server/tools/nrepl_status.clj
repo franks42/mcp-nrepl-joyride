@@ -1,6 +1,6 @@
-(ns nrepl-mcp-server.mcp.tools.nrepl-status
+(ns nrepl-mcp_server.mcp_server.tools.nrepl-status
   "nREPL status tool for MCP"
-  (:require [nrepl-mcp-server.state :as state]
+  (:require [nrepl-mcp_server.state.connection :as state]
             [cheshire.core :as json]))
 
 (defn handle

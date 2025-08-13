@@ -113,7 +113,7 @@ echo -e "${YELLOW}=== Architecture Verification Tests ===${NC}"
 
 run_test "State namespace accessible via debug-eval" \
     "debug-eval" \
-    '{"code": "(keys @nrepl-mcp-server.state/connection-state)"}' \
+    '{"code": "(do (require '\''nrepl-mcp_server.state.connection) (keys @nrepl-mcp_server.state.connection/connection-state))"}' \
     'status.*hostname.*port'
 
 run_test "Connection namespace functions exist" \
@@ -123,12 +123,12 @@ run_test "Connection namespace functions exist" \
 
 run_test "State watchers are installed" \
     "debug-eval" \
-    '{"code": "(contains? (set (keys (.getWatches nrepl-mcp-server.state/connection-state))) :connection-handler)"}' \
+    '{"code": "(contains? (set (keys (.getWatches nrepl-mcp-server.state.connection/connection-state))) :connection-handler)"}' \
     'true'
 
 run_test "Tools registry includes nrepl-connect" \
     "debug-eval" \
-    '{"code": "(contains? nrepl-mcp-server.mcp.dispatch/tool-registry \"nrepl-connect\")"}' \
+    '{"code": "(contains? nrepl-mcp-server.mcp-server.dispatch/tool-registry \"nrepl-connect\")"}' \
     'true'
 
 echo ""

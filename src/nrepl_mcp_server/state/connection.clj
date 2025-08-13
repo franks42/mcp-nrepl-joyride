@@ -1,8 +1,8 @@
-(ns nrepl-mcp-server.state
-  "Central state management for nREPL connections and message queues")
+(ns nrepl-mcp_server.state.connection
+  "Connection state management for nREPL client connections")
 
 ;; =============================================================================
-;; Connection State Management
+;; Connection State Atom
 ;; =============================================================================
 
 (def connection-state
@@ -30,7 +30,7 @@
          :error nil}))
 
 ;; =============================================================================
-;; State Helper Functions
+;; State Query Functions
 ;; =============================================================================
 
 (defn get-connection-status
@@ -47,6 +47,10 @@
   "Check if connection attempt is allowed"
   []
   (#{:disconnected :failed} (get-connection-status)))
+
+;; =============================================================================
+;; State Update Functions
+;; =============================================================================
 
 (defn update-connection-state!
   "Update connection state with new values"
@@ -104,7 +108,7 @@
     :error nil}))
 
 ;; =============================================================================
-;; Connection Watchers
+;; Watcher Management
 ;; =============================================================================
 
 (defn add-connection-watcher
@@ -121,18 +125,8 @@
 ;; Debug Support
 ;; =============================================================================
 
-(defn get-state-summary
-  "Get a summary of current state for debugging"
+(defn get-connection-summary
+  "Get a summary of current connection state for debugging"
   []
-  {:connection @connection-state
+  {:state @connection-state
    :watchers (keys (.getWatches connection-state))})
-
-;; =============================================================================
-;; Message Queue State (Placeholder for Phase 2b)
-;; =============================================================================
-
-(def message-queues
-  "Message queue state for async operations.
-   Will be implemented in Phase 2b."
-  (atom {:send-queue []
-         :result-queues {}}))

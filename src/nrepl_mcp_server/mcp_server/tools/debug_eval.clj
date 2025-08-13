@@ -1,4 +1,4 @@
-(ns nrepl-mcp-server.mcp.tools.debug-eval
+(ns nrepl-mcp_server.mcp_server.tools.debug-eval
   "Debug eval tool for MCP server introspection"
   (:require [cheshire.core :as json]))
 

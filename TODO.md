@@ -98,7 +98,26 @@ nrepl-mcp-server/
 - [x] Code formatted with cljfmt
 - [x] Zero linting issues with clj-kondo
 
-#### **2b: Message Queue Infrastructure** (After refactoring)
+#### **2a.6: Namespace Refinement** 🔧 **IN PROGRESS**
+
+**Goal**: Further refine namespace structure for clarity and maintainability
+
+**Changes**:
+1. **Rename `mcp` → `mcp-server`** for clearer purpose
+2. **Split monolithic `state.clj`** into focused state domains:
+   - `state/connection.clj` - Connection state management
+   - `state/messages.clj` - Message queue state  
+   - `state/results.clj` - Result queue state
+
+**Migration steps**:
+- [ ] Create `state/` directory structure
+- [ ] Move and rename `mcp/*` → `mcp-server/*`
+- [ ] Split `state.clj` into three domain-specific files
+- [ ] Update all require statements
+- [ ] Update test scripts
+- [ ] Run full test suite
+
+#### **2b: Message Queue Infrastructure** (After namespace refinement)
 - [ ] **Implement send-message-async tool** 
   - Hand-off message to queue → get message-id
   - UUID v7 generation in utils namespace

@@ -1,4 +1,4 @@
-(ns nrepl-mcp-server.mcp.tools.debug-load-file
+(ns nrepl-mcp_server.mcp_server.tools.debug-load-file
   "Debug load-file tool for loading Clojure files in MCP server runtime"
   (:require [cheshire.core :as json])
   (:import [java.io StringWriter PrintWriter]))

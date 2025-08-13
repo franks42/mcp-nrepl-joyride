@@ -1,7 +1,7 @@
-(ns nrepl-mcp-server.mcp.tools.nrepl-disconnect
+(ns nrepl-mcp_server.mcp_server.tools.nrepl-disconnect
   "nREPL disconnect tool for MCP"
-  (:require [nrepl-mcp-server.state :as state]
-            [nrepl-mcp-server.nrepl-client.connection :as conn]
+  (:require [nrepl-mcp_server.state.connection :as state]
+            [nrepl-mcp_server.nrepl_client.connection :as conn]
             [cheshire.core :as json]))
 
 (defn handle

@@ -11,9 +11,13 @@ The implementation follows a clear namespace hierarchy that separates concerns:
 ```
 nrepl-mcp-server/              ; Top-level project namespace
   core.clj                     ; Main entry point, minimal bootstrap
-  state.clj                    ; Centralized state atoms and queues
   
-  mcp/                         ; MCP protocol implementation
+  state/                       ; State management by domain
+    connection.clj             ; Connection state atom and helpers
+    messages.clj               ; Message queue state management
+    results.clj                ; Result queue state management
+  
+  mcp-server/                  ; MCP server implementation
     server.clj                 ; stdio server, JSON-RPC handling
     dispatch.clj               ; Tool routing and dispatch table
     tools/                     ; One file per MCP tool function
@@ -22,11 +26,11 @@ nrepl-mcp-server/              ; Top-level project namespace
       nrepl_connect.clj        ; nREPL connect operation
       nrepl_disconnect.clj     ; nREPL disconnect operation
       nrepl_status.clj         ; nREPL status operation
-      send_message_async.clj   ; Async message sending
-      get_result_async.clj     ; Async result retrieval
-      send_message_sync.clj    ; Sync wrapper combining send+get
+      send_message_async.clj   ; Async message sending (Phase 2b)
+      get_result_async.clj     ; Async result retrieval (Phase 2b)
+      send_message_sync.clj    ; Sync wrapper combining send+get (Phase 2b)
   
-  nrepl_client/                ; nREPL client implementation
+  nrepl-client/                ; nREPL client implementation
     connection.clj             ; TCP connection management
     protocol.clj               ; bencode encoding/decoding, message framing
     handlers.clj               ; State watchers and queue processors
@@ -39,10 +43,11 @@ nrepl-mcp-server/              ; Top-level project namespace
 ### Design Principles
 
 1. **One file per MCP tool** - Each tool function gets its own file for clarity
-2. **Clear separation of concerns** - MCP protocol vs nREPL client vs state management
-3. **Reactive architecture** - State atoms are separate from handlers that react to them
-4. **Client perspective** - `nrepl_client` (not `nrepl_server`) since we're the client to nREPL servers
-5. **Centralized state** - All state atoms live in the top-level `state.clj` for easy introspection
+2. **Clear separation of concerns** - MCP server vs nREPL client vs state management
+3. **Domain-focused state** - State split by concern (connection, messages, results)
+4. **Reactive architecture** - State atoms are separate from handlers that react to them
+5. **Client perspective** - `nrepl-client` (not `nrepl-server`) since we're the client to nREPL servers
+6. **Parallel naming** - `mcp-server/*` and `nrepl-client/*` for clear architectural boundaries
 
 ## 1. Architecture Overview
 

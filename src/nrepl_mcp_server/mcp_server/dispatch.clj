@@ -1,11 +1,11 @@
-(ns nrepl-mcp-server.mcp.dispatch
+(ns nrepl-mcp_server.mcp_server.dispatch
   "MCP tool routing and dispatch table"
   (:require [cheshire.core :as json]
-            [nrepl-mcp-server.mcp.tools.debug-eval :as debug-eval]
-            [nrepl-mcp-server.mcp.tools.debug-load-file :as debug-load-file]
-            [nrepl-mcp-server.mcp.tools.nrepl-connect :as nrepl-connect]
-            [nrepl-mcp-server.mcp.tools.nrepl-disconnect :as nrepl-disconnect]
-            [nrepl-mcp-server.mcp.tools.nrepl-status :as nrepl-status]))
+            [nrepl-mcp_server.mcp_server.tools.debug-eval :as debug-eval]
+            [nrepl-mcp_server.mcp_server.tools.debug-load-file :as debug-load-file]
+            [nrepl-mcp_server.mcp_server.tools.nrepl-connect :as nrepl-connect]
+            [nrepl-mcp_server.mcp_server.tools.nrepl-disconnect :as nrepl-disconnect]
+            [nrepl-mcp_server.mcp_server.tools.nrepl-status :as nrepl-status]))
 
 ;; =============================================================================
 ;; Tool Registry

@@ -1,8 +1,8 @@
-(ns nrepl-mcp-server.mcp.tools.nrepl-connect
+(ns nrepl-mcp_server.mcp_server.tools.nrepl-connect
   "nREPL connect tool for MCP"
-  (:require [nrepl-mcp-server.state :as state]
-            [nrepl-mcp-server.nrepl-client.connection :as conn]
-            [nrepl-mcp-server.nrepl-client.handlers] ;; Load handlers to install watchers
+  (:require [nrepl-mcp_server.state.connection :as state]
+            [nrepl-mcp_server.nrepl_client.connection :as conn]
+            [nrepl-mcp_server.nrepl_client.handlers] ;; Load handlers to install watchers
             [cheshire.core :as json]))
 
 (defn handle
