@@ -1,4 +1,4 @@
-(ns mcp-server.state
+(ns nrepl-mcp-server.state
   "Central state management for nREPL connections and message queues")
 
 ;; =============================================================================

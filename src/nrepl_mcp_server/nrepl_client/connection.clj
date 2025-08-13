@@ -1,6 +1,6 @@
-(ns mcp-server.connection
-  "nREPL connection management and handlers"
-  (:require [mcp-server.state :as state]
+(ns nrepl-mcp-server.nrepl-client.connection
+  "nREPL client TCP connection management"
+  (:require [nrepl-mcp-server.state :as state]
             [clojure.string :as str]
             [clojure.java.io :as io])
   (:import [java.net Socket InetSocketAddress]))
@@ -94,30 +94,6 @@
         (catch Exception _)))
     (state/mark-disconnected!)
     {:status :success}))
-
-;; =============================================================================
-;; Connection Handler (Watcher)
-;; =============================================================================
-
-(defn connection-handler
-  "Watcher function for connection state changes"
-  [_key _ref old-state new-state]
-  (let [old-status (:status old-state)
-        new-status (:status new-state)]
-    (when (not= old-status new-status)
-      (case new-status
-        :pending-connect
-        (future
-          (attempt-connection! (select-keys new-state [:hostname :port])))
-
-        :pending-disconnect
-        (future
-          (close-connection!))
-
-        nil))))
-
-;; Install the connection handler watcher
-(state/add-connection-watcher :connection-handler connection-handler)
 
 ;; =============================================================================
 ;; Utility Functions

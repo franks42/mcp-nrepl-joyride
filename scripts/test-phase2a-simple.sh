@@ -35,7 +35,7 @@ run_test() {
     echo -e "${BLUE}Test $TESTS_RUN: $test_name${NC}"
     
     result=$(uv run python "$SCRIPT_DIR/stdio_mcp_client.py" \
-        --server-cmd "bb -cp src src/mcp_server/core.clj" \
+        --server-cmd "bb -cp src src/nrepl_mcp_server/core.clj" \
         --tool "$tool" \
         --args "$args" \
         --quiet 2>&1)
@@ -113,22 +113,22 @@ echo -e "${YELLOW}=== Architecture Verification Tests ===${NC}"
 
 run_test "State namespace accessible via debug-eval" \
     "debug-eval" \
-    '{"code": "(keys @mcp-server.state/connection-state)"}' \
+    '{"code": "(keys @nrepl-mcp-server.state/connection-state)"}' \
     'status.*hostname.*port'
 
 run_test "Connection namespace functions exist" \
     "debug-eval" \
-    '{"code": "(fn? mcp-server.connection/resolve-connection-params)"}' \
+    '{"code": "(fn? nrepl-mcp-server.nrepl-client.connection/resolve-connection-params)"}' \
     'true'
 
 run_test "State watchers are installed" \
     "debug-eval" \
-    '{"code": "(contains? (set (keys (.getWatches mcp-server.state/connection-state))) :connection-handler)"}' \
+    '{"code": "(contains? (set (keys (.getWatches nrepl-mcp-server.state/connection-state))) :connection-handler)"}' \
     'true'
 
-run_test "Tools dispatch table includes nrepl-server" \
+run_test "Tools registry includes nrepl-connect" \
     "debug-eval" \
-    '{"code": "(contains? mcp-server.mcp/mcp-tool-dispatch \"nrepl-server\")"}' \
+    '{"code": "(contains? nrepl-mcp-server.mcp.dispatch/tool-registry \"nrepl-connect\")"}' \
     'true'
 
 echo ""
