@@ -1,322 +1,107 @@
-# MCP-nREPL Project TODO List
+# MCP-nREPL Project TODO List - CLEAN SLATE REFACTORING
 
-Last updated: 2025-08-10
-**Status**: Phase 1 ready to implement - tree-sitter enhanced Clojure support validated
+Last updated: 2025-08-13
+**Status**: 🚀 **CLEAN SLATE REFACTORING** - Building proper 3-layer architecture from scratch
 
-## ✅ CRITICAL MILESTONE ACHIEVED - Async Architecture WORKING
+## 🎯 **PROJECT MISSION: CLEAN ARCHITECTURE REBUILD**
 
-### Phase 1: Transport Layer Foundation ✅ **COMPLETED** 
-**Context**: `collect-responses` infinite loop bottleneck resolved
-**Strategy**: Small steps with comprehensive testing
-**CONFIRMED**: Full async support verified in Babashka runtime (promises, futures, Java concurrency)
+**Goal**: Implement the proper 3-layer sync-async queuing architecture without the circular dependencies and architectural mess discovered in the legacy codebase.
 
-- [x] **Step 1: Add timeout parameter to collect-responses function (minimal change)** ✅
-  - [x] Test Step 1: Verify timeout parameter works with simple timeout test ✅
-- [x] **Step 2: Create collect-responses-async using promise-based timeout** ✅
-  - [x] Test Step 2: Unit test promise timeout behavior with `(deref promise timeout-ms :timeout)` ✅
-- [x] **Step 3: Create send-message-async calling collect-responses-async** ✅
-  - [x] Test Step 3: Integration test with multiple nREPL servers (real nREPL server tested) ✅
-- [x] **Step 4: Add connection state management (basic atom)** ✅
-  - [x] Test Step 4: Verify state tracking works correctly ✅
-  - [x] **Enhancement: RFC 9562 UUID v7 with NO fallback guarantee** ✅
-    - [x] Format: `<uuid-v7>-<operation>` enables perfect temporal sorting ✅
-    - [x] Example: `0198974c-d9d6-7000-8001-00006c73abd1-eval` ✅
-    - [x] 26-bit sequence counter = 67 million unique IDs per millisecond ✅
-    - [x] NO random fallback - waits for next millisecond on overflow ✅
-    - [x] Thread-safe compare-and-swap (CAS) atomic operations ✅
-    - [x] Separate uuid_v7.clj module for reusability ✅
+**Strategy**: 
+- ✅ Archive legacy code to `/old/` for reference
+- 🏗️ Build incrementally with proper testing at each phase  
+- 📝 **Update architecture doc as we implement** - living documentation
+- 🧪 Test-driven development with comprehensive coverage
 
-**Implementation Method**: Use Babashka's verified async capabilities: `(deref promise timeout-ms :timeout)` 
-**Preserve**: Keep existing `send-message` function for backward compatibility
-**Quality Gates**: `./format.sh && ./clojure-quality.sh` after each step
-**Testing Strategy**: Multi-environment testing:
-- **bb-nrepl-server** (SCI): `BABASHKA_CLASSPATH=src bb src/mcp_nrepl_proxy/core.clj` - Limited sync-only 
-- **Full Clojure nREPL** (Managed): `./nrepl-test start` - Complete async capabilities with PID tracking
-- **Production nREPL servers**: Real-world Clojure/JVM environments (Calva, CIDER, etc.)
-**Commit**: `feat: implement send-message-async with timeout handling`
-**Tag**: `v0.x.0-async-transport`
+## 🚀 **CLEAN SLATE REFACTORING PHASES**
 
-### Phase 2: Internal Layer Implementation ✅ **COMPLETED**
-- [x] **Create nrepl-raw-async-int as pure nREPL interface** ✅ **VERIFIED WORKING**
-  - [x] ✅ **COMPLETED**: UUID v7 import and generate-id function updated
-  - [x] ✅ **COMPLETED**: Message queue atoms added (pending-messages, message-records, failure-records)
-  - [x] ✅ **COMPLETED**: track-pending-message function with atomic queue management
-  - [x] ✅ **VALIDATED**: All changes follow Clojure Quality Protocol (format.sh + clj-kondo)
-  - [x] ✅ **VERIFIED**: 100% test success rate maintained (7/7 tests passing)
-  - [x] ✅ **COMPLETED**: Complete queue lifecycle management implementation
-    - [x] ✅ **COMPLETED**: update-message-status function for state transitions
-    - [x] ✅ **COMPLETED**: mark-connection-messages-failed function for connection cleanup
-    - [x] ✅ **COMPLETED**: close-connection updated to mark pending messages as failed
-    - [x] ✅ **COMPLETED**: send-message-async with full queue lifecycle tracking
-    - [x] ✅ **IMPLEMENTED**: Message states: `:pending`, `:sending`, `:sent`, `:completed`, `:failed`, `:expired`
-    - [x] ✅ **IMPLEMENTED**: Error types: `:connection-closed`, `:connection-lost`, `:connection-reset`, `:timeout`, `:communication-error`
-    - [x] ✅ **IMPLEMENTED**: Failure records with temporal ordering and detailed error context
-    - [x] ✅ **IMPLEMENTED**: Atomic state management with proper message lifecycle tracking
-  - [x] ✅ **COMPLETED**: Write integration tests with real nREPL server for connection lifecycle scenarios
-    - [x] ✅ **COMPLETED**: Comprehensive integration test framework (`test-connection-lifecycle-simple.clj`)
-    - [x] ✅ **COMPLETED**: Timeout handling tests (PASSED - verifies message expiration)
-    - [x] ✅ **COMPLETED**: Error recovery tests (PASSED - verifies graceful error handling)
-    - [x] ✅ **COMPLETED**: Connection closure tests (validated - pending message marking)
-    - [x] ✅ **VALIDATED**: Queue lifecycle management with real nREPL servers
-    - [x] ✅ **PROVEN**: Critical timeout and error handling functionality working correctly
-  - **Commit**: `feat: implement comprehensive connection lifecycle integration tests`
-  - **Tag**: `v0.x.0-async-internal-complete`
+### **Phase 1: Archive Legacy & Minimal Foundation** ✅ **COMPLETED**
 
-### Phase 3: MCP Layer Implementation ✅ **COMPLETED**
-- [x] **Create nrepl-send-message-async MCP function with full protocol compliance** ✅ **IMPLEMENTED**
-  - [x] ✅ **COMPLETED**: Implement `nrepl-send-message-async` MCP function with validation
-  - [x] ✅ **COMPLETED**: Add optional timeout_ms parameter (default 30000ms) for AI control
-  - [x] ✅ **COMPLETED**: Add MCP-compliant error formatting with JSON responses
-  - [x] ✅ **COMPLETED**: Comprehensive parameter validation in inputSchema
-  - [x] ✅ **COMPLETED**: Implement companion `nrepl-get-result-async` MCP function
-  - [x] ✅ **VERIFIED**: MCP protocol compliance with proper tool registration and routing
-  - [x] ✅ **VERIFIED**: Timeout parameter flow through all async layers (30s default)
-  - [x] ✅ **VERIFIED**: Error formatting with proper JSON structure and isError flags
-  - [x] ✅ **ARCHITECTURE**: Single-session state management (correct for persistent MCP connections)
-  - **NOTE**: The async functions require a persistent MCP session to maintain message state between 
-    `nrepl-send-message-async` (returns message-id) and `nrepl-get-result-async` (retrieves by message-id).
-    This works correctly with Claude Desktop and other MCP clients that maintain persistent connections.
-    Each stdio invocation creates a new server instance, so testing requires either HTTP mode or 
-    a persistent MCP client.
-  - **Commit**: `feat: implement nrepl-send-message-async MCP function`
-  - **Tag**: `v0.x.0-async-mcp`
+- [x] **Move /src to /old/src** (readonly archive for copy/paste reference)
+- [x] **Move test scripts to /old tree** (preserve for reference)
+- [x] **Create new minimal project structure**
+- [x] **Implement absolute minimum MCP server** (debug-eval + debug-load-file only)
+- [x] **Create test wrapper scripts** (avoid permission prompts) - `./scripts/test-quick.sh` and `./scripts/test-comprehensive.sh`
+- [x] **Write comprehensive test coverage** for minimal server - **Phase-specific test suites created**:
+- [x] **Implement stdout/stderr capture** - Protocol-complete implementation using `with-out-str` approach
+- [x] **Document MCP protocol findings** - stderr does NOT interfere with MCP stdio communication
+- [x] **Clean up code quality** - All clj-kondo warnings resolved, tree-sitter validated
+  - `./scripts/test-phase1.sh` - **19 comprehensive tests** including **MCP introspection via debug-eval**:
+    - Basic MCP protocol (2 tests)
+    - debug-eval functionality (7 tests) 
+    - debug-load-file functionality (3 tests)
+    - **MCP introspection** (5 tests) - namespace inspection, tool metadata simulation, server state
+    - Advanced integration (2 tests)
+  - `./scripts/test-phase2.sh` - Future core MCP functions (nrepl-connect, send-message, get-result)
+  - `./scripts/test-phase3.sh` - Future real nREPL communication tests
+  - `./scripts/test-master.sh` - **Master orchestrator** with individual phase control
 
-### 🚀 **BREAKTHROUGH: stdio MCP Test Client** ✅ **COMPLETED** 
-- [x] **Revolutionary stdio testing tool created** ✅ **GAME-CHANGER**
-  - [x] ✅ **COMPLETED**: Server-agnostic stdio MCP client (`stdio_mcp_client.py`)
-  - [x] ✅ **COMPLETED**: Production-realistic stdio interface testing (same as Claude Desktop)
-  - [x] ✅ **COMPLETED**: Multi-layer timeout protection (client + server + nREPL)
-  - [x] ✅ **COMPLETED**: Quality standards (black/flake8/type hints/uv managed/tree-sitter validated)
-  - [x] ✅ **COMPLETED**: Robust process management (graceful shutdown, signal handling, cleanup)
-  - [x] ✅ **COMPLETED**: Rich CLI (--help, --test-basic, --test-nrepl, --pretty output)
-  - [x] ✅ **VALIDATED**: Works with ANY stdio MCP server (not just nREPL)
-  - [x] ✅ **BREAKTHROUGH**: Solves stdio vs HTTP testing gap that plagued MCP development
-  - **IMPACT**: Tests REAL interface users experience, could benefit entire MCP community
-  - **Commit**: `feat: add revolutionary stdio MCP test client`
-  - **Tag**: `v0.8.0-stdio-breakthrough`
+### **Phase 2: Three Core MCP Functions**
 
-### Phase 4: Migration and Testing
-- [ ] **Demonstrate backward compatibility and performance**
-  - [ ] Create side-by-side comparison tests
-  - [ ] Run performance benchmarks  
-  - [ ] Document migration strategy and rollback procedures
-  - [ ] Test: existing functions work, equivalent functionality, performance <10% overhead
-  - **Commit**: `feat: complete async architecture with migration path`
-  - **Tag**: `v0.x.0-async-complete`
+- [ ] **Implement nrepl-connect** 
+  - Connection storage strategy (discuss approach)
+  - Connection detection and health monitoring
+  - Cleanup operations (disconnect/reconnect)
+  - Queue reset procedures
+- [ ] **Implement send-message** 
+  - Hand-off message to queue → get message-id
+  - UUID v7 generation + utils namespace
+  - Fail if no connection (discuss behavior)
+  - **Isolated from actual nREPL communication**
+- [ ] **Implement get-result**
+  - Create result queue with promise waiting
+  - Wait on promise for message-id results
+  - **Test without nREPL** - use debug-eval to put items on queue
 
-## 🏗️ HIGH PRIORITY: Namespace Refactoring for Modular Architecture
+### **Phase 3: Real nREPL Communication Layer**
 
-**GOAL**: Continue refactoring large core.clj (1,206 LOC) and nrepl_client.clj (712 LOC) into focused, modular namespaces.
+- [ ] **4a: Connection Management**
+  - Connect/disconnect/reconnect operations
+  - Connection state tracking and health monitoring
+- [ ] **4b: Send Queue Processing** 
+  - Pick up messages from send-queue
+  - Send to nREPL server
+  - Update result queue with status
+  - **Monitor with debug-eval functions**
+- [ ] **4c: Receive Handling**
+  - Receive replies from nREPL server
+  - Dispatch on errors and failures  
+  - Wrap results in promises → result map-queue
+  - Handle all possible nREPL reply types
+  - Special handlers for complex responses
 
-**PROGRESS**: Completed Phase 1-4 extractions (config, utils, server, protocol + 5 MCP tool namespaces created) ✅
-**REMAINING**: Extract 4 additional namespaces from core.clj and 3 from nrepl_client.clj
+## 🏗️ **ARCHITECTURE EVOLUTION DOCUMENTATION**
 
-### 📋 Phase 4: Extract MCP Tool Implementations from core.clj
+**CRITICAL**: Update `docs/sync-async-queuing-architecture.md` as we implement to reflect:
+- **Actual design decisions** and rationale
+- **Real layer boundaries** and namespace organization
+- **Implementation patterns** that emerge
+- **Trade-offs** and alternatives considered
+- **Testing strategies** that prove effective
 
-**Target**: Move all `tool-nrepl-*` functions (~450 LOC) to specialized namespaces
+## 🧪 **BEST PRACTICES FROM LEGACY PROJECT**
 
-- [x] **Create mcp-nrepl-proxy.tools.evaluation namespace** ✅ **COMPLETED**
-  - [x] Extract: `tool-nrepl-eval`, `tool-nrepl-load-file`, `tool-nrepl-require` ✅
-  - [x] Functions: `eval-in-joyride` helper ✅
-  - [x] Dependencies: nrepl_client functions ✅
-  - [x] Size estimate: ~120 LOC (actual: 167 LOC) ✅
-  - [x] **Testing**: 11/11 tests passed (100% success rate) ✅
-  - [x] **Commit**: `v0.8.1-modular-evaluation` ✅
+### 🚦 **Development Workflow Protocol**
 
-- [x] **Create mcp-nrepl-proxy.tools.introspection namespace** ✅ **COMPLETED**
-  - [x] Extract: `tool-nrepl-doc`, `tool-nrepl-source`, `tool-nrepl-apropos`, `tool-nrepl-complete` ✅
-  - [x] Functions: Documentation and code exploration tools ✅
-  - [x] Dependencies: nrepl_client functions ✅
-  - [x] Size estimate: ~100 LOC (actual: 115 LOC) ✅
-  - [x] **Testing**: 11/11 tests passed (100% success rate) ✅
-  - [x] **Commit**: `v0.8.2-modular-introspection` ✅
+**For EVERY implementation phase, follow this exact sequence:**
 
-- [x] **Create mcp-nrepl-proxy.tools.session namespace** ✅ **COMPLETED**
-  - [x] Extract: `tool-nrepl-connect`, `tool-nrepl-new-session`, `tool-nrepl-status` ✅
-  - [x] Functions: Session and connection management tools ✅
-  - [x] Dependencies: nrepl_client functions ✅
-  - [x] Size estimate: ~80 LOC (actual: 69 LOC) ✅
-  - [x] **Testing**: 11/11 tests passed (100% success rate) ✅
-  - [x] **Commit**: `v0.8.3-modular-session` ✅
+1. **Design & Plan** - Update architecture doc with approach
+2. **Implement** - Write minimal working code
+3. **Format code** - `./format.sh` 
+4. **Lint code** - `./clojure-quality.sh` (includes format + lint)
+5. **Tree-sitter validation** - Analyze code structure
+6. **Comprehensive testing** - Complete test cycle (see below)
+7. **Update documentation** - Reflect actual implementation
+8. **Commit & Push** - `git add . && git commit && git push`
+9. **Tag milestone** - `git tag v0.x.0-<phase> && git push --tags`
 
-- [x] **Create mcp-nrepl-proxy.tools.control namespace** ✅ **COMPLETED**
-  - [x] Extract: `tool-nrepl-interrupt`, `tool-nrepl-stacktrace` ✅
-  - [x] Functions: Runtime control and debugging tools ✅
-  - [x] Dependencies: nrepl_client functions ✅
-  - [x] Size estimate: ~60 LOC (actual: 46 LOC) ✅
-  - [x] **Testing**: 11/11 tests passed (100% success rate) ✅
-  - [x] **Commit**: `v0.8.4-modular-control` ✅
-
-- [x] **Create mcp-nrepl-proxy.tools.async namespace** ✅ **COMPLETED**
-  - [x] Extract: `tool-nrepl-send-message-async`, `tool-nrepl-get-result-async` ✅
-  - [x] Functions: Async messaging interface for MCP ✅
-  - [x] Dependencies: nrepl_client async functions ✅
-  - [x] Size estimate: ~90 LOC (actual: 75 LOC) ✅
-  - [x] **Testing**: 11/11 tests passed (100% success rate) ✅
-  - [x] **Commit**: `v0.8.5-modular-async` ✅
-
-### 📋 Phase 5: Extract Additional Core Functions (REVISED)
-
-**Current core.clj**: 751 LOC (15 functions) - Still too large!
-**Target**: Reduce to ~200 LOC (3-4 functions) via 4 additional namespace extractions
-
-- [x] **Create mcp-nrepl-proxy.connection namespace** - **PRIORITY 1** ✅ **COMPLETED**
-  - [x] Extract: `discover-nrepl-port`, `connect-to-nrepl`, `ensure-nrepl-connection`, `get-joyride-connection` ✅
-  - [x] Functions: Connection management and discovery ✅
-  - [x] Size estimate: ~120 LOC (actual: 42 LOC + adapter functions) ✅
-  - [x] **Testing**: 11/11 tests passed (100% success rate) ✅
-  - [x] **Commit**: `v0.9.0-modular-connection` ✅
-  - [x] **Result**: core.clj reduced from 751 → 709 LOC ✅
-
-- [x] **Create mcp-nrepl-proxy.monitoring namespace** - **PRIORITY 2** ✅ **COMPLETED** 
-  - [x] Extract: `heartbeat-test`, `start-heartbeat-monitor`, `run-health-test` ✅ (basic structure)
-  - [x] Extract: `run-comprehensive-health-check`, `format-health-check-report`, `tool-nrepl-health-check` ✅ (basic structure)
-  - [x] Functions: Health monitoring and diagnostic functions ✅
-  - [x] Size estimate: ~150 LOC (actual: 50 LOC with placeholders) ✅
-  - [x] **Testing**: 7/7 tests passed (100% success rate) ✅
-  - [x] **Commit**: Basic structure created ✅
-  - [ ] **TODO**: Replace placeholder functions with full implementations from core.clj
-
-- [x] **Create mcp-nrepl-proxy.context namespace** - **PRIORITY 3** ✅ **COMPLETED**
-  - [x] Extract: `tool-get-mcp-nrepl-context` ✅
-  - [x] Functions: Context and metadata retrieval ✅
-  - [x] Size estimate: ~80 LOC (actual: 33 LOC) ✅
-  - [x] **Testing**: 7/7 tests passed (100% success rate) ✅
-  - [x] **Commit**: `v0.9.2-modular-context` ✅
-  - [x] **Result**: core.clj reduced from 709 → 683 LOC ✅
-
-- [x] **Create mcp-nrepl-proxy.devtools namespace** - **PRIORITY 4** ✅ **COMPLETED**
-  - [x] Extract: `tool-nrepl-test`, `tool-babashka-nrepl`, `run-health-test` ✅
-  - [x] Functions: Development and debugging utilities ✅
-  - [x] Size estimate: ~100 LOC (actual: 259 LOC) ✅
-  - [x] **Testing**: 7/7 tests passed (100% success rate) ✅
-  - [x] **Commit**: `v0.9.3-modular-devtools-PHASE5-COMPLETE` ✅
-  - [x] **Result**: core.clj reduced from 683 → 427 LOC ✅
-
-**🎯 PHASE 5 COMPLETE - ACHIEVED RESULTS:**
-- **core.clj: 427 LOC** (64.6% reduction from 1,206 LOC original) ✅
-- **Extracted 9 focused namespaces** ✅
-  - **Phase 4 tools**: evaluation (167 LOC), introspection (115 LOC), session (69 LOC), control (46 LOC), async (75 LOC)
-  - **Phase 5 core**: connection (52 LOC), monitoring (50 LOC), context (33 LOC), devtools (259 LOC)
-- **Minimal orchestration**: `call-tool`, `-main`, state atoms, heartbeat monitoring, imports only ✅
-- **100% test success rate maintained** throughout all extractions ✅
-- **Total extracted: ~779 LOC** into focused, modular namespaces ✅
-
-### 📋 Phase 6: Extract Connection Management from nrepl_client.clj
-
-**Target**: Move connection lifecycle functions (~150 LOC)
-
-- [ ] **Create mcp-nrepl-proxy.connection namespace**
-  - [ ] Extract: `connect`, `close-connection`, `get-connection-state`, `list-connections`
-  - [ ] Functions: `active-connections`, `cleanup-closed-connections`
-  - [ ] Connection ID generation: `generate-connection-id`
-  - [ ] Size estimate: ~120 LOC
-
-- [x] **Create mcp-nrepl-proxy.state namespace** ✅ **COMPLETED**
-  - [x] Extract: Message tracking functions from nrepl_client.clj ✅
-  - [x] Functions: `track-pending-message`, `update-message-status`, `mark-connection-messages-failed` ✅
-  - [x] Functions: `get-message-status`, `queue-message-async`, `fetch-result` ✅
-  - [x] State management atoms and operations ✅
-  - [x] Size estimate: ~80 LOC (actual: 237 LOC) ✅
-  - [x] **Testing**: 11/11 tests passed (100% success rate) ✅
-  - [x] **Commit**: `v0.10.1-phase6-state` ✅
-
-### 📋 Phase 6: Extract Connection Management from nrepl_client.clj - ✅ **MESSAGING COMPLETED**
-
-- [x] **Create mcp-nrepl-proxy.messaging namespace** ✅ **COMPLETED**
-  - [x] Extract: `send-message`, `send-message-async`, `collect-responses`, `collect-responses-async` ✅
-  - [x] Functions: `merge-responses`, `convert-bencode-response`, `bytes-to-string` ✅
-  - [x] Functions: `generate-id` ✅
-  - [x] Core nREPL protocol message handling ✅
-  - [x] Size estimate: ~180 LOC (actual: 298 LOC) ✅
-  - [x] **Testing**: 11/11 tests passed (100% success rate) ✅
-  - [x] **Commit**: `v0.10.2-phase6-messaging` ✅
-
-- [x] **Create mcp-nrepl-proxy.operations namespace** ✅ **COMPLETED**
-  - [x] Extract: All nREPL operation functions from nrepl_client.clj ✅
-  - [x] Functions: `eval-code`, `doc`, `source`, `complete`, `apropos`, `load-file`, etc. ✅
-  - [x] Functions: `create-session`, `close-session`, `describe-server`, `require-ns`, etc. ✅
-  - [x] Functions: `interrupt`, `stacktrace` ✅
-  - [x] Pure nREPL operation implementations with dependency injection ✅
-  - [x] Size estimate: ~150 LOC (actual: 108 LOC) ✅
-  - [x] **Testing**: 11/11 tests passed (100% success rate) ✅
-  - [x] **Commit**: `v0.10.3-phase6-operations` ✅
-
-### 🎯 **PHASE 6 COMPLETE** - Connection Management from nrepl_client.clj ✅
-
-**🎉 ACHIEVED RESULTS:**
-- **nrepl_client.clj: ~200 LOC** (significant reduction from 444 LOC)
-- **Extracted 4 focused namespaces** from nrepl_client.clj:
-  - **nrepl-connection** (92 LOC) - Low-level connection lifecycle
-  - **state** (237 LOC) - Message queue lifecycle and state management  
-  - **messaging** (298 LOC) - nREPL protocol message handling
-  - **operations** (108 LOC) - Pure nREPL operation implementations
-- **735 LOC extracted** into modular, focused namespaces
-- **Dependency injection pattern** throughout for clean separation
-- **100% test success rate** maintained through all extractions
-- **Enhanced architecture** with clear separation of concerns
-
-### 📋 Phase 7: Final Integration and Cleanup
-
-**Target**: Complete the modular architecture transformation
-
-### 📋 Phase 8: Update Imports and Integration Testing
-
-- [ ] **Update all namespace imports and requires**
-  - [ ] Update core.clj imports to use new namespaces
-  - [ ] Update nrepl_client.clj imports  
-  - [ ] Update protocol.clj, server.clj imports as needed
-  - [ ] Verify no circular dependencies
-
-- [ ] **Run comprehensive testing**
-  - [ ] Format and lint all namespaces: `./format.sh && ./clojure-quality.sh`
-  - [ ] Run full test suite: `uv run python test_nrepl_lifecycle.py`
-  - [ ] Verify 100% test success rate maintained
-  - [ ] Test all MCP tools functionality
-
-- [ ] **Final size validation**
-  - [ ] Target core.clj: <600 LOC (from 1,206 LOC = 50% reduction) 
-  - [ ] Target nrepl_client.clj: <400 LOC (from 712 LOC = 44% reduction)
-  - [ ] Verify modular architecture with focused responsibilities
-
-### 🎯 Expected Results
-
-**Before Refactoring:**
-- core.clj: 1,206 LOC (30 functions) - Monolithic MCP tool implementations
-- nrepl_client.clj: 712 LOC (33 functions) - Mixed responsibilities
-
-**After Refactoring (Target):**
-- **11 focused namespaces** with clear separation of concerns:
-  - tools.evaluation, tools.introspection, tools.session, tools.control, tools.async
-  - monitoring, context  
-  - connection, state, messaging, operations
-- **core.clj: <600 LOC** - Main orchestration only
-- **nrepl_client.clj: <400 LOC** - Core protocol handling only
-- **Enhanced maintainability** - Each namespace has single responsibility
-- **Improved testability** - Isolated functions easier to unit test
-- **Better code navigation** - Related functions grouped logically
-
-### 🚦 Step-by-Step Process for Each Namespace
-
-**For EVERY namespace extraction, follow this exact sequence:**
-
-1. **Extract namespace** - Move functions to new .clj file
-2. **Format code** - `./format.sh` 
-3. **Lint code** - `./clojure-quality.sh` (includes format + lint)
-4. **Tree-sitter validation** - Analyze extracted namespace structure
-5. **Fresh server testing** - Complete test cycle (see below)
-6. **Commit & Push** - `git add . && git commit -m "refactor: extract <namespace>" && git push`
-7. **Tag version** - `git tag v0.x.0-<namespace> && git push --tags`
-8. **Update TODO.md** - Mark namespace as completed ✅
-9. **Move to next namespace** - Only after all steps pass
-
-### 🧪 Complete Testing Process (Step 5)
+### 🧪 **Complete Testing Process**
 
 **CRITICAL**: Start from clean slate every time to avoid port conflicts and state issues
 
-**5.1 Stop All Servers:**
+**Stop All Servers:**
 ```bash
-# Stop test nREPL server
+# Stop test nREPL server  
 uv run python nrepl_test_server.py stop
 
 # Stop any MCP proxy processes
@@ -329,192 +114,176 @@ pkill -f "bb.*nrepl" || true
 ps aux | grep -E "(nrepl|bb.*src)"
 ```
 
-**5.2 Run Full Test Suite:**
-```bash
-# Run complete test suite (11 tests)
-uv run python test_nrepl_lifecycle.py
-
-# Alternative test modes:
-# uv run python test_nrepl_lifecycle.py --quick        # 7 tests, skip long-running
-# uv run python test_nrepl_lifecycle.py --server-only  # 5 tests, server lifecycle only
-```
-
-**5.3 Test Success Criteria:**
+**Test Success Criteria:**
 - ✅ **100% pass rate required** - All tests must pass
 - ✅ **Exit code 0** - No failures allowed
 - ✅ **No server startup errors** - Clean server lifecycle
-- ✅ **MCP integration working** - `nrepl-eval`, `nrepl-connect` tools functional
+- ✅ **MCP integration working** - All implemented tools functional
 
-**5.4 Test Failure Protocol:**
-- 🛑 **STOP extraction process** - Do not commit/push
+**Test Failure Protocol:**
+- 🛑 **STOP implementation process** - Do not commit/push
 - 🔍 **Analyze failure logs** - Check server startup, MCP proxy, tool routing
 - 🔧 **Fix issues** - Repair broken functionality
-- 🔄 **Re-run testing process** - Start from Step 5.1 again
+- 🔄 **Re-run testing process** - Start from clean slate again
 
-**🚨 STOP CONDITIONS:**
+### 🚨 **STOP CONDITIONS**
 - If tests fail (not 100%) → Fix issues before proceeding
 - If linting fails → Fix code quality issues
-- If tree-sitter shows structural problems → Review extraction
+- If tree-sitter shows structural problems → Review implementation
+- If architecture doc is outdated → Update documentation first
 
-**Commit Pattern**: `refactor: extract <namespace> - <brief description>`
-**Tag Pattern**: `v0.x.0-modular-<namespace-name>` 
+### 🚨 **WORKFLOW RULE: TODO PROGRESSION**
 
-## High Priority
+**CRITICAL REQUIREMENT**: Do not go to next todo without explicit user confirmation!
 
-## Medium Priority
+1. **Complete current task** - Mark as completed when finished
+2. **Report completion** - Summarize what was accomplished  
+3. **Wait for explicit confirmation** - User must explicitly approve moving to next task
+4. **No automatic progression** - Never assume user wants to continue to next todo
 
-- [ ] **Add nrepl-session-clone tool** for creating parallel evaluation contexts
-- [ ] **Improve error handling** with better context and suggestions
-- [ ] **Add file watching capability** to auto-reload changed Clojure files
-- [ ] **Add bulk operation support** for loading multiple files at once
+### 📋 **TODO MANAGEMENT RULE**
 
-## Lower Priority
+**CRITICAL**: Always use TODO.md to manage/update/change/add todos
 
-- [ ] **Add logging and monitoring dashboard**
-- [ ] **Create deployment script for production**
-- [ ] **Add configuration management system**
-- [ ] **Investigate git MCP server applicability** for enhanced local git workflow integration
+1. **NEVER use TodoWrite tool** - This is only for internal progress tracking
+2. **ALWAYS update TODO.md document** - This is the single source of truth
+3. **Edit TODO.md directly** when adding, changing, or updating todos
+4. **Keep TODO.md synchronized** with actual project status
 
-## Future Considerations (Low Priority)
+### 🎨 **CLOJURE CODE QUALITY & FORMATTING**
 
-- [ ] **Consider daemon-based persistent MCP connections**
-- [ ] **Consider unified MCP/nREPL client with direct nREPL support**
+**CRITICAL REQUIREMENTS**:
+1. Run `./format.sh` (cljfmt) BEFORE clj-kondo - formatting first!
+2. After EVERY code change: format → lint → fix issues → format → lint again
+3. cljfmt auto-fixes formatting, clj-kondo only reports issues
 
-## Revolutionary Pattern Exploration
-
-- [ ] **Explore Dynamic Application Orchestration Pattern** ⭐ **HIGH POTENTIAL**
-  - [ ] **Create VS Code automation toolkit** - Leverage Joyride + nREPL for IDE control
-    - [ ] Workspace management functions (create, configure, organize)
-    - [ ] Extension automation (install, configure, manage)
-    - [ ] Development workflow orchestration (test, build, deploy cycles)
-    - [ ] Calva integration (REPL management, debugging workflows)
-  - [ ] **Build toolkit library ecosystem** - Standardized automation modules
-    - [ ] Git workflow automation (branch, commit, merge, deploy patterns)
-    - [ ] Docker orchestration utilities (build, deploy, container management)
-    - [ ] Project template generators (Clojure, React, microservices)
-    - [ ] CI/CD pipeline automation (testing, building, deployment)
-  - [ ] **Develop cross-application orchestration** - Multi-tool coordination
-    - [ ] IDE + Git + Docker integration workflows
-    - [ ] Development environment setup automation
-    - [ ] Deployment pipeline orchestration across tools
-    - [ ] Monitoring and alerting integration
-  - [ ] **Research AI-driven workflow composition** - Intelligent automation
-    - [ ] Claude Code learning from toolkit usage patterns
-    - [ ] Automatic workflow optimization based on success metrics
-    - [ ] Context-aware toolkit loading and selection
-    - [ ] Iterative improvement of automation scripts
-  - **Impact**: Transforms MCP from static tool calling to dynamic application programming
-  - **Vision**: Claude Code as universal application conductor with live extensibility
-  - **Applications**: IDE automation, DevOps orchestration, multi-tool workflow composition
-
----
-
-## 🎯 BREAKTHROUGH RESOLUTION (2025-08-11) ✅
-
-**CRITICAL DISCOVERY**: The "failing queue lifecycle tests" were caused by a fake nREPL server with hardcoded wrong responses, NOT actual async queue issues!
-
-**Root Cause**: Previous Claude instance created `test-nrepl-server.clj` with fake hardcoded responses:
-- `(+ 2 3)` matched pattern `"(+ "` and returned hardcoded `"30"` instead of calculating `5`
-- Tests timed out because they expected real evaluation, not fake responses
-
-**Resolution**:
-- ✅ **Deleted fake server** - Removed `test-nrepl-server.clj` with hardcoded responses
-- ✅ **Updated all references** - Changed bb.edn, test files to use real nREPL server (`./nrepl-test`)  
-- ✅ **Disabled port 3000 conflicts** - Removed bb-nrepl-server interference
-- ✅ **Verified correct architecture**: 
-  - Real nREPL server runs independently (port 61910)
-  - MCP proxy runs independently in stdio mode  
-  - `nrepl-connect` function connects them explicitly
-  - `nrepl-eval "(+ 2 3)"` correctly returns `5` ✅
-
-**ASYNC QUEUE SYSTEM WORKING PERFECTLY**: All timeout handling, promise-based async, and queue lifecycle management verified working with real nREPL server.
-
-## Recently Completed ✅
-
-### ✅ **Debug Tools for Live Introspection (2025-08-13)**
-**COMPLETED**: Comprehensive debugging toolkit for MCP server runtime introspection
-
-**Features Implemented:**
-- [x] **debug-eval tool** - Execute arbitrary Clojure code in server runtime ✅
-- [x] **debug-load-file tool** - Load complete debugging toolkits from files ✅
-- [x] **debug-toolkit.clj** - Comprehensive helper functions and shortcuts ✅
-- [x] **State parameter elimination** - Debug tools don't need dependency injection ✅
-- [x] **SCI restriction bypass** - Access private vars with helper functions ✅
-- [x] **Persistent debugging environment** - Functions persist across calls ✅
-
-**Key Architectural Discovery:**
-- **State parameter is unnecessary** for many MCP tools
-- Debug tools prove cleaner implementation is possible without dependency injection
-- Functions can access namespace vars directly in SCI runtime environment
-- This previews the direction for upcoming architectural refactoring
-
-**Usage Examples:**
 ```bash
-# Load complete toolkit
-python3 ./mcp_nrepl_client.py --tool debug-load-file --args '{"file-path": "debug-toolkit.clj"}'
+# After ANY Clojure code change:
+./format.sh              # 1. Format code first
+clj-kondo --lint src/    # 2. Lint to find issues
 
-# Use shortcuts for analysis
-python3 ./mcp_nrepl_client.py --tool debug-eval --args '{"code": "(ds)"}'  # debug summary
-python3 ./mcp_nrepl_client.py --tool debug-eval --args '{"code": "(aa)"}'  # architecture analysis
+# If linting shows issues:
+# 3. Fix the issues
+./format.sh              # 4. Format again (fixes may need formatting)
+clj-kondo --lint src/    # 5. Lint again to verify clean
+
+# Only proceed when both tools show clean results!
 ```
 
-**Commit**: `v0.12.0-debug-tools-simplified` ✅
+### 🐍 **PYTHON CODE QUALITY & UV USAGE**
 
-### ✅ **Namespace Refactoring - Complete Modularization (2025-01-11)**
-**COMPLETED**: Successfully refactored monolithic core.clj (1,627 lines) into focused, modular namespaces
+**CRITICAL REQUIREMENTS**: 
+1. For every Python code change, run black and flake8!
+2. Use UV wherever possible for Python package management and tool execution!
 
-**Phase 1: Foundation Namespaces**
-- [x] **Create mcp-nrepl-proxy.config namespace** - Centralized tool definitions and configuration (203 lines)
-- [x] **Create mcp-nrepl-proxy.utils namespace** - Utility functions with parameterized logging (119 lines)  
-- [x] **Test Phase 1** - ACHIEVED 90% success rate (18/20 tests)
-- [x] **Commit & push Phase 1** - SUCCESS
+```bash
+# After editing Python files (UV-first approach)
+uv run black mcp_server_manager.py
+uv run flake8 mcp_server_manager.py
 
-**Phase 2: Server Infrastructure**  
-- [x] **Create mcp-nrepl-proxy.server namespace** - Server transport layer (229 lines)
-- [x] **Extract server functions** - stdio-server-loop, http-handler, start-http-server, server-main
-- [x] **Test Phase 2** - ACHIEVED 90% success rate (18/20 tests)
-- [x] **Commit & push Phase 2** - SUCCESS
+# Install packages with UV
+uv add black flake8
 
-**Phase 3: Protocol Layer**
-- [x] **Create mcp-nrepl-proxy.protocol namespace** - MCP protocol handlers (172 lines)
-- [x] **Extract protocol functions** - handle-request, handle-initialize, handle-list-tools, handle-call-tool
-- [x] **Test Phase 3** - ACHIEVED 100% success rate (11/11 tests) - PERFECT SCORE
-- [x] **Commit & push Protocol namespace** - SUCCESS + Tagged v0.8.0
+# Run Python scripts with UV
+uv run python mcp_server_manager.py --help
+```
 
-**Results**: 
-- ✅ **Reduced core.clj by ~400 lines** through systematic extraction
-- ✅ **4 focused namespaces** with clear separation of concerns  
-- ✅ **Zero regressions** - 100% functionality preserved
-- ✅ **Enhanced maintainability** - Modular, testable architecture
-- **Architecture**: Config → Utils → Server → Protocol → Core (orchestration only)
+### 🌳 **Tree-sitter Integration for Enhanced Coding**
 
-- [x] **FIXED: Broken pipe errors in test infrastructure** - ROOT CAUSE: Port conflicts with bb-nrepl-server (both using port 3000)
-  - **Solution**: Implemented dynamic port allocation with `port_utils.py` 
-  - **Result**: 100% test success rate (was 81.8% with broken pipe errors)
-  - **Infrastructure**: Updated test lifecycle and debug scripts with smart port detection
-  - **Key Insight**: bb-nrepl-server defaults to port 3000, tests need dynamic ports to avoid conflicts
-- [x] **Created comprehensive nREPL testing infrastructure**
-  - **Test Server Manager**: `./nrepl-test [start|stop|restart|status]` - Full Clojure capabilities
-  - **Lifecycle Test Suite**: `./test-lifecycle [quick|server]` - Complete functionality testing
-  - **Features**: Auto-assigns ports, PID tracking, cleanup, comprehensive validation
-  - **Test Coverage**: Server lifecycle, MCP integration, Clojure capabilities (promises, futures, Java interop)
-  - **Verified**: All server lifecycle tests pass (100% success rate in 5.9s)
-  - **Ready**: Complete testing infrastructure for Phase 1 async implementation
-- [x] **Verified Babashka runtime async capabilities** - promises, futures, Java concurrency all work
-- [x] **Distinguished two runtime environments**: MCP server (full async) vs bb-nrepl-server (SCI limited)
-- [x] **Updated architecture documents** with corrected environment understanding
-- [x] **Test Python linters to determine which detect blank lines between decorators and functions**
-- [x] **Create reusable quality scripts for Python and Clojure instead of one-off CLI commands**
-- [x] **Add cljfmt code formatting to project - configure and document workflow**
-- [x] **Create comprehensive sync-async queuing architecture design document**
-- [x] **Add nrepl-apropos tool for symbol discovery and exploration**
-- [x] **Add nrepl-stacktrace tool for better error debugging**
-- [x] **Create AI Assistant MCP Function Cookbook for Claude and other AI agents**
-- [x] **Create comprehensive VS Code Joyride MCP cookbook for human developers and AI assistants**
-- [x] **Implement additional nREPL tools: interrupt, doc, source, complete**
-- [x] **Implement nrepl-load-file tool for loading Clojure source files**
-- [x] **Add nrepl-require tool for dynamically loading namespaces/libraries**
+**IMPORTANT**: Always leverage tree-sitter tools for semantic code analysis before making changes!
+
+**Instead of just reading files:**
+```python
+# ✅ New approach - Semantic analysis first
+symbols = mcp__tree_sitter__get_symbols(
+    project="mcp-nrepl-joyride",
+    file_path="new_implementation.clj", 
+    symbol_types=["functions", "classes"]
+)
+
+# Find usage patterns
+usage = mcp__tree_sitter__find_usage(
+    project="mcp-nrepl-joyride",
+    symbol="send-message",
+    language="clojure"
+)
+```
+
+### 📅 **IMPORTANT: Current Date Context**
+
+**Today is 2025** - Always search for current 2025 information, not 2024!
+
+- ✅ Use "2025" for current information
+- ✅ Omit years entirely for general technical searches  
+- ❌ Don't use "2024" unless specifically referencing historical information
+
+## 🛠️ **Reusable Testing Infrastructure**
+
+**Preserve and enhance these working tools:**
+
+### **stdio MCP Test Client** 
+```bash
+# Test any stdio MCP server
+uv run python stdio_mcp_client.py \
+  --server-cmd "bb -cp src src/new_mcp_server/core.clj" \
+  --test-basic
+
+# Call specific tools
+uv run python stdio_mcp_client.py \
+  --server-cmd "bb -cp src src/new_mcp_server/core.clj" \
+  --tool debug-eval --args '{"code": "(+ 1 2 3)"}'
+```
+
+### **Real nREPL Test Server**
+```bash
+# Managed test server with full capabilities
+./nrepl-test start   # Auto-assigns port, tracks PID
+./nrepl-test status  # Check connection info
+./nrepl-test stop    # Clean shutdown
+```
+
+## 🎯 **SUCCESS METRICS**
+
+**Phase completion criteria:**
+- ✅ **All tests pass** (100% success rate)
+- ✅ **Clean code quality** (no linting errors)
+- ✅ **Architecture doc updated** (reflects actual implementation)
+- ✅ **Proper layer separation** (no circular dependencies)
+- ✅ **Comprehensive test coverage** (debug-eval testable)
+
+**Final success:**
+- 🎯 **Proper 3-layer architecture** implemented
+- 🎯 **Clean separation of concerns** (no architectural mess)
+- 🎯 **Robust async queue system** with timeout handling
+- 🎯 **Comprehensive testing** at all layers
+- 🎯 **Living documentation** that matches implementation
 
 ---
 
-*This TODO list is managed through the TodoWrite tool and should be updated whenever tasks are started, completed, or priorities change.*
+## 📖 **Legacy Reference**
+
+**Legacy code preserved in:**
+- `/old/src/` - All original implementation for copy/paste reference
+- `/old/tests/` - Original test scripts and approaches
+- `TODO-old.md` - Complete history of previous implementation phases
+- `CLAUDE.md` - All architectural insights and lessons learned
+
+## 📁 **Project Organization**
+
+**Clean directory structure:**
+- `/src/mcp_server/` - 🆕 NEW - Clean implementation
+- `/scripts/` - All executable scripts and utilities
+- `/logs/` - Server and test log files
+- `/old/` - Archived legacy code for reference
+- `/docs/` - Architecture and design documentation
+
+**Key patterns to reuse:**
+- UUID v7 generation (`uuid_v7.clj`)
+- Promise-based timeout handling (`(deref promise timeout-ms :timeout)`)
+- Debug toolkit patterns (`debug-toolkit.clj`)
+- MCP protocol compliance patterns
+- Connection state management atoms
+
+---
+
+*This TODO list follows the living documentation principle - updated as implementation proceeds to reflect actual decisions and patterns that emerge.*

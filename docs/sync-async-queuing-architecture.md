@@ -1089,6 +1089,133 @@ Our MCP-nREPL bridge handles data transformations across three distinct formats:
 
 ---
 
+## 14. MCP Protocol and Output Stream Separation (January 2025)
+
+### 14.1 Critical Discovery: stderr vs MCP Protocol
+
+During Phase 1 implementation, a crucial insight emerged about output stream handling in MCP stdio communication:
+
+**Key Finding:** **stderr does NOT interfere with MCP stdio communication.**
+
+### 14.2 MCP Protocol Stream Usage
+
+The MCP JSON-RPC protocol has a specific stream allocation:
+
+- **stdout**: Used exclusively for JSON-RPC protocol messages
+- **stderr**: Completely separate stream available for any output
+
+```
+┌─────────────────────────────────────────┐
+│           MCP Server Process            │
+│                                         │
+│  stdout ──► JSON-RPC Messages          │
+│            {"jsonrpc": "2.0", ...}      │
+│                                         │
+│  stderr ──► Debug logs, errors, etc.   │
+│            [DEBUG] Connection opened    │
+│            [ERROR] Invalid operation    │
+│            [INFO] Processing request    │
+└─────────────────────────────────────────┘
+                    │
+                    ▼
+┌─────────────────────────────────────────┐
+│           MCP Client (Claude)           │
+│                                         │
+│  Reads stdout for protocol messages     │
+│  Ignores stderr (available for logs)    │
+└─────────────────────────────────────────┘
+```
+
+### 14.3 Implications for debug-eval Implementation
+
+**Prior Understanding (Incorrect):**
+- Thought both stdout AND stderr needed capture to prevent JSON corruption
+- Implemented stderr capture as "protocol critical"
+
+**Corrected Understanding:**
+- **stdout capture is critical** - Prevents println from corrupting JSON messages
+- **stderr capture is optional** - Nice feature but not protocol-required
+- **stderr can flow freely** - No interference with MCP communication
+
+### 14.4 Current Implementation Status
+
+#### ✅ debug-load-file: Complete Implementation
+- **stdout capture**: ✅ Working via StringWriter/PrintWriter
+- **stderr capture**: ✅ Working via StringWriter/PrintWriter  
+- **Protocol compliance**: ✅ No JSON corruption possible
+
+#### ✅ debug-eval: Protocol-Complete Implementation
+- **stdout capture**: ✅ Working via `with-out-str`
+- **stderr capture**: ⚠️ TODO (marked as "more complex")
+- **Protocol compliance**: ✅ No JSON corruption possible
+
+### 14.5 Code Example: Protocol Protection
+
+```clojure
+;; This would corrupt JSON if not captured:
+(debug-eval {:code "(println \"This goes to stdout\")"})
+
+;; Without capture:
+;; This goes to stdout       <- Corrupts JSON-RPC message
+;; {"jsonrpc": "2.0", ...}   <- Invalid JSON parsing
+
+;; With stdout capture (implemented):
+;; {"jsonrpc": "2.0", "result": {"stdout": "This goes to stdout\n"}}
+```
+
+```clojure
+;; This is harmless and doesn't need capture:
+(binding [*out* *err*] (println "This goes to stderr"))
+
+;; stderr output flows normally without affecting MCP protocol:
+;; This goes to stderr       <- Visible in logs, doesn't corrupt JSON
+;; {"jsonrpc": "2.0", ...}   <- Valid JSON-RPC message
+```
+
+### 14.6 Architecture Decision Update
+
+**Design Principle Clarification:**
+1. **stdout capture is mandatory** - Protocol compliance requirement
+2. **stderr capture is enhancement** - User experience improvement  
+3. **Phase 1 is protocol-complete** - All critical issues resolved
+4. **stderr TODO can be future work** - Not blocking for async architecture
+
+### 14.7 Testing Validation
+
+**Protocol compliance tested and verified:**
+```bash
+# Phase 1 test suite: 19/19 tests passing
+./scripts/test-phase1.sh
+# ✅ 100% success rate
+# ✅ No JSON corruption observed
+# ✅ MCP protocol compliance confirmed
+```
+
+**stderr behavior confirmed:**
+- stderr output visible in terminal during testing
+- No interference with JSON-RPC message parsing
+- MCP client successfully processes all responses
+
+### 14.8 Future Enhancement Path
+
+**If stderr capture is desired for debug-eval:**
+```clojure
+;; Could implement similar to debug-load-file approach:
+(let [stderr-writer (StringWriter.)]
+  (binding [*err* (PrintWriter. stderr-writer)]
+    ;; ... evaluation logic
+    {:stderr (str stderr-writer)}))
+```
+
+**Priority Assessment:**
+- **Low priority** - Protocol compliance achieved
+- **User experience enhancement** - Provides complete output capture
+- **Implementation complexity** - Moderate, pattern exists in debug-load-file
+
+This clarification confirms that Phase 1 has successfully achieved all protocol-critical objectives, and the async architecture can proceed with confidence in the MCP communication foundation.
+
+---
+
 ## Appendix A: Dynamic Application Orchestration Pattern
 
 ### A.1 Revolutionary Discovery: Beyond Debugging

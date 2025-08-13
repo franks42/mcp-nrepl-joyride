@@ -6,11 +6,11 @@ echo "🎨 Clojure code quality check..."
 
 # Step 1: Format code first
 echo "📝 Step 1: Formatting code with cljfmt..."
-./format.sh
+./scripts/format.sh
 
 # Step 2: Lint for issues
 echo "🔍 Step 2: Linting code with clj-kondo..."
-./lint-clojure.sh
+./scripts/lint-clojure.sh
 
 if [ $? -eq 0 ]; then
     echo ""
