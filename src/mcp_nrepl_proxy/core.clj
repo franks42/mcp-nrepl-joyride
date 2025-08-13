@@ -415,7 +415,8 @@
     "nrepl-send-message-async" (async-tools/tool-nrepl-send-message-async state ensure-nrepl-connection args)
     "nrepl-get-result-async" (async-tools/tool-nrepl-get-result-async state ensure-nrepl-connection args)
     "babashka-nrepl" (devtools/tool-babashka-nrepl state args)
-    "debug-eval" (debug-tools/tool-debug-eval state args)
+    "debug-eval" (debug-tools/tool-debug-eval args)
+    "debug-load-file" (debug-tools/tool-debug-load-file args)
     {:content [{:type "text" :text (str "❌ Unknown tool: " tool-name)}]
      :isError true}))
 

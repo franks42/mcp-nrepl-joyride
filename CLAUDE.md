@@ -549,9 +549,16 @@ python3 ./mcp_nrepl_client.py --tool nrepl-health-check --quiet
 3. **Missing operations** → Examine Tool Integration status
 4. **Environment errors** → Analyze Environment Diagnostics
 
-## 🔍 Debug-Eval Tool for Live Server Introspection
+## 🔍 Debug Tools for Live Server Introspection
 
 **NEW CAPABILITY**: Direct REPL access into the running MCP server for debugging and introspection.
+
+### Key Architectural Insight
+The debug tools **do not require the `state` parameter** that other MCP tools use! This is because:
+- They operate entirely within the server's own SCI runtime environment
+- They can access any namespace vars directly using var reader macros
+- The planned refactoring will eliminate the unnecessary `state` parameter passing
+- This demonstrates a cleaner, more direct approach to tool implementation
 
 ### Debug-Eval Features (✅ IMPLEMENTED)
 - **🔍 Live Introspection**: Inspect atoms, state, queues, and connections in real-time
@@ -560,7 +567,9 @@ python3 ./mcp_nrepl_client.py --tool nrepl-health-check --quiet
 - **🐛 Debug Architecture**: Understand the actual runtime state vs intended design
 - **⚡ Immediate Feedback**: Execute arbitrary Clojure code in the server runtime
 
-### Debug-Eval Usage
+### Debug Tools Usage
+
+#### 1. debug-eval - Direct Code Execution
 ```bash
 # Simple arithmetic evaluation
 python3 ./mcp_nrepl_client.py --tool debug-eval --args '{"code": "(+ 1 2 3)"}'
@@ -571,14 +580,19 @@ python3 ./mcp_nrepl_client.py --tool debug-eval --args '{"code": "(keys @mcp-nre
 # Access private vars (need double deref for private atoms)
 python3 ./mcp_nrepl_client.py --tool debug-eval --args '{"code": "(keys @@#'\''mcp-nrepl-proxy.state/message-queues)"}'
 
-# Check message queue contents
-python3 ./mcp_nrepl_client.py --tool debug-eval --args '{"code": "(:pending-messages @@#'\''mcp-nrepl-proxy.state/message-queues)"}'
-
 # Modify functions on the fly
 python3 ./mcp_nrepl_client.py --tool debug-eval --args '{"code": "(defn my-fn [] :modified)"}'
+```
 
-# Reload namespace
-python3 ./mcp_nrepl_client.py --tool debug-eval --args '{"code": "(require '\''mcp-nrepl-proxy.core :reload)"}'
+#### 2. debug-load-file - Load Complete Toolkits
+```bash
+# Load the comprehensive debug toolkit
+python3 ./mcp_nrepl_client.py --tool debug-load-file --args '{"file-path": "debug-toolkit.clj"}'
+
+# Then use simple shortcuts
+python3 ./mcp_nrepl_client.py --tool debug-eval --args '{"code": "(ds)"}'    # debug summary
+python3 ./mcp_nrepl_client.py --tool debug-eval --args '{"code": "(aa)"}'    # architecture analysis
+python3 ./mcp_nrepl_client.py --tool debug-eval --args '{"code": "(help)"}'  # show all commands
 ```
 
 ### Accessing Private Vars

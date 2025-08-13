@@ -190,7 +190,14 @@
     :inputSchema {:type "object"
                   :properties {:code {:type "string"
                                       :description "Clojure code to evaluate in the server runtime"}}
-                  :required ["code"]}}])
+                  :required ["code"]}}
+
+   {:name "debug-load-file"
+    :description "DEBUG TOOL: Load and evaluate a Clojure file in the MCP server runtime. This loads external debugging utilities and helper functions into the debug-eval environment. The file is evaluated in the server's SCI context, so defined functions persist for future debug-eval calls. Use to build debugging toolkits."
+    :inputSchema {:type "object"
+                  :properties {:file-path {:type "string"
+                                           :description "Path to Clojure file to load and evaluate"}}
+                  :required ["file-path"]}}])
 
 ;; ============================================================================
 ;; Resource Definitions
