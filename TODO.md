@@ -117,7 +117,48 @@ nrepl-mcp-server/
 - [ ] Update test scripts
 - [ ] Run full test suite
 
-#### **2b: Message Queue Infrastructure** (After namespace refinement)
+#### **2a.7: Restore Unified nrepl-server Interface** ✅ **COMPLETED**
+
+**Goal**: Return to clean unified `nrepl-server` tool with `op` parameter (as originally designed and expected by tests)
+
+**Problem**: Current implementation has split into separate tools (`nrepl-connect`, `nrepl-disconnect`, `nrepl-status`) with backward compatibility hack in dispatcher, violating architectural principles
+
+**Solution**:
+1. **Create unified `nrepl-server.clj`** - Single tool handling all nREPL operations
+   - Move all connect/disconnect/status logic into one file
+   - Handle `{"op": "connect"}`, `{"op": "disconnect"}`, `{"op": "status"}` operations
+   - Preserve all existing functionality and parameters
+
+2. **Clean up tool registry** - Remove separate tools from dispatch table
+   - Remove `nrepl-connect`, `nrepl-disconnect`, `nrepl-status` entries
+   - Add single `nrepl-server` entry with unified handler
+
+3. **Remove architectural violations** - Clean up call-tool function
+   - Remove hardcoded `nrepl-server` special case logic
+   - Return to pure generic dispatch pattern
+   - Restore clean separation of concerns
+
+4. **Delete obsolete tool files**
+   - Remove `tools/nrepl_connect.clj`
+   - Remove `tools/nrepl_disconnect.clj` 
+   - Remove `tools/nrepl_status.clj`
+
+**Benefits**:
+- **Restores architectural purity** - Clean generic dispatcher
+- **Matches test expectations** - No test changes needed
+- **Simpler mental model** - One tool, multiple operations
+- **Better separation of concerns** - Tool-specific logic in tool files
+- **Consistent with nREPL patterns** - Operations as parameters, not tool names
+
+**Migration steps**:
+- [x] Create `tools/nrepl_server.clj` with unified handler
+- [x] Update tool registry to use single `nrepl-server` entry
+- [x] Clean up `call-tool` function to remove special cases
+- [x] Delete obsolete individual tool files
+- [x] Run full test suite to verify functionality preserved
+- [x] Format and lint code
+
+#### **2b: Message Queue Infrastructure** (After interface cleanup)
 - [ ] **Implement send-message-async tool** 
   - Hand-off message to queue → get message-id
   - UUID v7 generation in utils namespace

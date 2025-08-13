@@ -23,9 +23,7 @@ nrepl-mcp-server/              ; Top-level project namespace
     tools/                     ; One file per MCP tool function
       debug_eval.clj           ; debug-eval tool
       debug_load_file.clj      ; debug-load-file tool
-      nrepl_connect.clj        ; nREPL connect operation
-      nrepl_disconnect.clj     ; nREPL disconnect operation
-      nrepl_status.clj         ; nREPL status operation
+      nrepl_server.clj         ; Unified nREPL operations (connect, disconnect, status)
       send_message_async.clj   ; Async message sending (Phase 2b)
       get_result_async.clj     ; Async result retrieval (Phase 2b)
       send_message_sync.clj    ; Sync wrapper combining send+get (Phase 2b)
@@ -48,6 +46,7 @@ nrepl-mcp-server/              ; Top-level project namespace
 4. **Reactive architecture** - State atoms are separate from handlers that react to them
 5. **Client perspective** - `nrepl-client` (not `nrepl-server`) since we're the client to nREPL servers
 6. **Parallel naming** - `mcp-server/*` and `nrepl-client/*` for clear architectural boundaries
+7. **Unified tool interfaces** - `nrepl-server` tool with `op` parameter (connect/disconnect/status) for consistency with nREPL patterns
 
 ## 1. Architecture Overview
 

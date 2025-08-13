@@ -417,6 +417,41 @@ python3 mcp_nrepl_client.py --interactive
 
 💡 **Pro Tip**: Always check memory for "mcp-client" or "tool-usage" tags for detailed usage patterns and automation examples.
 
+## 🔧 MCP Tool Interface
+
+**Unified nREPL Interface**: The MCP server provides a single `nrepl-server` tool with operation-based dispatch:
+
+### nrepl-server Tool
+
+**Usage Pattern**: `{"tool": "nrepl-server", "args": {"op": "operation", ...}}`
+
+**Available Operations**:
+- **`{"op": "connect"}`** - Connect to nREPL server
+  - `connection` (required) - Port, host:port, or file path
+  - `timeout` (optional) - Connection timeout in ms (default: 5000)
+- **`{"op": "disconnect"}`** - Disconnect from nREPL server  
+  - `timeout` (optional) - Disconnect timeout in ms (default: 5000)
+- **`{"op": "status"}`** - Get connection status
+  - No additional parameters required
+
+**Examples**:
+```bash
+# Connect to nREPL server
+python3 mcp_nrepl_client.py --tool nrepl-server --args '{"op": "connect", "connection": "7890"}'
+
+# Check connection status  
+python3 mcp_nrepl_client.py --tool nrepl-server --args '{"op": "status"}'
+
+# Disconnect from server
+python3 mcp_nrepl_client.py --tool nrepl-server --args '{"op": "disconnect"}'
+```
+
+**Design Benefits**:
+- **Consistent with nREPL patterns** - Operations as parameters, not separate tools
+- **Cleaner mental model** - One tool, multiple operations
+- **Architectural purity** - Generic dispatcher stays generic
+- **Test compatibility** - Matches original interface design
+
 ## 🌳 Tree-sitter Integration for Enhanced Coding
 
 **IMPORTANT**: Always leverage tree-sitter tools for semantic code analysis before making changes!

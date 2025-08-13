@@ -126,9 +126,9 @@ run_test "State watchers are installed" \
     '{"code": "(contains? (set (keys (.getWatches nrepl-mcp-server.state.connection/connection-state))) :connection-handler)"}' \
     'true'
 
-run_test "Tools registry includes nrepl-connect" \
+run_test "Tools registry includes nrepl-server" \
     "debug-eval" \
-    '{"code": "(contains? nrepl-mcp-server.mcp-server.dispatch/tool-registry \"nrepl-connect\")"}' \
+    '{"code": "(contains? nrepl-mcp-server.mcp-server.dispatch/tool-registry \"nrepl-server\")"}' \
     'true'
 
 echo ""

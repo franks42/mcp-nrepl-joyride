@@ -1,11 +1,8 @@
 (ns nrepl-mcp_server.mcp_server.dispatch
   "MCP tool routing and dispatch table"
-  (:require [cheshire.core :as json]
-            [nrepl-mcp_server.mcp_server.tools.debug-eval :as debug-eval]
+  (:require [nrepl-mcp_server.mcp_server.tools.debug-eval :as debug-eval]
             [nrepl-mcp_server.mcp_server.tools.debug-load-file :as debug-load-file]
-            [nrepl-mcp_server.mcp_server.tools.nrepl-connect :as nrepl-connect]
-            [nrepl-mcp_server.mcp_server.tools.nrepl-disconnect :as nrepl-disconnect]
-            [nrepl-mcp_server.mcp_server.tools.nrepl-status :as nrepl-status]))
+            [nrepl-mcp_server.mcp_server.tools.nrepl-server :as nrepl-server]))
 
 ;; =============================================================================
 ;; Tool Registry
@@ -27,27 +24,17 @@
                                                                         :description "Path to Clojure file to load"}}
                                                :required ["file-path"]}}}
 
-   "nrepl-connect" {:handler nrepl-connect/handle
-                    :metadata {:description "Connect to an nREPL server"
-                               :inputSchema {:type "object"
-                                             :properties {:connection {:type "string"
-                                                                       :description "Connection info: host:port, port, or file path"}
-                                                          :timeout {:type "integer"
-                                                                    :description "Connection timeout in milliseconds (default 5000)"}}
-                                             :required ["connection"]}}}
-
-   "nrepl-disconnect" {:handler nrepl-disconnect/handle
-                       :metadata {:description "Disconnect from nREPL server"
-                                  :inputSchema {:type "object"
-                                                :properties {:timeout {:type "integer"
-                                                                       :description "Disconnect timeout in milliseconds (default 5000)"}}
-                                                :required []}}}
-
-   "nrepl-status" {:handler nrepl-status/handle
-                   :metadata {:description "Get nREPL connection status"
+   "nrepl-server" {:handler nrepl-server/handle
+                   :metadata {:description "nREPL server operations: connect, disconnect, status"
                               :inputSchema {:type "object"
-                                            :properties {}
-                                            :required []}}}})
+                                            :properties {:op {:type "string"
+                                                              :description "Operation: 'connect', 'disconnect', or 'status'"
+                                                              :enum ["connect" "disconnect" "status"]}
+                                                         :connection {:type "string"
+                                                                      :description "Connection info for connect: host:port, port, or file path"}
+                                                         :timeout {:type "integer"
+                                                                   :description "Timeout in milliseconds (default 5000)"}}
+                                            :required ["op"]}}}})
 
 ;; =============================================================================
 ;; Dispatch Functions
@@ -63,25 +50,10 @@
 (defn call-tool
   "Execute an MCP tool by name"
   [tool-name args]
-  ;; Backward compatibility: map nrepl-server to specific operations
-  (if (= tool-name "nrepl-server")
-    (case (:op args)
-      "connect" ((:handler (get tool-registry "nrepl-connect")) args)
-      "disconnect" ((:handler (get tool-registry "nrepl-disconnect")) args)
-      "status" ((:handler (get tool-registry "nrepl-status")) args)
-      ;; Unknown operation
-      {:content [{:type "text"
-                  :text (json/generate-string
-                         {:status "error"
-                          :error (str "Unknown operation: " (:op args)
-                                      ". Use 'connect', 'disconnect', or 'status'")}
-                         {:pretty true})}]
-       :isError true})
-    ;; Not nrepl-server, use normal dispatch
-    (if-let [{:keys [handler]} (get tool-registry tool-name)]
-      (handler args)
-      {:content [{:type "text" :text (str "❌ Unknown tool: " tool-name)}]
-       :isError true})))
+  (if-let [{:keys [handler]} (get tool-registry tool-name)]
+    (handler args)
+    {:content [{:type "text" :text (str "❌ Unknown tool: " tool-name)}]
+     :isError true}))
 
 (defn get-available-tools
   "Get list of available tool names"
