@@ -1,4 +1,4 @@
-(ns nrepl-mcp-server.state.tool-registry
+(ns nrepl-mcp-server.state.tool_registry
   "Tool registry state management - pure data store for MCP tools")
 
 ;; =============================================================================

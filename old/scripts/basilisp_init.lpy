@@ -1,0 +1,67 @@
+;; Basilisp initialization for Python introspection
+;; This file provides Clojure-like access to Python objects
+
+(ns python-bridge
+  (:require [basilisp.core :as core])
+  (:import [__main__ server PythonTestServer]
+           [sys]
+           [os]
+           [time]))
+
+;; Access the global Python server instance
+(def py-server server)
+
+;; Clojure functions wrapping Python methods
+(defn server-status
+  "Get current Python server status"
+  []
+  (.get_status py-server))
+
+(defn increment-counter
+  "Increment the Python server counter"
+  []
+  (.increment py-server))
+
+(defn add-server-item
+  "Add item to Python server data"
+  [item]
+  (.add_item py-server item))
+
+(defn get-server-data
+  "Get full Python server data"
+  []
+  (.-data py-server))
+
+;; Python introspection functions
+(defn python-info
+  "Get Python runtime information"
+  []
+  {:version (.-version sys)
+   :platform (.-platform sys)
+   :path (vec (.-path sys))
+   :executable (.-executable sys)})
+
+(defn python-modules
+  "List loaded Python modules"
+  []
+  (keys (.-modules sys)))
+
+(defn python-env
+  "Get Python environment variables"
+  []
+  (into {} (.-environ os)))
+
+(defn eval-python
+  "Evaluate Python code string"
+  [code-str]
+  (eval code-str))
+
+;; Example usage message
+(println "🐍 Basilisp-Python bridge loaded!")
+(println "Available functions:")
+(println "  (server-status) - Get Python server status")
+(println "  (increment-counter) - Increment counter")
+(println "  (add-server-item \"item\") - Add item to server")
+(println "  (python-info) - Get Python runtime info")
+(println "  (python-modules) - List loaded modules")
+(println "  (python-env) - Get environment variables")

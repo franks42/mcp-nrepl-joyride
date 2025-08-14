@@ -204,6 +204,101 @@ nrepl-mcp-server/
 
 **Architecture Achievement**: Clean self-registering tools pattern serves as foundation for all future MCP tool development, with complete separation of concerns and zero coupling between dispatcher and tools.
 
+#### **2a.9: Legacy nREPL Integration & Namespace Reorganization** ✅ **COMPLETED**
+
+**Goal**: Integrate comprehensive nREPL implementation from legacy code while reorganizing into clean modular namespace structure.
+
+**Problem**: Legacy code contained complete nREPL client implementation but was in separate `/old` directory. Need to integrate this functionality with current clean architecture.
+
+**Solution**:
+1. **Copy and integrate legacy nREPL code**
+   - Move UUID v7 implementation to utils namespace
+   - Integrate socket connection, messaging, and operations modules
+   - Create unified nrepl-eval MCP tool exposing all nREPL operations
+
+2. **Organize into modular namespaces**
+   - `utils/uuid_v7.clj` - RFC 9562 compliant UUID generation
+   - `nrepl_client/socket_connection.clj` - Low-level socket connection management
+   - `nrepl_client/messaging.clj` - Bencode protocol and async message handling
+   - `nrepl_client/operations.clj` - High-level nREPL operations (eval, doc, complete, etc.)
+   - `mcp_server/tools/nrepl_eval.clj` - MCP tool interface for all nREPL operations
+
+3. **Maintain clean architecture principles**
+   - Self-registering tool pattern maintained
+   - Reactive state integration preserved
+   - Promise-based async timeout handling
+   - Clean separation of concerns
+
+**Implementation Results**:
+- [x] Integrate UUID v7 implementation in utils namespace
+- [x] Create socket_connection.clj with connection lifecycle management
+- [x] Implement messaging.clj with bencode protocol and async handling
+- [x] Build operations.clj with complete nREPL operation set
+- [x] Create nrepl_eval.clj MCP tool with unified operation interface
+- [x] Fix all namespace/directory mismatches (dashes vs underscores)
+- [x] Update all import references to new namespace structure
+- [x] Rename tcp_connection.clj to socket_connection.clj for accuracy
+- [x] Test server startup: "🔧 Registered 4 MCP tools: ['debug-eval' 'debug-load-file' 'nrepl-server' 'nrepl-eval']"
+
+**Architecture Achievement**: Successfully integrated complete legacy nREPL implementation while maintaining clean modular organization and self-registering tools pattern. All 4 tools register and load correctly with proper namespace separation.
+
+#### **2a.10: Unified Connection State Management** 🏗️ **IN PROGRESS**
+
+**Goal**: Eliminate duplicate connection state atoms by creating single source of truth in state namespace with human-readable connection IDs.
+
+**Problem**: Two connection state atoms maintain essentially the same information:
+- `nrepl-mcp-server.state.connection/connection-state` (application layer, single connection)
+- `nrepl-mcp-server.nrepl-client.socket-connection/connection-state` (transport layer, connection registry)
+
+This violates single source of truth principle and creates synchronization risks.
+
+**Solution**:
+1. **Enhanced state atom as single source of truth**
+   - Move all connection tracking to `state/connection.clj`
+   - Support both single active connection and historical tracking
+   - Human-readable connection IDs: `"192.168.1.10:7890-01234567-abcd-89ef-ghij-klmnopqrstuv"`
+   - Real IP address resolution (localhost → actual IP)
+
+2. **Connection registry structure**
+   ```clojure
+   {:active-connection nil          ; Current active connection ID
+    :connections {"ip:port-uuid" {:connection-id "..."
+                                  :hostname "localhost"
+                                  :resolved-ip "192.168.1.10"
+                                  :port 7890
+                                  :socket #<Socket>
+                                  :status :connected
+                                  :created-at timestamp
+                                  :closed-at nil
+                                  :error nil}}
+    :counter 0}
+   ```
+
+3. **Access/management API for socket-connection layer**
+   - `register-connection!` - Create new connection with human-readable ID
+   - `update-connection-status!` - Update connection state
+   - `get-active-connection` - Get current active connection details  
+   - `mark-connection-closed!` - Mark connection as closed with cleanup
+   - `cleanup-old-connections!` - Remove old closed connections
+
+**Implementation Steps**:
+- [ ] Design enhanced connection state structure with registry + active tracking
+- [ ] Implement human-readable connection ID generation (IP:port-UUIDv7)
+- [ ] Add IP address resolution utilities (localhost → real IP)
+- [ ] Create management API functions for socket-connection layer
+- [ ] Update socket-connection.clj to use state namespace functions  
+- [ ] Remove duplicate connection-state atom from socket-connection
+- [ ] Update all references to use unified state management
+- [ ] Test unified connection state management
+- [ ] Update architecture documentation
+
+**Benefits**:
+- ✅ **Single Source of Truth** - No state duplication or synchronization issues
+- ✅ **Human-Readable IDs** - Easy to identify connections in logs
+- ✅ **Historical Tracking** - Maintain connection history for debugging
+- ✅ **Real IP Resolution** - Better logging and monitoring
+- ✅ **Clean API** - Socket layer uses well-defined management functions
+
 #### **2b: Message Queue Infrastructure** 🔄 **USE PHASE H3 FOR TESTING**
 - [ ] **Implement send-message-async tool** 
   - Hand-off message to queue → get message-id
@@ -222,6 +317,30 @@ nrepl-mcp-server/
   - Combines send-message-async + get-result-async
   - Single synchronous call for simple use cases
   - **TEST WITH**: Unified tester's orchestrated testing mode
+
+#### **2c: Connection Resilience & Monitoring** 🔄 **FUTURE PHASE**
+- [ ] **Implement timeout/recovery handler**
+  - Monitor pending states (`:pending-connect`, `:pending-disconnect`)
+  - Reset to `:disconnected` after configurable timeout (default 10s)
+  - Cleanup stuck futures and monitoring agents
+  
+- [ ] **Implement basic socket health monitoring**
+  - Periodic socket status checks (`.isClosed()`, `.isConnected()`)
+  - Detect remote disconnection via socket state
+  - Update connection state accordingly
+  
+- [ ] **Advanced heartbeat monitoring** ⚠️ **COMPLEX IN ASYNC**
+  - nREPL application-level heartbeat (simple eval operations)
+  - Coordinate with async message queues
+  - Handle heartbeat failures and recovery
+  - **Note**: Adds significant complexity in async environment - defer until core queuing is stable
+
+- [ ] **nREPL message monitoring integration** 🔍 **RESEARCH COMPLETE**
+  - **Option 1**: Use `lambdaisland/nrepl-proxy` for message interception
+  - **Option 2**: Custom nREPL middleware for server-side message logging  
+  - **Option 3**: Built-in client logging (CIDER *nrepl-messages*, Calva output channel)
+  - **Benefits**: Real-time nREPL traffic inspection, debug message flow, detect disconnections
+  - **Implementation**: Add proxy layer or middleware to monitor message success/failure
 
 **Testing Strategy**: Use Phase H3's unified testing framework with HTTP bridge to validate queue implementation. The stateful nature of HTTP mode allows testing queue persistence and async behavior across multiple operations.
 
