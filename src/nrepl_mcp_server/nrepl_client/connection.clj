@@ -71,29 +71,43 @@
 ;; =============================================================================
 
 (defn attempt-connection!
-  "Attempt to connect to nREPL server"
+  "Attempt to connect to nREPL server using unified state management"
   [{:keys [hostname port]}]
   (try
     (let [socket (Socket.)]
       (.connect socket (InetSocketAddress. hostname port) 5000)
-      (state/mark-connected! socket)
-      {:status :success :hostname hostname :port port})
+      ;; Register connection in unified state management
+      (let [conn-id (state/register-connection! hostname port socket)]
+        (binding [*out* *err*]
+          (println "[Connection] Successfully connected with ID:" conn-id))
+        {:status :success :hostname hostname :port port :connection-id conn-id}))
     (catch Exception e
       (let [error-msg (str "Connection failed to " hostname ":" port
                            " - " (.getMessage e))]
-        (state/mark-failed! error-msg)
+        (binding [*out* *err*]
+          (println "[Connection] Connection failed:" error-msg))
         {:status :failed :error error-msg}))))
 
 (defn close-connection!
-  "Close the active connection"
+  "Close the active connection using unified state management"
   []
-  (let [{:keys [socket]} @state/connection-state]
-    (when socket
-      (try
-        (.close socket)
-        (catch Exception _)))
-    (state/mark-disconnected!)
-    {:status :success}))
+  (if-let [active-conn (state/get-active-connection)]
+    (let [{:keys [socket connection-id]} active-conn]
+      (when socket
+        (try
+          (.close socket)
+          (binding [*out* *err*]
+            (println "[Connection] Closed socket for connection:" connection-id))
+          (catch Exception e
+            (binding [*out* *err*]
+              (println "[Connection] Error closing socket:" (.getMessage e))))))
+      ;; Mark connection as closed in unified state
+      (state/mark-connection-closed! connection-id :user-disconnect "User requested disconnect")
+      {:status :success :connection-id connection-id})
+    (do
+      (binding [*out* *err*]
+        (println "[Connection] No active connection to close"))
+      {:status :success :message "No active connection"})))
 
 ;; =============================================================================
 ;; Utility Functions

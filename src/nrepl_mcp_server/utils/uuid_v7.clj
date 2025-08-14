@@ -156,6 +156,14 @@
             time-low (Long/parseLong (nth parts 1) 16)]
         (bit-or (bit-shift-left time-high 16) time-low)))))
 
+(defn uuid-v7-string
+  "Generate RFC 9562 compliant UUID v7 as string - alias for uuid-v7 for compatibility.
+  
+  Returns:
+    String UUID v7 like: '01934567-89ab-7def-8123-456789abcdef'"
+  []
+  (uuid-v7))
+
 (defn validate-uuid-v7
   "Validate that a string is a proper UUID v7 format.
   

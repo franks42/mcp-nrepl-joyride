@@ -119,12 +119,7 @@
 (defn disconnect-from-nrepl
   "Disconnect from nREPL server with proper cleanup"
   [connection]
-  (conn/close-connection connection
-                         (fn [conn-id error-type error-msg]
-      ;; Simplified cleanup (logging for now)
-                           (binding [*out* *err*]
-                             (println "[Cleanup] Connection" conn-id "closed due to" error-type ":" error-msg))
-                           0))) ;; Return 0 as failed count
+  (conn/close-connection connection))
 
 (defn eval-with-timeout
   "Convenience function to evaluate code with reasonable defaults"

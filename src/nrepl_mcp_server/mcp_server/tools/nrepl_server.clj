@@ -12,7 +12,7 @@
 
 (defn handle-connect
   "Handle nREPL connect operation"
-  [{:keys [connection timeout] :or {timeout 5000}}]
+  [{:keys [connection]}]
   (if (empty? connection)
     {:content [{:type "text"
                 :text (json/generate-string
@@ -34,17 +34,18 @@
 
         ;; Try to connect
         (let [{:keys [hostname port]} params]
-          (if (state/request-connect! hostname port)
-            ;; Wait for connection result
-            (let [result-status (conn/wait-for-state-change :pending-connect timeout)]
-              (case result-status
-                :connected
+          (if (state/can-connect?)
+            ;; Attempt connection directly
+            (let [result (conn/attempt-connection! params)]
+              (case (:status result)
+                :success
                 {:content [{:type "text"
                             :text (json/generate-string
                                    {:status "success"
                                     :operation "connect"
                                     :hostname hostname
                                     :port port
+                                    :connection-id (:connection-id result)
                                     :message (str "Connected to nREPL server at "
                                                   hostname ":" port)}
                                    {:pretty true})}]}
@@ -56,18 +57,7 @@
                                     :operation "connect"
                                     :hostname hostname
                                     :port port
-                                    :error (:error @state/connection-state)}
-                                   {:pretty true})}]
-                 :isError true}
-
-                :timeout
-                {:content [{:type "text"
-                            :text (json/generate-string
-                                   {:status "error"
-                                    :operation "connect"
-                                    :hostname hostname
-                                    :port port
-                                    :error (str "Connection timeout after " timeout "ms")}
+                                    :error (:error result)}
                                    {:pretty true})}]
                  :isError true}
 
@@ -76,11 +66,11 @@
                             :text (json/generate-string
                                    {:status "error"
                                     :operation "connect"
-                                    :error (str "Unexpected status: " result-status)}
+                                    :error (str "Unexpected connection result: " result)}
                                    {:pretty true})}]
                  :isError true}))
 
-            ;; Already connected or pending
+            ;; Already connected
             {:content [{:type "text"
                         :text (json/generate-string
                                {:status "error"
@@ -93,34 +83,26 @@
 
 (defn handle-disconnect
   "Handle nREPL disconnect operation"
-  [{:keys [timeout] :or {timeout 5000}}]
-  (if (state/request-disconnect!)
-    ;; Wait for disconnection
-    (let [result-status (conn/wait-for-state-change :pending-disconnect timeout)]
-      (case result-status
-        :disconnected
+  [_args]
+  (if (state/connected?)
+    ;; Disconnect from active connection
+    (let [result (conn/close-connection!)]
+      (case (:status result)
+        :success
         {:content [{:type "text"
                     :text (json/generate-string
                            {:status "success"
                             :operation "disconnect"
+                            :connection-id (:connection-id result)
                             :message "Disconnected from nREPL server"}
                            {:pretty true})}]}
-
-        :timeout
-        {:content [{:type "text"
-                    :text (json/generate-string
-                           {:status "error"
-                            :operation "disconnect"
-                            :error (str "Disconnect timeout after " timeout "ms")}
-                           {:pretty true})}]
-         :isError true}
 
         ;; Unexpected status
         {:content [{:type "text"
                     :text (json/generate-string
                            {:status "error"
                             :operation "disconnect"
-                            :error (str "Unexpected status: " result-status)}
+                            :error (str "Unexpected disconnect result: " result)}
                            {:pretty true})}]
          :isError true}))
 
@@ -137,16 +119,21 @@
 (defn handle-status
   "Handle nREPL status operation"
   [_args]
-  (let [conn-state @state/connection-state]
+  (let [active-conn (state/get-active-connection)
+        summary (state/get-connection-summary)]
     {:content [{:type "text"
                 :text (json/generate-string
                        {:status "success"
                         :operation "status"
-                        :connection-status (:status conn-state)
-                        :hostname (:hostname conn-state)
-                        :port (:port conn-state)
-                        :connected-at (:connected-at conn-state)
-                        :error (:error conn-state)}
+                        :connection-status (if active-conn (:status active-conn) :disconnected)
+                        :active-connection (:active-connection summary)
+                        :connection-count (:connection-count summary)
+                        :hostname (when active-conn (:hostname active-conn))
+                        :port (when active-conn (:port active-conn))
+                        :resolved-ip (when active-conn (:resolved-ip active-conn))
+                        :created-at (when active-conn (:created-at active-conn))
+                        :closed-at (when active-conn (:closed-at active-conn))
+                        :error (when active-conn (:error active-conn))}
                        {:pretty true})}]}))
 
 ;; =============================================================================
