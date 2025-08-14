@@ -1,7 +1,7 @@
-(ns nrepl-mcp-server.mcp_server.tools.debug_load_file
+(ns nrepl-mcp-server.mcp-server.tools.debug-load-file
   "Debug load-file tool for loading Clojure files in MCP server runtime"
   (:require [cheshire.core :as json]
-            [nrepl-mcp-server.state.tool_registry :as registry])
+            [nrepl-mcp-server.state.tool-registry :as registry])
   (:import [java.io StringWriter PrintWriter]))
 
 (defn handle

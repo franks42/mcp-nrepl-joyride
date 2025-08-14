@@ -1,9 +1,9 @@
-(ns nrepl-mcp-server.mcp_server.tools.nrepl_eval
+(ns nrepl-mcp-server.mcp-server.tools.nrepl-eval
   "nREPL code evaluation tool for MCP - handles eval, load-file, complete, doc operations"
   (:require [nrepl-mcp-server.state.connection :as state]
             [nrepl-mcp-server.nrepl-client.operations :as nrepl-ops]
             [cheshire.core :as json]
-            [nrepl-mcp-server.state.tool_registry :as registry]))
+            [nrepl-mcp-server.state.tool-registry :as registry]))
 
 ;; =============================================================================
 ;; Helper Functions

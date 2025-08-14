@@ -1,7 +1,7 @@
-(ns nrepl-mcp-server.mcp_server.dispatch
+(ns nrepl-mcp-server.mcp-server.dispatch
   "MCP tool routing and dispatch table"
-  (:require [nrepl-mcp-server.state.tool_registry :as registry]
-            [nrepl-mcp-server.state.register_tools :as register]))
+  (:require [nrepl-mcp-server.state.tool-registry :as registry]
+            [nrepl-mcp-server.state.register-tools :as register]))
 
 ;; =============================================================================
 ;; Tool Registry Initialization

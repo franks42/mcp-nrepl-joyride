@@ -282,6 +282,7 @@ This violates single source of truth principle and creates synchronization risks
    - `cleanup-old-connections!` - Remove old closed connections
 
 **Implementation Steps**:
+- [ ] **FIX NAMESPACE NAMES FIRST** - Convert all underscores to hyphens in namespace declarations (ZERO TOLERANCE rule)
 - [ ] Design enhanced connection state structure with registry + active tracking
 - [ ] Implement human-readable connection ID generation (IP:port-UUIDv7)
 - [ ] Add IP address resolution utilities (localhost → real IP)
@@ -519,26 +520,40 @@ usage = mcp__tree_sitter__find_usage(
 
 **Common mistake pattern**: `echo 'command' | timeout 10 script` → Just use `echo 'command' | script`
 
-### 🔤 **Clojure vs Python Naming Convention**
+### 🔤 **CRITICAL: Clojure Naming Convention - NO MIXING ALLOWED!**
 
-**CRITICAL**: Clojure and Python have OPPOSITE naming conventions:
+**🚨 ABSOLUTE REQUIREMENT**: We had nasty, hard-to-find bugs from mixing hyphens and underscores in namespace names. **ZERO TOLERANCE** for violations.
 
-**Clojure (use HYPHENS in namespaces/vars, UNDERSCORES in file paths):**
-- ✅ **Namespace names**: `nrepl-mcp-server.state.connection/connection-state`
-- ✅ **Variable names**: `debug-eval`, `debug-load-file`, `tool-registry`
-- ✅ **Function names**: `send-message-async`, `get-result-async`
-- ✅ **File paths**: `nrepl_mcp_server/state/connection.clj` (underscores for directories)
+**CLOJURE NAMING RULES (NEVER MIX!):**
+- ✅ **Namespace names**: ONLY HYPHENS (`-`) - `nrepl-mcp-server.mcp-server.dispatch`
+- ✅ **Variable names**: ONLY HYPHENS (`-`) - `debug-eval`, `send-message-async`
+- ✅ **Function names**: ONLY HYPHENS (`-`) - `get-active-connection`, `mark-connected!`
+- ✅ **File/Directory names**: ONLY UNDERSCORES (`_`) - `mcp_server/dispatch.clj`
 
-**Python (use UNDERSCORES everywhere):**
-- ✅ **File names**: `explore_mcp.py`, `unified_mcp_tester.py` 
-- ✅ **Function names**: `extract_content()`, `call_tool()`
-- ❌ **NEVER use hyphens** - Python interprets `-` as minus operation
+**EXAMPLES:**
+```clojure
+;; ✅ CORRECT - File: mcp_server/tools/debug_eval.clj
+(ns nrepl-mcp-server.mcp-server.tools.debug-eval)  ; HYPHENS in namespace
 
-**Key Rule**: 
-- **Clojure**: Hyphens in code, underscores in file paths
-- **Python**: Underscores everywhere, never hyphens
+;; ❌ WRONG - Causes hard-to-find bugs
+(ns nrepl-mcp-server.mcp_server.tools.debug_eval)  ; MIXED - NO!
+```
 
-**Common mistake**: Using underscores in Clojure namespace names when exploring via `--eval`
+**WHY THIS MATTERS:**
+- **File system mapping**: `mcp_server/debug_eval.clj` → `nrepl-mcp-server.mcp-server.debug-eval`
+- **Clojure convention**: Namespace segments use hyphens, files use underscores
+- **Bug prevention**: Mixing causes namespace resolution failures
+- **clj-kondo compliance**: Eliminates "avoid underscore" warnings
+
+**PYTHON (completely different rules):**
+- ✅ **Everything**: ONLY UNDERSCORES (`_`) - `explore_mcp.py`, `extract_content()`
+- ❌ **NEVER hyphens** - Python treats `-` as minus operator
+
+**CRITICAL RULE**: 
+- **Clojure namespaces**: HYPHENS ONLY (`-`)
+- **File/Directory paths**: UNDERSCORES ONLY (`_`)  
+- **Python everything**: UNDERSCORES ONLY (`_`)
+- **NEVER MIX** - Causes bugs!
 
 ## 🛠️ **Reusable Testing Infrastructure**
 

@@ -1,4 +1,4 @@
-(ns nrepl-mcp-server.nrepl_client.connection
+(ns nrepl-mcp-server.nrepl-client.connection
   "nREPL client TCP connection management"
   (:require [nrepl-mcp-server.state.connection :as state]
             [clojure.string :as str]

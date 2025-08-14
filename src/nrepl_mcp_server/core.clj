@@ -2,7 +2,7 @@
 
 (ns nrepl-mcp-server.core
   "Main entry point for nREPL-MCP server"
-  (:require [nrepl-mcp-server.mcp_server.server :as mcp-server]))
+  (:require [nrepl-mcp-server.mcp-server.server :as mcp-server]))
 
 (defn -main
   "Main entry point for nREPL-MCP server"
