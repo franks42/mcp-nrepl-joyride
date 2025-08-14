@@ -13,13 +13,13 @@
   "Get active nREPL connection or return error"
   []
   (let [conn-state @state/connection-state]
-    (if (and (= :connected (:status conn-state))
-             (:connection conn-state))
-      {:success true :connection (:connection conn-state)}
-      {:success false
-       :error (str "Not connected to nREPL server. Current status: "
-                   (:status conn-state)
-                   ". Use nrepl-server tool with 'connect' operation first.")})))
+    (if-let [active-conn-id (:active-connection conn-state)]
+      (if-let [conn-details (get-in conn-state [:connections active-conn-id])]
+        (if (= :connected (:status conn-details))
+          {:success true :connection conn-details}
+          {:success false :error "Connection not active"})
+        {:success false :error "Connection details not found"})
+      {:success false :error "No active connection"})))
 
 (defn- format-nrepl-response
   "Format nREPL async response for MCP"
