@@ -1,6 +1,6 @@
-(ns nrepl-mcp_server.nrepl_client.connection
+(ns nrepl-mcp-server.nrepl_client.connection
   "nREPL client TCP connection management"
-  (:require [nrepl-mcp_server.state.connection :as state]
+  (:require [nrepl-mcp-server.state.connection :as state]
             [clojure.string :as str]
             [clojure.java.io :as io])
   (:import [java.net Socket InetSocketAddress]))

@@ -46,6 +46,8 @@ The MCP-nREPL Joyride bridge foundation is solid with explicit connection archit
 4. **Enhanced mock servers** - Realistic Joyride/Calva simulation for testing
 5. **🆕 Explicit connections only** - Eliminated auto-discovery for reliability (Calva-style jack-in pattern)
 6. **🆕 Dynamic port allocation** - Prevents conflicts with bb-nrepl-server on port 3000
+7. **🍎 macOS Environment** - User runs macOS, NO `timeout`/`gtimeout` commands available
+8. **🔤 Clojure Naming** - Use HYPHENS (`-`) in namespaces/vars, NOT underscores (opposite of Python!)
 
 ## 🧪 Testing Strategy
 

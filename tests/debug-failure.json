@@ -1,0 +1,17 @@
+{
+  "debug_failures": [
+    {
+      "name": "test_that_should_fail",
+      "tool": "debug-eval",
+      "args": {"code": "(let [s (:socket @nrepl-mcp-server.state.connection/connection-state)] (when s {:local-port (.getLocalPort s) :remote-port (.getPort s) :remote-host (str (.getHostAddress (.getInetAddress s)))}))"},
+      "expected": {"status": "success"},
+      "description": "This might be what's failing - complex socket inspection"
+    },
+    {
+      "name": "simpler_test",
+      "tool": "debug-eval", 
+      "args": {"code": "(str (:socket @nrepl-mcp-server.state.connection/connection-state))"},
+      "description": "Just convert socket to string"
+    }
+  ]
+}

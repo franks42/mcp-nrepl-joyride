@@ -1,0 +1,10 @@
+{
+  "double_connect_test": [
+    {
+      "name": "try_connect_while_connected",
+      "tool": "nrepl-server",
+      "args": {"op": "connect", "connection": "56626"},
+      "description": "What happens when we connect while already connected?"
+    }
+  ]
+}

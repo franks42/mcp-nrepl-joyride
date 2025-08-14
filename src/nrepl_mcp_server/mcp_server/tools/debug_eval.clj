@@ -1,7 +1,7 @@
-(ns nrepl-mcp_server.mcp_server.tools.debug-eval
+(ns nrepl-mcp-server.mcp_server.tools.debug-eval
   "Debug eval tool for MCP server introspection"
   (:require [cheshire.core :as json]
-            [nrepl-mcp_server.state.tool-registry :as registry]))
+            [nrepl-mcp-server.state.tool-registry :as registry]))
 
 (defn handle
   "Evaluate Clojure code within the MCP server runtime"

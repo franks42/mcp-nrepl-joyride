@@ -1,8 +1,8 @@
-(ns nrepl-mcp_server.mcp_server.server
+(ns nrepl-mcp-server.mcp-server.server
   "MCP stdio server and JSON-RPC protocol handling"
   (:require [cheshire.core :as json]
             [clojure.string :as str]
-            [nrepl-mcp_server.mcp_server.dispatch :as dispatch]))
+            [nrepl-mcp-server.mcp-server.dispatch :as dispatch]))
 
 ;; =============================================================================
 ;; stdio Transport Implementation
@@ -35,7 +35,7 @@
   [_params]
   {:protocolVersion "2024-11-05"
    :capabilities {:tools {}}
-   :serverInfo {:name "nrepl-mcp_server"
+   :serverInfo {:name "nrepl-mcp-server"
                 :version "0.2.0"}})
 
 (defn handle-list-tools

@@ -35,8 +35,6 @@ tmp/
 .calva/
 server.log
 
-# Old/deprecated scripts moved here for archival
-/old/
 
 # Log files - never commit logs
 /logs/

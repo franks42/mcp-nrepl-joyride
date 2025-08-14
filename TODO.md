@@ -204,21 +204,26 @@ nrepl-mcp-server/
 
 **Architecture Achievement**: Clean self-registering tools pattern serves as foundation for all future MCP tool development, with complete separation of concerns and zero coupling between dispatcher and tools.
 
-#### **2b: Message Queue Infrastructure** (After interface cleanup)
+#### **2b: Message Queue Infrastructure** 🔄 **USE PHASE H3 FOR TESTING**
 - [ ] **Implement send-message-async tool** 
   - Hand-off message to queue → get message-id
   - UUID v7 generation in utils namespace
   - Fail if no connection (check state atom)
   - **Isolated from actual nREPL communication**
+  - **TEST WITH**: Unified tester via HTTP bridge (Phase H3)
   
 - [ ] **Implement get-result-async tool**
   - Create result queue with promise waiting
   - Wait on promise for message-id results
   - **Test without nREPL** - use debug-eval to put items on queue
+  - **TEST WITH**: Stateful HTTP testing to verify persistence
 
 - [ ] **Implement send-message-sync wrapper**
   - Combines send-message-async + get-result-async
   - Single synchronous call for simple use cases
+  - **TEST WITH**: Unified tester's orchestrated testing mode
+
+**Testing Strategy**: Use Phase H3's unified testing framework with HTTP bridge to validate queue implementation. The stateful nature of HTTP mode allows testing queue persistence and async behavior across multiple operations.
 
 ### **Phase 3: Real nREPL Communication Layer**
 
@@ -384,6 +389,38 @@ usage = mcp__tree_sitter__find_usage(
 - ✅ Omit years entirely for general technical searches  
 - ❌ Don't use "2024" unless specifically referencing historical information
 
+### 🍎 **macOS Environment Notes**
+
+**CRITICAL**: User runs macOS - certain Linux commands are NOT available:
+
+- ❌ **NO `timeout` command** - Linux utility not available on macOS
+- ❌ **NO `gtimeout` command** - GNU coreutils version not installed
+- ✅ **Use direct commands** - No need for timeout wrappers in most cases
+- ✅ **Built-in timeouts** - Many tools have `--timeout` parameters
+
+**Common mistake pattern**: `echo 'command' | timeout 10 script` → Just use `echo 'command' | script`
+
+### 🔤 **Clojure vs Python Naming Convention**
+
+**CRITICAL**: Clojure and Python have OPPOSITE naming conventions:
+
+**Clojure (use HYPHENS in namespaces/vars, UNDERSCORES in file paths):**
+- ✅ **Namespace names**: `nrepl-mcp-server.state.connection/connection-state`
+- ✅ **Variable names**: `debug-eval`, `debug-load-file`, `tool-registry`
+- ✅ **Function names**: `send-message-async`, `get-result-async`
+- ✅ **File paths**: `nrepl_mcp_server/state/connection.clj` (underscores for directories)
+
+**Python (use UNDERSCORES everywhere):**
+- ✅ **File names**: `explore_mcp.py`, `unified_mcp_tester.py` 
+- ✅ **Function names**: `extract_content()`, `call_tool()`
+- ❌ **NEVER use hyphens** - Python interprets `-` as minus operation
+
+**Key Rule**: 
+- **Clojure**: Hyphens in code, underscores in file paths
+- **Python**: Underscores everywhere, never hyphens
+
+**Common mistake**: Using underscores in Clojure namespace names when exploring via `--eval`
+
 ## 🛠️ **Reusable Testing Infrastructure**
 
 **Preserve and enhance these working tools:**
@@ -521,25 +558,30 @@ Use existing `mcp-proxy` tool to bridge HTTP requests to persistent stdio MCP se
 - ✅ **Cross-namespace introspection**: Can access `@nrepl-mcp_server.state.tool-registry/tool-registry`
 - ✅ **Multiple test modes**: `--basic`, `--quick`, `--performance` for different scenarios
 
-### **Phase H3: Stateful nREPL Testing**
+### **Phase H3: Stateful Testing for Phase 2b Implementation** 🔄 **INTEGRATED**
 
-- [ ] **Test nREPL connection workflows**
-  - Connect to real nREPL server via bridge
-  - Send multiple messages with result correlation
-  - Test session isolation and management
-  - Verify persistent variable definitions
+**Strategy**: Use H3's stateful testing infrastructure to develop and validate Phase 2b's message queue implementation.
 
-- [ ] **Comprehensive namespace introspection testing**
-  - Define functions/variables in one request
-  - Explore namespace contents in subsequent requests  
-  - Test cross-namespace operations
-  - Validate namespace switching and require operations
+- [ ] **Test Phase 2b Message Queue via Unified Tester**
+  - Use HTTP bridge for stateful queue testing
+  - Test send-message-async → get message-id flow
+  - Validate get-result-async with promise waiting
+  - Use debug-eval to inspect queue state between operations
+  - Verify queue persistence across multiple HTTP requests
 
-- [ ] **Integration with Phase 2b/3 implementation**
-  - Use bridge to test async message queue functionality
-  - Validate send-message-async → get-result-async workflows
-  - Test real nREPL communication layer
-  - Performance testing with concurrent operations
+- [ ] **Async Queue Testing Scenarios**
+  - Send message → verify queue contains it → get result
+  - Multiple messages with unique IDs and correlation
+  - Timeout handling and error conditions
+  - Queue overflow and backpressure testing
+  - Race conditions and concurrent access
+
+- [ ] **Integration Testing Pattern**
+  - Implement Phase 2b incrementally
+  - Test each component with unified tester
+  - Use stateful HTTP mode to validate queue behavior
+  - Debug-eval for real-time queue introspection
+  - Build comprehensive test suite as we implement
 
 ### **Phase H4: Production Testing Setup**
 

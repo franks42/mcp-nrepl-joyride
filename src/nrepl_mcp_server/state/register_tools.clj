@@ -1,4 +1,4 @@
-(ns nrepl-mcp_server.state.register-tools
+(ns nrepl-mcp-server.state.register-tools
   "Tool registration orchestrator - manages explicit tool loading and registration
    
    This namespace is responsible for:
@@ -7,13 +7,13 @@
    3. Being the single point of truth for which tools are included"
   (:require
     ;; Import the tool registry for access
-   [nrepl-mcp_server.state.tool-registry :as registry]
+   [nrepl-mcp-server.state.tool-registry :as registry]
 
     ;; Explicitly require all tool namespaces
     ;; Each will self-register when loaded (side effect)
-   [nrepl-mcp_server.mcp_server.tools.debug-eval]
-   [nrepl-mcp_server.mcp_server.tools.debug-load-file]
-   [nrepl-mcp_server.mcp_server.tools.nrepl-server]))
+   [nrepl-mcp-server.mcp_server.tools.debug-eval]
+   [nrepl-mcp-server.mcp_server.tools.debug-load-file]
+   [nrepl-mcp-server.mcp_server.tools.nrepl-server]))
 
 ;; =============================================================================
 ;; Registration Orchestration  

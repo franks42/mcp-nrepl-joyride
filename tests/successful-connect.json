@@ -1,0 +1,22 @@
+{
+  "successful_connect_response": [
+    {
+      "name": "fresh_connect_response",
+      "tool": "nrepl-server",
+      "args": {"op": "connect", "connection": "56626"},
+      "description": "Fresh connect - what does it return?"
+    },
+    {
+      "name": "check_connection_state_after",
+      "tool": "debug-eval",
+      "args": {"code": "@nrepl-mcp-server.state.connection/connection-state"},
+      "description": "Connection state after successful connect"
+    },
+    {
+      "name": "check_socket_details",
+      "tool": "debug-eval",
+      "args": {"code": "(let [s (:socket @nrepl-mcp-server.state.connection/connection-state)] (when s {:type (str (type s)) :local-port (.getLocalPort s) :remote-port (.getPort s)}))"},
+      "description": "Socket details after connection"
+    }
+  ]
+}

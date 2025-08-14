@@ -1,4 +1,4 @@
-(ns nrepl-mcp_server.state.connection
+(ns nrepl-mcp-server.state.connection
   "Connection state management for nREPL client connections")
 
 ;; =============================================================================

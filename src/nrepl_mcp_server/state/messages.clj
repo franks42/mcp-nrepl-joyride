@@ -1,4 +1,4 @@
-(ns nrepl-mcp_server.state.messages
+(ns nrepl-mcp-server.state.messages
   "Message queue state management for async nREPL operations")
 
 ;; =============================================================================

@@ -1,0 +1,65 @@
+{
+  "connection_lifecycle": [
+    {
+      "name": "initial_status",
+      "tool": "nrepl-server",
+      "args": {"op": "status"},
+      "description": "Check initial disconnected state"
+    },
+    {
+      "name": "connect_to_server",
+      "tool": "nrepl-server", 
+      "args": {"op": "connect", "connection": "56626"},
+      "expected": {"status": "success"},
+      "description": "Connect to test nREPL server"
+    },
+    {
+      "name": "verify_connected_status",
+      "tool": "nrepl-server",
+      "args": {"op": "status"},
+      "description": "Verify connection persists"
+    },
+    {
+      "name": "inspect_socket_state",
+      "tool": "debug-eval",
+      "args": {"code": "(let [state @nrepl-mcp-server.state.connection/connection-state] {:status (:status state) :has-socket? (boolean (:socket state)) :socket-type (when (:socket state) (.getSimpleName (class (:socket state))))})"},
+      "expected": {"status": "success"},
+      "description": "Check actual TCP socket exists"
+    },
+    {
+      "name": "double_connect_fails",
+      "tool": "nrepl-server",
+      "args": {"op": "connect", "connection": "56627"},
+      "description": "Should fail - already connected"
+    },
+    {
+      "name": "disconnect_from_server",
+      "tool": "nrepl-server",
+      "args": {"op": "disconnect"},
+      "expected": {"status": "success"},
+      "description": "Disconnect from nREPL server"
+    },
+    {
+      "name": "verify_disconnected",
+      "tool": "nrepl-server",
+      "args": {"op": "status"},
+      "description": "Verify disconnected state"
+    }
+  ],
+  
+  "socket_verification": [
+    {
+      "name": "reconnect_for_testing",
+      "tool": "nrepl-server",
+      "args": {"op": "connect", "connection": "56626"},
+      "expected": {"status": "success"},
+      "description": "Reconnect to inspect socket"
+    },
+    {
+      "name": "verify_tcp_connection",
+      "tool": "debug-eval",
+      "args": {"code": "(let [sock (:socket @nrepl-mcp-server.state.connection/connection-state)] (when sock {:connected (not (.isClosed sock)) :local-port (.getLocalPort sock) :remote-port (.getPort sock) :remote-address (str (.getInetAddress sock))}))"},
+      "description": "Verify real TCP socket details"
+    }
+  ]
+}

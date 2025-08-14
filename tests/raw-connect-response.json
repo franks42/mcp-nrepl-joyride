@@ -1,0 +1,10 @@
+{
+  "raw_connect_test": [
+    {
+      "name": "see_connect_response",
+      "tool": "nrepl-server",
+      "args": {"op": "connect", "connection": "56626"},
+      "description": "See the raw response from nrepl-server connect (no validation)"
+    }
+  ]
+}

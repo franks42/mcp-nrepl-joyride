@@ -1,10 +1,10 @@
-(ns nrepl-mcp_server.mcp_server.tools.nrepl-server
+(ns nrepl-mcp-server.mcp_server.tools.nrepl-server
   "Unified nREPL server tool for MCP - handles connect, disconnect, status operations"
-  (:require [nrepl-mcp_server.state.connection :as state]
-            [nrepl-mcp_server.nrepl_client.connection :as conn]
-            [nrepl-mcp_server.nrepl_client.handlers] ;; Load handlers to install watchers
+  (:require [nrepl-mcp-server.state.connection :as state]
+            [nrepl-mcp-server.nrepl_client.connection :as conn]
+            [nrepl-mcp-server.nrepl_client.handlers] ;; Load handlers to install watchers
             [cheshire.core :as json]
-            [nrepl-mcp_server.state.tool-registry :as registry]))
+            [nrepl-mcp-server.state.tool-registry :as registry]))
 
 ;; =============================================================================
 ;; Operation Handlers
