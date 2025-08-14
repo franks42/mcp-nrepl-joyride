@@ -994,3 +994,8 @@ The registry consistency test could be extended for comprehensive health monitor
 5. **Development Efficiency**: Live debugging without server restarts
 
 This introspection capability transforms development and testing workflows by providing unprecedented visibility into the running MCP server state across all architectural layers.
+
+## Appendix 1 - nrepl's handlers middleware
+
+Review NREPL's "Custom Middleware":
+https://lambdaisland.com/guides/clojure-repls/clojure-repls

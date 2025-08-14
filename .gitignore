@@ -34,3 +34,6 @@ tmp/
 .clj-kondo/.cache/
 .calva/
 server.log
+
+# Old/deprecated scripts moved here for archival
+/old/

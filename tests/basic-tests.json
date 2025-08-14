@@ -1,0 +1,72 @@
+{
+  "connectivity": [
+    {
+      "name": "debug_eval_basic",
+      "tool": "debug-eval",
+      "args": {"code": "(+ 1 2 3)"},
+      "expected": {"status": "success"},
+      "description": "Basic arithmetic evaluation"
+    },
+    {
+      "name": "debug_eval_string",
+      "tool": "debug-eval", 
+      "args": {"code": "(str \"Hello\" \" \" \"World\")"},
+      "description": "String concatenation"
+    },
+    {
+      "name": "nrepl_server_status",
+      "tool": "nrepl-server",
+      "args": {"op": "status"},
+      "expected": {"status": "success"},
+      "description": "Check nREPL server status"
+    }
+  ],
+  
+  "persistence": [
+    {
+      "name": "define_variable",
+      "tool": "debug-eval",
+      "args": {"code": "(def test-var 42)"},
+      "description": "Define a test variable"
+    },
+    {
+      "name": "access_variable", 
+      "tool": "debug-eval",
+      "args": {"code": "test-var"},
+      "description": "Access previously defined variable"
+    },
+    {
+      "name": "define_function",
+      "tool": "debug-eval",
+      "args": {"code": "(defn test-fn [x] (* x x))"},
+      "description": "Define a test function"
+    },
+    {
+      "name": "call_function",
+      "tool": "debug-eval", 
+      "args": {"code": "(test-fn 7)"},
+      "description": "Call previously defined function"
+    }
+  ],
+  
+  "introspection": [
+    {
+      "name": "list_namespaces",
+      "tool": "debug-eval",
+      "args": {"code": "(mapv ns-name (all-ns))"},
+      "description": "List all loaded namespaces"
+    },
+    {
+      "name": "tool_registry_access",
+      "tool": "debug-eval",
+      "args": {"code": "(keys @nrepl-mcp_server.state.tool-registry/tool-registry)"},
+      "description": "Access tool registry from different namespace"
+    },
+    {
+      "name": "registry_count",
+      "tool": "debug-eval",
+      "args": {"code": "(count @nrepl-mcp_server.state.tool-registry/tool-registry)"},
+      "description": "Count registered tools"
+    }
+  ]
+}

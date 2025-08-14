@@ -1,0 +1,42 @@
+{
+  "description": "Orchestrated testing configuration that replaces test-master.sh",
+  "phases": [
+    {
+      "name": "Phase 1: stdio Basic Functionality",
+      "transport": "stdio",
+      "client": {
+        "server_cmd": "bb -cp src src/nrepl_mcp_server/core.clj",
+        "timeout": 30
+      },
+      "test_file": "tests/basic-tests.json",
+      "stop_on_failure": false,
+      "description": "Test basic MCP functionality via stdio transport"
+    },
+    {
+      "name": "Phase 2: HTTP Bridge Functionality", 
+      "transport": "http",
+      "client": {
+        "base_url": "http://localhost:3000",
+        "timeout": 30
+      },
+      "test_file": "tests/basic-tests.json",
+      "stop_on_failure": false,
+      "description": "Test same functionality via HTTP bridge for stateful validation"
+    },
+    {
+      "name": "Phase 3: Tool Discovery",
+      "transport": "stdio",
+      "client": {
+        "server_cmd": "bb -cp src src/nrepl_mcp_server/core.clj",
+        "timeout": 30
+      },
+      "stop_on_failure": false,
+      "description": "Dynamic tool discovery and basic connectivity tests"
+    }
+  ],
+  "global_settings": {
+    "parallel_execution": false,
+    "cleanup_between_phases": true,
+    "verbose_logging": true
+  }
+}
