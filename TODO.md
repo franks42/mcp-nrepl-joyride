@@ -1,7 +1,7 @@
 # MCP-nREPL Project TODO List - CLEAN SLATE REFACTORING
 
-Last updated: 2025-08-13
-**Status**: 🚀 **CLEAN SLATE REFACTORING** - Building proper 3-layer architecture from scratch
+Last updated: 2025-08-15
+**Status**: 🎯 **PHASE 2B COMPLETED** - Message Queue Infrastructure fully implemented
 
 ## 🎯 **PROJECT MISSION: CLEAN ARCHITECTURE REBUILD**
 
@@ -36,7 +36,7 @@ Last updated: 2025-08-13
   - `./scripts/test-phase3.sh` - Future real nREPL communication tests
   - `./scripts/test-master.sh` - **Master orchestrator** with individual phase control
 
-### **Phase 2: Three Core MCP Functions** 🏗️ **IN PROGRESS**
+### **Phase 2: Three Core MCP Functions** ✅ **COMPLETED**
 
 #### **2a: Reactive Connection Management** ✅ **COMPLETED**
 - [x] **Create state namespace** (`src/mcp_server/state.clj`)
@@ -334,27 +334,27 @@ This violates single source of truth principle and creates synchronization risks
 
 **Phase 2a.10 Complete!** Unified connection state management serves as solid foundation for Phase 2b async message queuing.
 
-#### **2b: Message Queue Infrastructure** 🔄 **USE PHASE H3 FOR TESTING**
+#### **2b: Message Queue Infrastructure** ✅ **COMPLETED**
 
 **Architecture**: 4-phase reactive message queue with introspectable checkpoints at each phase
 
-##### **Phase 2b.1: Basic send-message-async Implementation**
-- [ ] **Implement send-message-async MCP tool**
+##### **Phase 2b.1: Basic send-message-async Implementation** ✅ **COMPLETED**
+- [x] **Implement send-message-async MCP tool**
   - Check connection status (fail if not connected)
   - Generate UUID v7 message-id (becomes nREPL `id` field)
   - Add message to send FIFO queue with timestamp
   - Create result-queue entry with status `:pending`
   - Return message-id immediately to caller
   
-- [ ] **Testing & Validation**:
+- [x] **Testing & Validation**:
   - Use debug-eval to introspect `@send-queue` - verify message added
   - Use debug-eval to check `@result-queue` - verify `:pending` entry created
   - Verify UUID v7 format and uniqueness
   - Test connection check (should fail when disconnected)
   - **TEST FUNCTION**: `(validate-phase1-queuing)`
 
-##### **Phase 2b.2: Send Queue Watcher Implementation**
-- [ ] **Implement send-queue-watcher**
+##### **Phase 2b.2: Send Queue Watcher Implementation** ✅ **COMPLETED**
+- [x] **Implement send-queue-watcher**
   - Process FIFO queue (preserve message order!)
   - Take message from queue
   - Send to nREPL server via socket
@@ -362,15 +362,15 @@ This violates single source of truth principle and creates synchronization risks
   - Update result-queue status to `:sending` then `:sent`
   - Handle send failures → status `:failed`
   
-- [ ] **Testing & Validation**:
+- [x] **Testing & Validation**:
   - Mock nREPL send (don't need real server yet)
   - Use debug-eval to verify queue processing
   - Check status transitions: `:pending` → `:sending` → `:sent`
   - Verify FIFO order preservation
   - **TEST FUNCTION**: `(validate-phase2-sending)`
 
-##### **Phase 2b.3: Receive Watcher Implementation**
-- [ ] **Implement receive-watcher**
+##### **Phase 2b.3: Receive Watcher Implementation** ✅ **COMPLETED**
+- [x] **Implement receive-watcher**
   - Read responses from nREPL socket
   - Match response to message-id (correlation)
   - Handle partial/streaming responses (status `:partial`)
@@ -379,15 +379,15 @@ This violates single source of truth principle and creates synchronization risks
   - Set status to `:done` when complete
   - Handle nREPL error responses → status `:error`
   
-- [ ] **Testing & Validation**:
+- [x] **Testing & Validation**:
   - Simulate received messages via debug-eval
   - Test multi-part response handling
   - Verify message correlation by id
   - Check status transitions: `:sent` → `:partial` → `:done`
   - **TEST FUNCTION**: `(validate-phase3-receiving)`
 
-##### **Phase 2b.4: Get-Result-Async Implementation**
-- [ ] **Implement get-result-async MCP tool**
+##### **Phase 2b.4: Get-Result-Async Implementation** ✅ **COMPLETED**
+- [x] **Implement get-result-async MCP tool**
   - Lookup message-id in result-queue
   - If status `:done` - remove entry and return result
   - If status `:pending`/`:sending`/`:sent` - wait on promise
@@ -395,27 +395,32 @@ This violates single source of truth principle and creates synchronization risks
   - Return timeout error if exceeds limit
   - Clean up entry after returning
   
-- [ ] **Testing & Validation**:
+- [x] **Testing & Validation**:
   - Test immediate return for completed messages
   - Test waiting on pending messages
   - Test timeout behavior
   - Verify entry cleanup after retrieval
   - **TEST FUNCTION**: `(validate-phase4-retrieval)`
 
-##### **Phase 2b.5: Send-Message-Sync Wrapper**
-- [ ] **Implement send-message-sync wrapper**
+##### **Phase 2b.5: Send-Message-Get-Result Sync-Wrapper** ✅ **COMPLETED**
+- [x] **Implement send-message-get-result wrapper**
   - Combines send-message-async + get-result-async
   - Single synchronous call for simple use cases
   - Pass through timeout parameter
   - Return result or error directly
   
-- [ ] **Testing & Validation**:
+- [x] **Testing & Validation**:
   - End-to-end test with real nREPL server
   - Test timeout propagation
   - Compare with direct nREPL operations
-  - **TEST FUNCTION**: `(validate-phase5-sync-wrapper)`
+  - **TEST FUNCTION**: `(validate-phase5-send-message-get-result)`
 
-##### **Phase 2b.6: Error Handling & Timeouts**
+##### **Phase 2b.6: Comprehensive Tests & Error Handling & Timeouts**
+- [ ] **Comprehensive Testing**
+  - Handbook/manual for starting bridge & MCP & nREPL servers
+  - Handbook/manual for explore and testing tools
+  - Collect and organize test scripts for different components
+
 - [ ] **Implement comprehensive error handling**
   - Connection lost during operation
   - Malformed messages
@@ -509,8 +514,8 @@ This violates single source of truth principle and creates synchronization risks
 
 1. **Design & Plan** - Update architecture doc with approach
 2. **Implement** - Write minimal working code
-3. **Format code** - `./format.sh` 
-4. **Lint code** - `./clojure-quality.sh` (includes format + lint)
+3. **Format code** - `./scripts/format.sh` 
+4. **Lint code** - `./scripts/clojure-quality.sh` (includes format + lint)
 5. **Tree-sitter validation** - Analyze code structure
 6. **Comprehensive testing** - Complete test cycle (see below)
 7. **Update documentation** - Reflect actual implementation

@@ -6,7 +6,7 @@ echo "🎨 Python code quality check..."
 
 # Step 1: Format code first
 echo "📝 Step 1: Formatting Python code..."
-./format-python.sh
+./scripts/format-python.sh
 
 if [ $? -ne 0 ]; then
     echo "❌ Python formatting failed!"
@@ -15,7 +15,7 @@ fi
 
 # Step 2: Lint for issues
 echo "🔍 Step 2: Linting Python code..."
-./lint-python.sh
+./scripts/lint-python.sh
 
 if [ $? -eq 0 ]; then
     echo ""
@@ -28,12 +28,12 @@ if [ $? -eq 0 ]; then
 else
     echo ""
     echo "⚠️ Python code quality check FAILED!"
-    echo "❌ Fix linting issues and run ./python-quality.sh again"
+    echo "❌ Fix linting issues and run ./scripts/python-quality.sh again"
     echo ""
     echo "Workflow to fix issues:"
     echo "  1. Fix the reported issues"
     echo "  2. 🚨 Check decorator spacing manually"
-    echo "  3. Run ./python-quality.sh again"
+    echo "  3. Run ./scripts/python-quality.sh again"
     echo "  4. Repeat until all checks pass"
     exit 1
 fi

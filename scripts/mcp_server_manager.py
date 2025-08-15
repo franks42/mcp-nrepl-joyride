@@ -6,14 +6,14 @@ Handles starting, stopping, testing, and monitoring the MCP-nREPL server
 without requiring user confirmations for each command.
 """
 
-import subprocess
-import time
+import argparse
 import os
 import signal
+import subprocess
 import sys
-import argparse
-import urllib.request
+import time
 import urllib.error
+import urllib.request
 from pathlib import Path
 
 
@@ -344,9 +344,7 @@ def main():
     parser.add_argument(
         "--port", type=int, default=3004, help="Server port (default: 3004)"
     )
-    parser.add_argument(
-        "--no-debug", action="store_true", help="Disable debug logging"
-    )
+    parser.add_argument("--no-debug", action="store_true", help="Disable debug logging")
     parser.add_argument(
         "--foreground", action="store_true", help="Run server in foreground"
     )

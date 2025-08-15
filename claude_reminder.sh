@@ -65,6 +65,6 @@ trap cleanup INT TERM EXIT
 echo "🚀 Starting Claude Code..."
 echo ""
 # claude "$@"
-/Users/franksiebenlist/.claude/local/claude "$@"
+$HOME/.claude/local/claude "$@"
 
 # Cleanup happens automatically via trap

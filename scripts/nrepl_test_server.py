@@ -12,14 +12,14 @@ Usage:
     python3 nrepl_test_server.py status
 """
 
-import os
-import sys
 import json
-import time
+import os
 import signal
 import subprocess
+import sys
+import time
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 
 
 class NReplTestServer:
@@ -89,8 +89,9 @@ class NReplTestServer:
         # Check if already running
         info = self.get_server_info()
         if info and self.is_process_running(info["pid"]):
-            print(f"⚠️  Server already running: PID={info['pid']}, "
-                  f"Port={info['port']}")
+            print(
+                f"⚠️  Server already running: PID={info['pid']}, " f"Port={info['port']}"
+            )
             return True
 
         # Clean up any stale files
@@ -130,13 +131,11 @@ class NReplTestServer:
             print("✅ Server started successfully!")
             print(f"   PID: {process.pid}")
             print(f"   Port: {port}")
-            print(f"   Connect: clj -M -m nrepl.cmdline --connect "
-                  f"--port {port}")
+            print(f"   Connect: clj -M -m nrepl.cmdline --connect " f"--port {port}")
             print("   Or use: python3 ./mcp_nrepl_client.py --status")
             print()
             print("💡 This server supports FULL Clojure capabilities:")
-            print("   - Promises with timeouts: "
-                  "(deref (promise) 100 :timeout)")
+            print("   - Promises with timeouts: " "(deref (promise) 100 :timeout)")
             print("   - Futures with background execution")
             print("   - Complete Java interoperability")
             print("   - All concurrent programming primitives")
@@ -144,8 +143,10 @@ class NReplTestServer:
             return True
 
         except FileNotFoundError:
-            print("❌ Error: 'clj' command not found. "
-                  "Please install Clojure CLI tools.")
+            print(
+                "❌ Error: 'clj' command not found. "
+                "Please install Clojure CLI tools."
+            )
             return False
         except Exception as e:
             print(f"❌ Error starting server: {e}")
@@ -217,8 +218,7 @@ class NReplTestServer:
 
         if self.is_process_running(pid):
             uptime = time.time() - started_at
-            uptime_str = (f"{uptime:.1f}s" if uptime < 60
-                          else f"{uptime/60:.1f}m")
+            uptime_str = f"{uptime:.1f}s" if uptime < 60 else f"{uptime/60:.1f}m"
 
             print("Status: ✅ Running")
             print(f"PID: {pid}")
@@ -252,15 +252,13 @@ class NReplTestServer:
             return True
         else:
             print(f"❌ Unknown command: {command}")
-            print("Usage: python3 nrepl_test_server.py "
-                  "[start|stop|restart|status]")
+            print("Usage: python3 nrepl_test_server.py " "[start|stop|restart|status]")
             return False
 
 
 def main():
     if len(sys.argv) != 2:
-        print("Usage: python3 nrepl_test_server.py "
-              "[start|stop|restart|status]")
+        print("Usage: python3 nrepl_test_server.py " "[start|stop|restart|status]")
         print()
         print("Commands:")
         print("  start   - Start the Full Clojure nREPL test server")

@@ -16,18 +16,20 @@ import argparse
 import asyncio
 import json
 import sys
-from typing import Dict, Any
+from typing import Any, Dict
 
 try:
     import httpx
+
     HTTPX_AVAILABLE = True
 except ImportError:
     HTTPX_AVAILABLE = False
 
 try:
     from rich.console import Console
-    from rich.syntax import Syntax
     from rich.panel import Panel
+    from rich.syntax import Syntax
+
     RICH_AVAILABLE = True
 except ImportError:
     RICH_AVAILABLE = False
@@ -35,12 +37,12 @@ except ImportError:
 
 class MCPExplorer:
     """Simple MCP explorer for seeing raw responses."""
-    
+
     def __init__(self, base_url: str = "http://localhost:3000"):
         if not HTTPX_AVAILABLE:
             raise ImportError("httpx required: uv add httpx")
-        
-        self.base_url = base_url.rstrip('/')
+
+        self.base_url = base_url.rstrip("/")
         self.mcp_url = f"{self.base_url}/mcp/"
         self.headers = {
             "Content-Type": "application/json",
@@ -48,39 +50,38 @@ class MCPExplorer:
         }
         self.request_id = 1
         self.console = Console() if RICH_AVAILABLE else None
-    
-    async def call_tool(self, tool_name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
+
+    async def call_tool(
+        self, tool_name: str, arguments: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Call an MCP tool and return raw response."""
         payload = {
             "jsonrpc": "2.0",
             "id": self.request_id,
             "method": "tools/call",
-            "params": {
-                "name": tool_name,
-                "arguments": arguments
-            }
+            "params": {"name": tool_name, "arguments": arguments},
         }
         self.request_id += 1
-        
+
         async with httpx.AsyncClient(timeout=30) as client:
-            response = await client.post(self.mcp_url, json=payload, headers=self.headers)
+            response = await client.post(
+                self.mcp_url, json=payload, headers=self.headers
+            )
             response.raise_for_status()
             return response.json()
-    
+
     async def list_tools(self) -> Dict[str, Any]:
         """List available MCP tools."""
-        payload = {
-            "jsonrpc": "2.0", 
-            "id": self.request_id,
-            "method": "tools/list"
-        }
+        payload = {"jsonrpc": "2.0", "id": self.request_id, "method": "tools/list"}
         self.request_id += 1
-        
+
         async with httpx.AsyncClient(timeout=30) as client:
-            response = await client.post(self.mcp_url, json=payload, headers=self.headers)
+            response = await client.post(
+                self.mcp_url, json=payload, headers=self.headers
+            )
             response.raise_for_status()
             return response.json()
-    
+
     def print_response(self, response: Dict[str, Any], title: str = "MCP Response"):
         """Pretty print the response."""
         if self.console:
@@ -92,7 +93,7 @@ class MCPExplorer:
             # Fallback to plain JSON
             print(f"\\n=== {title} ===")
             print(json.dumps(response, indent=2))
-    
+
     def extract_content(self, response: Dict[str, Any]) -> str:
         """Extract the actual content from MCP response if available."""
         try:
@@ -111,7 +112,7 @@ class MCPExplorer:
             return None
         except (KeyError, IndexError, TypeError):
             return None
-    
+
     def extract_clojure_value(self, response: Dict[str, Any]) -> Any:
         """Extract the Clojure return value from debug-eval responses."""
         content = self.extract_content(response)
@@ -154,29 +155,40 @@ Examples:
   
   # Quiet mode: just the data, no headers
   %(prog)s --tool debug-eval --args '{"code": "42"}' --quiet
-        """
+        """,
     )
-    
-    parser.add_argument("--base-url", default="http://localhost:3000",
-                      help="Base URL for MCP server (default: %(default)s)")
+
+    parser.add_argument(
+        "--base-url",
+        default="http://localhost:3000",
+        help="Base URL for MCP server (default: %(default)s)",
+    )
     parser.add_argument("--tool", help="Tool name to call")
     parser.add_argument("--args", help="Tool arguments as JSON string", default="{}")
-    parser.add_argument("--eval", help="Evaluate Clojure code directly (shortcut for debug-eval)")
-    parser.add_argument("--list-tools", action="store_true", 
-                      help="List available tools")
-    parser.add_argument("--output", choices=["raw", "json", "clj"], default="json",
-                      help="Output format: raw (full MCP), json (tool response), clj (Clojure value for debug-eval)")
-    parser.add_argument("--quiet", action="store_true",
-                      help="Only show essential output")
-    
+    parser.add_argument(
+        "--eval", help="Evaluate Clojure code directly (shortcut for debug-eval)"
+    )
+    parser.add_argument(
+        "--list-tools", action="store_true", help="List available tools"
+    )
+    parser.add_argument(
+        "--output",
+        choices=["raw", "json", "clj"],
+        default="json",
+        help="Output format: raw (full MCP), json (tool response), clj (Clojure value for debug-eval)",
+    )
+    parser.add_argument(
+        "--quiet", action="store_true", help="Only show essential output"
+    )
+
     args = parser.parse_args()
-    
+
     if not args.list_tools and not args.tool and not args.eval:
         parser.error("Must specify --list-tools, --tool, or --eval")
-    
+
     try:
         explorer = MCPExplorer(args.base_url)
-        
+
         if args.list_tools:
             response = await explorer.list_tools()
             if not args.quiet:
@@ -187,11 +199,11 @@ Examples:
                     tools = response["result"]["tools"]
                     for tool in tools:
                         print(tool.get("name", "unknown"))
-        
+
         elif args.eval:
             # Special case: direct Clojure evaluation
             response = await explorer.call_tool("debug-eval", {"code": args.eval})
-            
+
             # Always return just the Clojure value for --eval
             clj_value = explorer.extract_clojure_value(response)
             if clj_value is not None:
@@ -207,16 +219,16 @@ Examples:
                     return 1
                 else:
                     print(json.dumps(content or response, indent=2))
-        
+
         elif args.tool:
             try:
                 tool_args = json.loads(args.args)
             except json.JSONDecodeError as e:
                 print(f"Error parsing arguments JSON: {e}", file=sys.stderr)
                 return 1
-            
+
             response = await explorer.call_tool(args.tool, tool_args)
-            
+
             # Handle different output formats
             if args.output == "raw":
                 # Show full MCP JSON-RPC response
@@ -224,7 +236,7 @@ Examples:
                     explorer.print_response(response, f"Raw MCP Response: {args.tool}")
                 else:
                     print(json.dumps(response, indent=2))
-            
+
             elif args.output == "json":
                 # Show extracted tool response (parsed JSON from content)
                 content = explorer.extract_content(response)
@@ -240,7 +252,7 @@ Examples:
                     if not args.quiet:
                         print(f"\\n=== No extractable content, showing raw ===")
                     print(json.dumps(response, indent=2))
-            
+
             elif args.output == "clj":
                 # Show Clojure value (for debug-eval)
                 clj_value = explorer.extract_clojure_value(response)
@@ -261,9 +273,9 @@ Examples:
                             print(content)
                     else:
                         print(json.dumps(response, indent=2))
-        
+
         return 0
-        
+
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
         return 1
