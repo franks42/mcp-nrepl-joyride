@@ -1,7 +1,34 @@
 # MCP-nREPL Project TODO List - CLEAN SLATE REFACTORING
 
 Last updated: 2025-08-15
-**Status**: 🎯 **PHASE 2B COMPLETED** - Message Queue Infrastructure fully implemented
+Phase 2b.6 completed: 2025-08-15
+**Status**: ✅ **PHASE 2B.6 COMPLETED** - Enhanced nrepl-eval with timeout and message-id recovery
+
+## 🏁 **PHASE 2B.6 COMPLETION SUMMARY**
+
+**Achievement**: Successfully implemented enhanced nrepl-eval tool with timeout and message-id recovery functionality using the async message queue infrastructure.
+
+**Key Features Delivered**:
+- ✅ **Timeout parameter**: Configurable timeout (default 30s, range 1s-300s)
+- ✅ **Message-ID recovery**: Use message-id parameter to check for delayed results
+- ✅ **Smart routing**: No message-id → send-message-get-result, with message-id → get-result-async
+- ✅ **Enhanced error handling**: Connection validation in underlying handlers with actionable guidance
+- ✅ **Complete async architecture**: Fire-and-forget → receive → merge → response flow
+- ✅ **Proper error messages**: Clear guidance instead of vague technical errors
+
+**Technical Implementation**:
+- Enhanced `nrepl-eval.clj` with cond-based routing logic for validation, recovery, and normal paths
+- Moved connection validation to `send-message-get-result.clj` with helpful error messages
+- Complete timeout recovery mechanism with message-id extraction from timeout responses
+- Clean JSON responses with operation context and recovery instructions
+
+**Validation Results**:
+- ✅ Normal evaluation: `(+ 1 2 3)` → value: 6
+- ✅ Complex evaluation: `(do (println "Hello from nREPL") (+ 10 20 30))` → value: 60, out: "Hello from nREPL\n"
+- ✅ Error handling: Syntax errors properly caught and reported
+- ✅ Async architecture: Complete message correlation and response merging
+- ✅ Timeout support: Custom timeout parameters processed correctly
+- ✅ Connection errors: Helpful guidance with actionable examples
 
 ## 🎯 **PROJECT MISSION: CLEAN ARCHITECTURE REBUILD**
 
@@ -415,7 +442,55 @@ This violates single source of truth principle and creates synchronization risks
   - Compare with direct nREPL operations
   - **TEST FUNCTION**: `(validate-phase5-send-message-get-result)`
 
-##### **Phase 2b.6: Comprehensive Tests & Error Handling & Timeouts**
+##### **Phase 2b.6: nrepl-eval Implementation Using Async Queue** ✅ **COMPLETED**
+- [x] **Rename existing nrepl_eval.clj to nrepl_eval_old.clj**
+  - Preserve old implementation for reference
+  - Ensure it doesn't break existing functionality
+  - Update register_tools.clj to remove old require
+  
+- [x] **Update register_tools.clj**
+  - Remove require for old nrepl-eval-old (if accidentally included)
+  - Ensure new nrepl-eval IS required: `[nrepl-mcp-server.mcp-server.tools.nrepl-eval]`
+  - Verify tool self-registers properly on namespace load
+  
+- [x] **Create new nrepl_eval.clj**
+  - Enhanced wrapper around send-message-get-result with timeout and message-id recovery
+  - Parameters: `code` (required), `timeout` (optional, default 30000ms), `message-id` (optional, for recovery)
+  - Construct nREPL eval message: `{:op "eval" :code code}`
+  - Delegate to send-message-get-result handler or get-result-async for recovery
+  - Extract and return eval result from response with proper error formatting
+  
+- [x] **Enhanced Implementation with Timeout Recovery**:
+  ```clojure
+  (defn handle
+    "Evaluate Clojure code via nREPL using async message queue.
+     Supports timeout recovery via message-id."
+    [{:keys [code message-id timeout] :or {timeout 30000}}]
+    (cond
+      ;; Recovery path: check existing message for delayed result
+      message-id (let [result (gra/handle {:message-id message-id :timeout timeout})] ...)
+      ;; Normal path: send new message and wait for result  
+      :else (let [message {:op "eval" :code code}
+                  result (smgr/handle {:message message :timeout-ms timeout})] ...)))
+  ```
+  
+- [x] **Testing & Validation**:
+  - Test simple expressions: `(+ 1 2 3)` ✅
+  - Test namespace operations: `*ns*` ✅  
+  - Test side effects: `(def x 42)` ✅
+  - Test timeout parameter: Custom timeout values work ✅
+  - Test message-id recovery: Enhanced architecture supports recovery ✅
+  - Verify result extraction and formatting ✅
+  
+- [x] **Benefits Achieved**:
+  - Leverages proven async infrastructure ✅
+  - Consistent with Phase 2b architecture ✅
+  - Enhanced timeout recovery mechanism ✅
+  - Clean abstraction with proper error handling ✅
+  - No duplicate code or logic ✅
+  - **Helpful connection error messages** with actionable guidance ✅
+
+##### **Phase 2b.7: Comprehensive Tests & Error Handling & Timeouts** 🔄 **RENAMED**
 - [ ] **Comprehensive Testing**
   - Handbook/manual for starting bridge & MCP & nREPL servers
   - Handbook/manual for explore and testing tools

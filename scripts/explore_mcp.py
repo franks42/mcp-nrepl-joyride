@@ -150,6 +150,19 @@ Examples:
   %(prog)s --eval "@nrepl-mcp-server.state.connection/connection-state"
   %(prog)s --eval "(keys (ns-publics *ns*))"
   
+  # 💡 NEW: Easy code passing for any tool (no JSON escaping needed!)
+  %(prog)s --tool nrepl-eval --code "(+ 1 2 3)"
+  %(prog)s --tool debug-eval --code "(println \"Hello World\")"
+  %(prog)s --tool nrepl-eval --code "(defn greet [name] (str \"Hello \" name))"
+  
+  # 🚀 ZERO ESCAPING: Use stdin for complex code  
+  echo "(defn greet [name] (str \"Hello, \" name \"!\"))" | %(prog)s --tool nrepl-eval --code-stdin
+  cat my-code.clj | %(prog)s --tool nrepl-eval --code-stdin --base-url http://localhost:3000/mcp
+  
+  # 💫 BEST: Load from file (no confirmation prompts!)
+  %(prog)s --tool nrepl-eval --load-code-file my-code.clj --base-url http://localhost:3000/mcp
+  %(prog)s --tool debug-eval --load-code-file test.clj --quiet
+  
   # Check nREPL connection status
   %(prog)s --tool nrepl-server --args '{"op": "status"}'
   
@@ -165,6 +178,19 @@ Examples:
     )
     parser.add_argument("--tool", help="Tool name to call")
     parser.add_argument("--args", help="Tool arguments as JSON string", default="{}")
+    parser.add_argument(
+        "--code",
+        help="Clojure code to pass as 'code' parameter (auto-escaped for any tool)",
+    )
+    parser.add_argument(
+        "--code-stdin",
+        action="store_true",
+        help="Read code from stdin (no escaping needed at all!)",
+    )
+    parser.add_argument(
+        "--load-code-file",
+        help="Load code from file path (no escaping, handles any file size)",
+    )
     parser.add_argument(
         "--eval", help="Evaluate Clojure code directly (shortcut for debug-eval)"
     )
@@ -185,6 +211,21 @@ Examples:
 
     if not args.list_tools and not args.tool and not args.eval:
         parser.error("Must specify --list-tools, --tool, or --eval")
+
+    # Code parameters require --tool
+    if (args.code or args.code_stdin or args.load_code_file) and not args.tool:
+        parser.error(
+            "--code/--code-stdin/--load-code-file requires --tool to be specified"
+        )
+
+    # Code parameters are mutually exclusive
+    code_params = sum(
+        [bool(args.code), bool(args.code_stdin), bool(args.load_code_file)]
+    )
+    if code_params > 1:
+        parser.error(
+            "--code, --code-stdin, and --load-code-file are mutually exclusive"
+        )
 
     try:
         explorer = MCPExplorer(args.base_url)
@@ -226,6 +267,40 @@ Examples:
             except json.JSONDecodeError as e:
                 print(f"Error parsing arguments JSON: {e}", file=sys.stderr)
                 return 1
+
+            # If --code is specified, add it to the arguments (overriding any existing 'code')
+            if args.code:
+                tool_args["code"] = args.code
+            elif args.code_stdin:
+                # Read code from stdin
+                code_from_stdin = sys.stdin.read().strip()
+                if not code_from_stdin:
+                    print("Error: No code provided on stdin", file=sys.stderr)
+                    return 1
+                tool_args["code"] = code_from_stdin
+            elif args.load_code_file:
+                # Read code from file
+                try:
+                    with open(args.load_code_file, "r", encoding="utf-8") as f:
+                        code_from_file = f.read().strip()
+                    if not code_from_file:
+                        print(
+                            f"Error: File {args.load_code_file} is empty",
+                            file=sys.stderr,
+                        )
+                        return 1
+                    tool_args["code"] = code_from_file
+                except FileNotFoundError:
+                    print(
+                        f"Error: File {args.load_code_file} not found", file=sys.stderr
+                    )
+                    return 1
+                except Exception as e:
+                    print(
+                        f"Error reading file {args.load_code_file}: {e}",
+                        file=sys.stderr,
+                    )
+                    return 1
 
             response = await explorer.call_tool(args.tool, tool_args)
 

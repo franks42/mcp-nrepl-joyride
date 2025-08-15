@@ -16,3 +16,10 @@
 🐍 **CRITICAL REQUIREMENTS: PYTHON CODE QUALITY & UV USAGE**
 1. For every Python code change, run ./scripts/python_quality.sh
 2. Use UV wherever possible for Python package management and tool execution!
+
+**mcp-nrepl-server project: mcp server to manage/introspect/code live applications through NREPL**
+
+Test: **mcp-client** => steamableHTTP => **persistent-bridge** => stdio => **mcp-nrepl-server** => socket => **nrepl-server**
+bridge + mcp-nrepl-server are started in background (&): scripts/start-http-bridge.sh
+nrepl-server start/stop/status: scripts/nrepl_test_server.py
+mcp-client for testing: scripts/explore_mcp.py

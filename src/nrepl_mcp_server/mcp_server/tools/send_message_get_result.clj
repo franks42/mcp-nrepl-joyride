@@ -2,6 +2,7 @@
   "Synchronous nREPL message sending tool for MCP - Phase 2b.5 (SYNC WRAPPER)"
   (:require [nrepl-mcp-server.state.messages :as msg-state]
             [nrepl-mcp-server.state.results :as results]
+            [nrepl-mcp-server.state.connection :as conn]
             [cheshire.core :as json]
             [nrepl-mcp-server.state.tool-registry :as registry]))
 
@@ -15,7 +16,9 @@
   [{:keys [message timeout-ms]
     :or {timeout-ms 30000}}] ; Default 30 second timeout
 
-  (if (empty? message)
+  (cond
+    ;; Validation: message is required
+    (empty? message)
     {:content [{:type "text"
                 :text (json/generate-string
                        {:status "error"
@@ -24,6 +27,20 @@
                        {:pretty true})}]
      :isError true}
 
+    ;; Check if we have an active nREPL connection
+    (not (conn/connected?))
+    {:content [{:type "text"
+                :text (json/generate-string
+                       {:status "error"
+                        :operation "send-message-get-result"
+                        :error "No nREPL connection available"
+                        :hint "Connect to an nREPL server first using the nrepl-server tool"
+                        :example "Use: nrepl-server with {\"op\": \"connect\", \"connection\": \"localhost:7890\"}"}
+                       {:pretty true})}]
+     :isError true}
+
+    ;; Process the message
+    :else
     ;; Step 1: Send message asynchronously using native function
     (if-let [message-id (msg-state/enqueue-message! message)]
       ;; Step 2: Wait for result using native function

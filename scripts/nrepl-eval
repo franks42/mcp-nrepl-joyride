@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# Simple wrapper for nrepl-eval with stdin code input
+# Usage: ./nrepl-eval < code.clj
+# Or:    echo "(+ 1 2 3)" | ./nrepl-eval
+
+BASE_URL=${MCP_SERVER_URL:-http://localhost:3000/mcp}
+
+exec uv run python "$(dirname "$0")/explore_mcp.py" \
+  --tool nrepl-eval \
+  --code-stdin \
+  --base-url "$BASE_URL" \
+  --quiet \
+  "$@"

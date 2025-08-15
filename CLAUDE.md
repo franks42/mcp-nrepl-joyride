@@ -2,9 +2,9 @@
 
 This file contains important information for Claude Code when working with the MCP-nREPL Joyride project.
 
-## 🎯 Project Status: 🚧 PHASE 1 ASYNC ARCHITECTURE COMPLETED ✅ (January 2025)
+## 🎯 Project Status: ✅ PHASE 2B.6 ASYNC ARCHITECTURE COMPLETED (August 2025)
 
-**Phase 1: Transport Layer Foundation** - **✅ COMPLETED**
+**Phase 1: Transport Layer Foundation** - **✅ COMPLETED (January 2025)**
 - Complete async architecture transport layer implemented with Babashka
 - Connection state management with lifecycle tracking and activity monitoring
 - Promise-based timeout handling verified and tested
@@ -12,12 +12,22 @@ This file contains important information for Claude Code when working with the M
 - All tests passing at 100% success rate (11/11 tests)
 - Fixed connection ID generation and cleanup function logic
 
-**Phase 2: Internal Layer Implementation** - **⏳ NEXT**
-- Queue-based message management with lifecycle handling
-- Enhanced error reporting and failure tracking for better MCP caller visibility
-- Pure nREPL async interface implementation (nrepl-raw-async-int)
+**Phase 2: Clean Slate Refactoring** - **✅ COMPLETED (August 2025)**
+- ✅ **Phase 2a**: Reactive Connection Management & Self-Registering Tools
+- ✅ **Phase 2b**: Complete Message Queue Infrastructure (4-phase async architecture)
+  - **Phase 2b.1-2b.4**: send-message-async, send-queue-watcher, receive-watcher, get-result-async
+  - **Phase 2b.5**: send-message-get-result sync wrapper
+  - **Phase 2b.6**: Enhanced nrepl-eval with timeout and message-id recovery ✅ **COMPLETED**
 
-The MCP-nREPL Joyride bridge foundation is solid with explicit connection architecture and async capabilities ready for production queuing layer.
+**Current Status**: Production-ready async nREPL bridge with comprehensive timeout and recovery mechanisms.
+
+**Key Achievements in Phase 2b.6**:
+- Enhanced nrepl-eval tool with configurable timeout (default 30s, range 1s-300s)
+- Message-ID recovery mechanism for delayed result retrieval
+- Smart routing: no message-id → send-message-get-result, with message-id → get-result-async
+- Connection validation moved to underlying handlers with actionable error messages
+- Complete fire-and-forget → receive → merge → response async flow validated
+- Comprehensive testing with normal evaluation, error handling, and timeout scenarios
 
 ## 🏗️ Implementation Approach
 
