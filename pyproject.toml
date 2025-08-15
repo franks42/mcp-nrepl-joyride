@@ -5,9 +5,11 @@ description = "Babashka MCP server bridging Claude Code with Joyride nREPL"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "autoflake>=2.3.1",
     "black>=25.1.0",
     "flake8>=7.3.0",
     "httpx>=0.28.1",
+    "isort>=6.0.1",
     "mcp-proxy>=0.8.2",
     "requests>=2.32.4",
     "rich>=14.1.0",
@@ -21,3 +23,19 @@ dev-scripts = "scripts:main"
 
 [tool.uv]
 dev-dependencies = []
+
+[tool.black]
+line-length = 88
+target-version = ['py313']
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+  | \.venv
+  | venv-basilisp
+  | __pycache__
+  | \.egg-info
+  | build
+  | dist
+)/
+'''

@@ -1,0 +1,33 @@
+[flake8]
+# Flake8 configuration for the project
+max-line-length = 88
+extend-ignore = 
+    # E501: line too long (handled by black with 88 char limit)
+    E501,
+    # W503: line break before binary operator (conflicts with black)
+    W503,
+    # F401: imported but unused (often needed for imports in __init__.py)
+    F401,
+    # W291: trailing whitespace (black should handle this)
+    W291,
+    # W293: blank line contains whitespace (black should handle this)  
+    W293,
+    # F541: f-string is missing placeholders (sometimes intentional for consistency)
+    F541
+
+exclude = 
+    .venv,
+    venv-basilisp,
+    __pycache__,
+    .git,
+    *.egg-info,
+    build,
+    dist
+
+# Per-file ignores for specific cases
+per-file-ignores =
+    # Allow unused imports in __init__.py files
+    __init__.py:F401
+    # Allow bare except in utility scripts (often needed for broad error handling)
+    scripts/port_utils.py:E722
+    scripts/unified_mcp_tester.py:E722

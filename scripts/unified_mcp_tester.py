@@ -51,17 +51,14 @@ Design Philosophy:
 import argparse
 import asyncio
 import json
-import logging
 import os
-import signal
 import subprocess
 import sys
 import time
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional
 
 try:
     import httpx
@@ -73,8 +70,7 @@ except ImportError:
 try:
     from rich.console import Console
     from rich.panel import Panel
-    from rich.progress import Progress, SpinnerColumn, TextColumn
-    from rich.prompt import Confirm, Prompt
+    from rich.prompt import Prompt
     from rich.syntax import Syntax
     from rich.table import Table
 
@@ -207,7 +203,7 @@ class GenericMCPClient:
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 # Test basic connectivity
-                response = await client.get(f"{self.base_url}/")
+                await client.get(f"{self.base_url}/")
                 # Don't require 200 - server might return 404 for root
 
             # Try to initialize
@@ -661,8 +657,8 @@ class TestOrchestrator:
         if not self.results:
             return
 
-        total_tests = sum(r.total_tests for r in self.results)
-        total_passed = sum(r.passed for r in self.results)
+        # total_tests = sum(r.total_tests for r in self.results)
+        # total_passed = sum(r.passed for r in self.results)
         total_failed = sum(r.failed for r in self.results)
         total_errors = sum(r.errors for r in self.results)
 

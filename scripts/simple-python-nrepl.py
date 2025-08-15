@@ -5,7 +5,6 @@ Shows how Python could expose nREPL without full Basilisp
 """
 
 import json
-import socket
 import sys
 from datetime import datetime
 

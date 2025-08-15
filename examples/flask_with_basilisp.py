@@ -21,7 +21,7 @@ import os
 import sys
 from datetime import datetime
 
-from flask import Flask, jsonify, render_template_string, request
+from flask import Flask, jsonify, render_template_string
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

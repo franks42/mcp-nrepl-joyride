@@ -11,15 +11,15 @@ if ! command -v uv &> /dev/null; then
     exit 1
 fi
 
-# Lint with flake8
+# Lint with flake8 (exclude virtual environments)
 echo "📝 Running flake8 linter..."
-uv run flake8 .
+uv run flake8 . --exclude=.venv,venv-basilisp,__pycache__,.git
 
 flake8_exit=$?
 
-# Type check with mypy
+# Type check with mypy (exclude virtual environments)
 echo "🔍 Running mypy type checker..."
-uv run mypy . 2>/dev/null || echo "⚠️ mypy found type issues (may be expected)"
+uv run mypy . --exclude=.venv --exclude=venv-basilisp 2>/dev/null || echo "⚠️ mypy found type issues (may be expected)"
 
 mypy_exit=$?
 

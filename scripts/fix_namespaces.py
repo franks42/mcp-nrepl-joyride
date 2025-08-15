@@ -4,7 +4,6 @@ Script to fix namespace naming throughout the codebase.
 Changes nrepl-mcp_server to nrepl-mcp-server (proper Clojure conventions).
 """
 
-import os
 import re
 from pathlib import Path
 
