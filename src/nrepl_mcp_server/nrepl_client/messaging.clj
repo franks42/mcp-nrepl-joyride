@@ -43,7 +43,7 @@
   Implementation:
     Uses promise-based timeout with (deref promise timeout-ms :timeout) pattern
     as verified working in Babashka runtime environment."
-  [in message-id timeout-ms]
+  [in _message-id timeout-ms]
   (let [result-promise (promise)
         worker-future (future
                         (try
@@ -169,7 +169,7 @@
     Uses send-message-async -> collect-responses-async pipeline
     for full async message handling with timeout support.
     Integrates with reactive state management for tracking."
-  [{:keys [out in id] :as conn} message timeout-ms]
+  [{:keys [out in id] :as _conn} message timeout-ms]
   (let [msg-with-id (assoc message :id (generate-id))
         message-id (:id msg-with-id)]
     ;; Log message tracking (simplified for now)
@@ -250,7 +250,7 @@
   (when id
     (binding [*out* *err*]
       (println "[Fire&Forget] Message sent to connection:" id "msg-id:" (:id message))))
-  
+
   true)
 
 (defn result-processing-async

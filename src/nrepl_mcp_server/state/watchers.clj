@@ -91,7 +91,8 @@
          :connection nil}))
 
 (defn- process-nrepl-response!
-  "Process a single nREPL response and deliver to the appropriate promise"
+  "Process a single nREPL response and deliver to the appropriate promise.
+   Accumulates responses per message-id and merges them when 'done' status received."
   [response]
   (let [message-id (:id response)]
     (binding [*out* *err*]
@@ -100,24 +101,34 @@
     (if message-id
       ;; Try to find the pending message
       (if-let [pending-msg (msg-state/get-pending-message message-id)]
-        (do
+        ;; Add this response to the accumulated responses for this message
+        (let [current-responses (get pending-msg :accumulated-responses [])
+              updated-responses (conj current-responses response)]
+
+          ;; Update the pending message with accumulated responses
+          (msg-state/update-message-status! message-id :partial-response
+                                            :accumulated-responses updated-responses)
+
           ;; Check if this is a final response (has "done" status)
           (if (and (:status response)
                    (some #(= "done" %) (:status response)))
-            (do
-              ;; Final response - deliver result and cleanup
+            ;; Final response - merge all accumulated responses and deliver
+            (let [merged-response (#'messaging/merge-responses updated-responses)]
+              (binding [*out* *err*]
+                (println "[Receive-Watcher] Merging" (count updated-responses) "responses for:" message-id)
+                (println "[Receive-Watcher] Merged response:" merged-response))
+
               (msg-state/update-message-status! message-id :completed
                                                 :completed-at (System/currentTimeMillis))
-              (results/deliver-result! message-id {:status :success :response response})
+              (results/deliver-result! message-id {:status :success :response merged-response})
               (msg-state/remove-pending-message! message-id)
               (binding [*out* *err*]
-                (println "[Receive-Watcher] Final response delivered for:" message-id)))
+                (println "[Receive-Watcher] Final merged response delivered for:" message-id)))
 
-            (do
-              ;; Partial response - update status but don't deliver yet
-              (msg-state/update-message-status! message-id :partial-response)
-              (binding [*out* *err*]
-                (println "[Receive-Watcher] Partial response for:" message-id)))))
+            ;; Partial response - just log and continue accumulating
+            (binding [*out* *err*]
+              (println "[Receive-Watcher] Accumulated partial response for:" message-id
+                       "(total:" (count updated-responses) "responses)"))))
 
         ;; No pending message found - orphaned response
         (binding [*out* *err*]
@@ -151,7 +162,7 @@
             ;; Process the response
             (process-nrepl-response! converted-response))
 
-          (catch java.io.EOFException e
+          (catch java.io.EOFException _e
             (binding [*out* *err*]
               (println "[Receive-Watcher] EOF - connection closed"))
             (swap! receive-watcher-state assoc :running false))

@@ -244,6 +244,26 @@ nrepl-mcp-server/
 
 #### **2a.10: Unified Connection State Management** ✅ **COMPLETED**
 
+#### **2a.11: Code Quality and Formatting Cleanup** ✅ **COMPLETED**
+
+**Goal**: Clean up codebase with proper formatting and resolve linting issues.
+
+**Completed Tasks**:
+- [x] Format all Clojure files using cljfmt
+- [x] Lint all Clojure files using clj-kondo
+- [x] Fix major linting issues:
+  - Renamed `load-file` to `nrepl-load-file` to avoid clojure.core conflict
+  - Updated function reference in nrepl_eval.clj
+  - Fixed unused parameter bindings with underscore prefix
+- [x] Re-format and re-lint to ensure clean results
+
+**Results**:
+- ✅ All code properly formatted with cljfmt
+- ✅ Reduced linting warnings from 5 to 1 (remaining is a false positive)
+- ✅ Clean code structure and improved maintainability
+
+#### **2a.10: Unified Connection State Management** ✅ **COMPLETED**
+
 **Goal**: Eliminate duplicate connection state atoms by creating single source of truth in state namespace with human-readable connection IDs.
 
 **Problem**: Two connection state atoms maintain essentially the same information:

@@ -183,12 +183,12 @@
 
 (defn request-connect!
   "Request connection - backward compatibility (now just validation)"
-  [hostname port]
+  [_hostname _port]
   (can-connect?))
 
 (defn mark-connected!
   "Mark connection as successful - backward compatibility"
-  [socket]
+  [_socket]
   ;; This is now handled by register-connection!
   true)
 

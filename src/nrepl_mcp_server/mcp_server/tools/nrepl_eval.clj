@@ -100,7 +100,7 @@
     (let [conn-result (get-active-connection)]
       (if (:success conn-result)
         (try
-          (let [async-result (nrepl-ops/load-file
+          (let [async-result (nrepl-ops/nrepl-load-file
                               (:connection conn-result)
                               file-path
                               :session session

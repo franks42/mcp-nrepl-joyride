@@ -123,17 +123,18 @@
 (defn update-message-status!
   "Update the status of a pending message.
    Status can be :pending, :sending, :sent, :partial, :done, :failed, :timeout, :error"
-  [message-id new-status & {:keys [error bencode-sent sent-at completed-at]}]
+  [message-id new-status & {:keys [error bencode-sent sent-at completed-at accumulated-responses]}]
   (swap! message-queue
          (fn [state]
-           (if-let [msg (get-in state [:pending-messages message-id])]
+           (if-let [_msg (get-in state [:pending-messages message-id])]
              (update-in state [:pending-messages message-id]
                         (fn [entry]
                           (cond-> (assoc entry :status new-status)
                             error (assoc :error error)
                             bencode-sent (assoc :bencode-sent bencode-sent)
                             sent-at (assoc :sent-at sent-at)
-                            completed-at (assoc :completed-at completed-at))))
+                            completed-at (assoc :completed-at completed-at)
+                            accumulated-responses (assoc :accumulated-responses accumulated-responses))))
              state)))
   ;; Log status change
   (binding [*out* *err*]

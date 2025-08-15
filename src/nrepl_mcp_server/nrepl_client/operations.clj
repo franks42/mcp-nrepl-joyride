@@ -26,7 +26,7 @@
   [conn & {:keys [timeout-ms] :or {timeout-ms 5000}}]
   (msg/send-message-async conn {:op "describe"} timeout-ms))
 
-(defn load-file
+(defn nrepl-load-file
   "Load a file into the nREPL session"
   [conn file-path & {:keys [session ns timeout-ms] :or {timeout-ms 10000}}]
   (let [file-content (slurp file-path)

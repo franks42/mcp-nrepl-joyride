@@ -11,7 +11,7 @@
 (defn handle
   "Queue an nREPL message for async sending.
    Returns immediately with message-id for later retrieval."
-  [{:keys [message timeout] :or {timeout 30000}}]
+  [{:keys [message]}]
   (if (empty? message)
     {:content [{:type "text"
                 :text (json/generate-string
@@ -29,8 +29,7 @@
                          {:status "success"
                           :operation "send-message-async"
                           :message-id message-id
-                          :message "Message queued for sending (READY-TO-SEND format)"
-                          :timeout timeout}
+                          :message "Message queued for sending (READY-TO-SEND format)"}
                          {:pretty true})}]}
 
       ;; Failed - connection or formatting problem
@@ -53,7 +52,5 @@
   :inputSchema {:type "object"
                 :properties {:message {:type "object"
                                        :description "nREPL message to send (e.g. {:op \"eval\" :code \"...\"})"
-                                       :additionalProperties true}
-                             :timeout {:type "integer"
-                                       :description "Timeout in milliseconds (default 30000)"}}
+                                       :additionalProperties true}}
                 :required ["message"]}})
