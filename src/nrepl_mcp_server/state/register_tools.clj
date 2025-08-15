@@ -14,7 +14,9 @@
    [nrepl-mcp-server.mcp-server.tools.debug-eval]
    [nrepl-mcp-server.mcp-server.tools.debug-load-file]
    [nrepl-mcp-server.mcp-server.tools.nrepl-server]
-   [nrepl-mcp-server.mcp-server.tools.nrepl-eval]))
+   [nrepl-mcp-server.mcp-server.tools.nrepl-eval]
+   [nrepl-mcp-server.mcp-server.tools.send-message-async]
+   [nrepl-mcp-server.mcp-server.tools.get-result-async]))
 
 ;; =============================================================================
 ;; Registration Orchestration  

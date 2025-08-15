@@ -222,3 +222,87 @@
           (binding [*out* *err*]
             (println "[nREPL] ❌ Async send-message error:" (pr-str (:error async-result))))
           async-result)))))
+
+(defn send-message-fire-and-forget
+  "Send a message to nREPL without waiting for response.
+   Used by send-queue-watcher for fire-and-forget messaging.
+   The receive-watcher will handle responses separately.
+   
+   Surgically extracted from send-message-async - contains only the send logic.
+   
+   Args:
+     connection - Map with :out stream and connection ID
+     message - nREPL message to send (should already have :id)
+   
+   Returns:
+     true on successful send, throws exception on error"
+  [{:keys [out id]} message]
+  ;; Log outgoing message (using same format as original send-message-async)
+  (binding [*out* *err*]
+    (println "[nREPL] 📤 Fire-and-forget sending:" (pr-str message)))
+
+  ;; EXTRACTED SEND LOGIC from send-message-async (lines 185-186)
+  ;; Send bencode-encoded message
+  (bencode/write-bencode out message)
+  (.flush out)
+
+  ;; Log sent status (simplified version of original tracking)
+  (when id
+    (binding [*out* *err*]
+      (println "[Fire&Forget] Message sent to connection:" id "msg-id:" (:id message))))
+  
+  true)
+
+(defn result-processing-async
+  "Process and collect nREPL responses asynchronously from socket input stream.
+   
+   Surgically extracted from send-message-async - contains only the receive/collect logic.
+   This function can wait, process input, and loop for input from the socket.
+   
+   Args:
+     connection - Map with :in stream for reading responses
+     message-id - Message ID to collect responses for  
+     timeout-ms - Timeout in milliseconds
+   
+   Returns:
+     {:status :success :response merged-response} on success
+     {:status :timeout :responses [...] :timeout-ms timeout-ms} on timeout
+     {:status :error :responses [...] :error exception} on error
+   
+   Implementation:
+     Uses collect-responses-async -> merge-responses pipeline
+     extracted from send-message-async lines 194-224"
+  [{:keys [in id]} message-id timeout-ms]
+  ;; EXTRACTED RECEIVE LOGIC from send-message-async (lines 194-224)
+  ;; Use async collection with timeout
+  (let [async-result (collect-responses-async in message-id timeout-ms)]
+    (case (:status async-result)
+      :success
+      (let [merged-response (merge-responses (:responses async-result))]
+        ;; Log completion (simplified for now)
+        (when id
+          (binding [*out* *err*]
+            (println "[Result-Processing] Message completed:" message-id)))
+        (binding [*out* *err*]
+          (println "[nREPL] 📥 Result-processing final merged response:" merged-response))
+        {:status :success :response merged-response})
+
+      :timeout
+      (do
+        ;; Log timeout (simplified for now)
+        (when id
+          (binding [*out* *err*]
+            (println "[Result-Processing] Message timeout:" message-id "after" timeout-ms "ms")))
+        (binding [*out* *err*]
+          (println "[nREPL] ⏰ Result-processing timeout after" timeout-ms "ms"))
+        async-result)
+
+      :error
+      (do
+        ;; Log error (simplified for now)
+        (when id
+          (binding [*out* *err*]
+            (println "[Result-Processing] Message failed:" message-id "error:" (:error async-result))))
+        (binding [*out* *err*]
+          (println "[nREPL] ❌ Result-processing error:" (pr-str (:error async-result))))
+        async-result))))

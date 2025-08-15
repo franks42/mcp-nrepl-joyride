@@ -51,7 +51,7 @@ uv run mcp-proxy \
     --debug \
     --stateless \
     -- bb -cp src src/nrepl_mcp_server/core.clj \
-    2>&1 | tee "$LOG_FILE" &
+    > "$LOG_FILE" 2>&1 &
 
 # Save PID
 BRIDGE_PID=$!
@@ -66,5 +66,5 @@ echo "🔍 Monitor logs: tail -f $LOG_FILE"
 echo "🛑 Stop bridge: ./scripts/stop-http-bridge.sh"
 echo ""
 
-# Wait for bridge process
-wait $BRIDGE_PID
+# Bridge is now running in background
+# Use ./scripts/stop-http-bridge.sh to stop it

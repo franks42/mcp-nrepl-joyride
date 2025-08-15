@@ -2,7 +2,8 @@
   "MCP stdio server and JSON-RPC protocol handling"
   (:require [cheshire.core :as json]
             [clojure.string :as str]
-            [nrepl-mcp-server.mcp-server.dispatch :as dispatch]))
+            [nrepl-mcp-server.mcp-server.dispatch :as dispatch]
+            [nrepl-mcp-server.state.watchers :as watchers]))
 
 ;; =============================================================================
 ;; stdio Transport Implementation
@@ -71,6 +72,16 @@
 (defn stdio-server-loop
   "Main stdio server loop"
   []
+  ;; Start watchers before entering the loop
+  (watchers/start-all-watchers!)
+
+  ;; Set up shutdown hook to stop watchers
+  (.addShutdownHook (Runtime/getRuntime)
+                    (Thread. (fn []
+                               (binding [*out* *err*]
+                                 (println "[Server] Shutting down watchers..."))
+                               (watchers/stop-all-watchers!))))
+
   (loop []
     (when-let [request (read-request)]
       (let [response (handle-request request)

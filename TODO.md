@@ -242,7 +242,7 @@ nrepl-mcp-server/
 
 **Architecture Achievement**: Successfully integrated complete legacy nREPL implementation while maintaining clean modular organization and self-registering tools pattern. All 4 tools register and load correctly with proper namespace separation.
 
-#### **2a.10: Unified Connection State Management** 🏗️ **IN PROGRESS**
+#### **2a.10: Unified Connection State Management** ✅ **COMPLETED**
 
 **Goal**: Eliminate duplicate connection state atoms by creating single source of truth in state namespace with human-readable connection IDs.
 
@@ -281,7 +281,7 @@ This violates single source of truth principle and creates synchronization risks
    - `mark-connection-closed!` - Mark connection as closed with cleanup
    - `cleanup-old-connections!` - Remove old closed connections
 
-**Implementation Steps**:
+**Implementation Results**:
 - [x] **FIX NAMESPACE NAMES FIRST** - Convert all underscores to hyphens in namespace declarations (ZERO TOLERANCE rule) ✅
 - [x] Design enhanced connection state structure with registry + active tracking ✅
 - [x] Implement human-readable connection ID generation (IP:port-UUIDv7) ✅
@@ -292,35 +292,142 @@ This violates single source of truth principle and creates synchronization risks
 - [x] Update all references to use unified state management ✅
 - [x] Add missing uuid-v7-string function for compatibility ✅
 - [x] Fix function signatures and remove legacy queue references ✅
-- [ ] Test unified connection state management
-- [ ] Clean up dead code and legacy backward compatibility functions (use tree-sitter analysis)
-- [ ] Update architecture documentation
+- [x] **Test unified connection state management** ✅
+- [x] **Fix nrepl-eval connection detection** ✅
+- [ ] Clean up dead code and legacy backward compatibility functions (use tree-sitter analysis) 🔄 **DEFERRED**
+- [ ] Update architecture documentation 🔄 **DEFERRED**
 
-**Benefits**:
+**Validation Results**:
+- ✅ **nrepl-server connection establishment** - Working with human-readable IDs
+- ✅ **Connection state persistence** - Maintains state across stateless HTTP requests
+- ✅ **nrepl-eval connection detection** - Fixed to work with unified state structure
+- ✅ **nREPL message sending** - Initiated successfully (logs confirm async sending)
+- ✅ **API operations** - connect, status, disconnect all functional
+
+**Benefits Achieved**:
 - ✅ **Single Source of Truth** - No state duplication or synchronization issues
-- ✅ **Human-Readable IDs** - Easy to identify connections in logs
+- ✅ **Human-Readable IDs** - Easy to identify connections in logs (`127.0.0.1:56720-<UUID>`)
 - ✅ **Historical Tracking** - Maintain connection history for debugging
-- ✅ **Real IP Resolution** - Better logging and monitoring
+- ✅ **Real IP Resolution** - Better logging and monitoring (localhost → 127.0.0.1)
 - ✅ **Clean API** - Socket layer uses well-defined management functions
+- ✅ **Cross-Request Persistence** - State survives stateless HTTP mode
+
+**Phase 2a.10 Complete!** Unified connection state management serves as solid foundation for Phase 2b async message queuing.
 
 #### **2b: Message Queue Infrastructure** 🔄 **USE PHASE H3 FOR TESTING**
-- [ ] **Implement send-message-async tool** 
-  - Hand-off message to queue → get message-id
-  - UUID v7 generation in utils namespace
-  - Fail if no connection (check state atom)
-  - **Isolated from actual nREPL communication**
-  - **TEST WITH**: Unified tester via HTTP bridge (Phase H3)
-  
-- [ ] **Implement get-result-async tool**
-  - Create result queue with promise waiting
-  - Wait on promise for message-id results
-  - **Test without nREPL** - use debug-eval to put items on queue
-  - **TEST WITH**: Stateful HTTP testing to verify persistence
 
+**Architecture**: 4-phase reactive message queue with introspectable checkpoints at each phase
+
+##### **Phase 2b.1: Basic send-message-async Implementation**
+- [ ] **Implement send-message-async MCP tool**
+  - Check connection status (fail if not connected)
+  - Generate UUID v7 message-id (becomes nREPL `id` field)
+  - Add message to send FIFO queue with timestamp
+  - Create result-queue entry with status `:pending`
+  - Return message-id immediately to caller
+  
+- [ ] **Testing & Validation**:
+  - Use debug-eval to introspect `@send-queue` - verify message added
+  - Use debug-eval to check `@result-queue` - verify `:pending` entry created
+  - Verify UUID v7 format and uniqueness
+  - Test connection check (should fail when disconnected)
+  - **TEST FUNCTION**: `(validate-phase1-queuing)`
+
+##### **Phase 2b.2: Send Queue Watcher Implementation**
+- [ ] **Implement send-queue-watcher**
+  - Process FIFO queue (preserve message order!)
+  - Take message from queue
+  - Send to nREPL server via socket
+  - Store actual bencode message sent (for debugging/replay)
+  - Update result-queue status to `:sending` then `:sent`
+  - Handle send failures → status `:failed`
+  
+- [ ] **Testing & Validation**:
+  - Mock nREPL send (don't need real server yet)
+  - Use debug-eval to verify queue processing
+  - Check status transitions: `:pending` → `:sending` → `:sent`
+  - Verify FIFO order preservation
+  - **TEST FUNCTION**: `(validate-phase2-sending)`
+
+##### **Phase 2b.3: Receive Watcher Implementation**
+- [ ] **Implement receive-watcher**
+  - Read responses from nREPL socket
+  - Match response to message-id (correlation)
+  - Handle partial/streaming responses (status `:partial`)
+  - Accumulate multi-part responses
+  - Update result-queue with complete response
+  - Set status to `:done` when complete
+  - Handle nREPL error responses → status `:error`
+  
+- [ ] **Testing & Validation**:
+  - Simulate received messages via debug-eval
+  - Test multi-part response handling
+  - Verify message correlation by id
+  - Check status transitions: `:sent` → `:partial` → `:done`
+  - **TEST FUNCTION**: `(validate-phase3-receiving)`
+
+##### **Phase 2b.4: Get-Result-Async Implementation**
+- [ ] **Implement get-result-async MCP tool**
+  - Lookup message-id in result-queue
+  - If status `:done` - remove entry and return result
+  - If status `:pending`/`:sending`/`:sent` - wait on promise
+  - Implement promise-based waiting with timeout
+  - Return timeout error if exceeds limit
+  - Clean up entry after returning
+  
+- [ ] **Testing & Validation**:
+  - Test immediate return for completed messages
+  - Test waiting on pending messages
+  - Test timeout behavior
+  - Verify entry cleanup after retrieval
+  - **TEST FUNCTION**: `(validate-phase4-retrieval)`
+
+##### **Phase 2b.5: Send-Message-Sync Wrapper**
 - [ ] **Implement send-message-sync wrapper**
   - Combines send-message-async + get-result-async
   - Single synchronous call for simple use cases
-  - **TEST WITH**: Unified tester's orchestrated testing mode
+  - Pass through timeout parameter
+  - Return result or error directly
+  
+- [ ] **Testing & Validation**:
+  - End-to-end test with real nREPL server
+  - Test timeout propagation
+  - Compare with direct nREPL operations
+  - **TEST FUNCTION**: `(validate-phase5-sync-wrapper)`
+
+##### **Phase 2b.6: Error Handling & Timeouts**
+- [ ] **Implement comprehensive error handling**
+  - Connection lost during operation
+  - Malformed messages
+  - Queue overflow protection
+  - Timeout at each phase
+  - Dead letter queue for failed messages
+  
+- [ ] **Queue State Structure**:
+  ```clojure
+  ;; Send queue entry
+  {:message-id "uuid-v7"
+   :message {...}
+   :timestamp (System/currentTimeMillis)
+   :attempts 0}
+  
+  ;; Result queue entry  
+  {:message-id "uuid-v7"
+   :status :pending|:sending|:sent|:partial|:done|:failed|:timeout|:error
+   :response nil|{...}
+   :error nil|"error message"
+   :created-at timestamp
+   :sent-at nil|timestamp
+   :completed-at nil|timestamp
+   :bencode-sent nil|"raw bencode"}
+  ```
+
+##### **Testing Strategy**
+- Use HTTP bridge for stateful testing across phases
+- debug-eval for queue introspection at each checkpoint
+- Incremental testing - each phase can be tested independently
+- Mock nREPL responses for phases 2-3 testing
+- Real nREPL server for phase 5 integration testing
 
 #### **2c: Connection Resilience & Monitoring** 🔄 **FUTURE PHASE**
 - [ ] **Implement timeout/recovery handler**

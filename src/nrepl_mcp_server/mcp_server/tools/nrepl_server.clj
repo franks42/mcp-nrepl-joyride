@@ -4,7 +4,8 @@
             [nrepl-mcp-server.nrepl-client.connection :as conn]
             [nrepl-mcp-server.nrepl-client.handlers] ;; Load handlers to install watchers
             [cheshire.core :as json]
-            [nrepl-mcp-server.state.tool-registry :as registry]))
+            [nrepl-mcp-server.state.tool-registry :as registry]
+            [nrepl-mcp-server.state.watchers :as watchers]))
 
 ;; =============================================================================
 ;; Operation Handlers
@@ -39,16 +40,19 @@
             (let [result (conn/attempt-connection! params)]
               (case (:status result)
                 :success
-                {:content [{:type "text"
-                            :text (json/generate-string
-                                   {:status "success"
-                                    :operation "connect"
-                                    :hostname hostname
-                                    :port port
-                                    :connection-id (:connection-id result)
-                                    :message (str "Connected to nREPL server at "
-                                                  hostname ":" port)}
-                                   {:pretty true})}]}
+                (do
+                  ;; Start receive-watcher now that we have an active connection
+                  (watchers/start-receive-watcher!)
+                  {:content [{:type "text"
+                              :text (json/generate-string
+                                     {:status "success"
+                                      :operation "connect"
+                                      :hostname hostname
+                                      :port port
+                                      :connection-id (:connection-id result)
+                                      :message (str "Connected to nREPL server at "
+                                                    hostname ":" port)}
+                                     {:pretty true})}]})
 
                 :failed
                 {:content [{:type "text"

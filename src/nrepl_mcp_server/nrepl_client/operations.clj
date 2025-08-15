@@ -130,3 +130,14 @@
   "Perform basic health check on nREPL connection"
   [conn & {:keys [timeout-ms] :or {timeout-ms 3000}}]
   (eval-code conn "(+ 1 2 3)" :timeout-ms timeout-ms))
+
+(defn send-message
+  "Send arbitrary nREPL message - generic wrapper for watcher usage"
+  [conn message & {:keys [timeout-ms] :or {timeout-ms 30000}}]
+  (msg/send-message-async conn message timeout-ms))
+
+(defn send-message-fire-and-forget
+  "Send arbitrary nREPL message without waiting for response.
+   Used by send-queue-watcher for fire-and-forget messaging."
+  [conn message]
+  (msg/send-message-fire-and-forget conn message))

@@ -17,32 +17,64 @@
          :error-results {}}))
 
 ;; =============================================================================
-;; Result Operations (Placeholder for Phase 2b)
+;; Result Operations - Phase 2b.1 & 2b.4 Implementation
 ;; =============================================================================
 
 (defn create-result-promise!
-  "Create a promise for a message result - Phase 2b"
+  "Create a promise for a message result.
+   Returns the promise that will be delivered when result arrives."
   [message-id]
-  ;; TODO: Phase 2b implementation
-  (throw (ex-info "Not implemented - Phase 2b" {:phase "2b"})))
+  (let [result-promise (promise)]
+    (swap! result-queue
+           assoc-in [:result-promises message-id] result-promise)
+    result-promise))
 
 (defn deliver-result!
-  "Deliver a result for a message - Phase 2b"
+  "Deliver a successful result for a message."
   [message-id result]
-  ;; TODO: Phase 2b implementation
-  (throw (ex-info "Not implemented - Phase 2b" {:phase "2b"})))
+  (when-let [result-promise (get-in @result-queue [:result-promises message-id])]
+    ;; Deliver to waiting promise
+    (deliver result-promise {:status :success :result result})
+    ;; Store in completed results
+    (swap! result-queue
+           (fn [state]
+             (-> state
+                 (assoc-in [:completed-results message-id] result)
+                 (update :result-promises dissoc message-id))))
+    true))
 
 (defn deliver-error!
-  "Deliver an error for a message - Phase 2b"
+  "Deliver an error for a message."
   [message-id error]
-  ;; TODO: Phase 2b implementation
-  (throw (ex-info "Not implemented - Phase 2b" {:phase "2b"})))
+  (when-let [result-promise (get-in @result-queue [:result-promises message-id])]
+    ;; Deliver error to waiting promise
+    (deliver result-promise {:status :error :error error})
+    ;; Store in error results
+    (swap! result-queue
+           (fn [state]
+             (-> state
+                 (assoc-in [:error-results message-id] error)
+                 (update :result-promises dissoc message-id))))
+    true))
 
 (defn get-result
-  "Get a result for a message, waiting if necessary - Phase 2b"
+  "Get a result for a message, waiting if necessary.
+   Returns {:status :success/:error/:timeout ...}"
   [message-id timeout-ms]
-  ;; TODO: Phase 2b implementation
-  nil)
+  ;; Check if already completed
+  (if-let [completed (get-in @result-queue [:completed-results message-id])]
+    {:status :success :result completed}
+    ;; Check if errored
+    (if-let [error (get-in @result-queue [:error-results message-id])]
+      {:status :error :error error}
+      ;; Wait on promise if exists
+      (if-let [result-promise (get-in @result-queue [:result-promises message-id])]
+        (let [result (deref result-promise timeout-ms :timeout)]
+          (if (= result :timeout)
+            {:status :timeout :message-id message-id :timeout-ms timeout-ms}
+            result))
+        ;; No record of this message
+        {:status :error :error "Unknown message-id"}))))
 
 ;; =============================================================================
 ;; Watcher Management
