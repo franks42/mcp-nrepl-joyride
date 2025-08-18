@@ -1048,6 +1048,33 @@ Use existing `mcp-proxy` tool to bridge HTTP requests to persistent stdio MCP se
 
 ---
 
+## 🧹 **CODE CLEANUP TASKS**
+
+### **Immediate Cleanup** (2025-08-18)
+
+- [x] **Remove unused nrepl_eval_old.clj** ✅ COMPLETED
+  - File: `src/nrepl_mcp_server/mcp_server/tools/nrepl_eval_old.clj`
+  - Status: NOT registered in tool registry, NOT imported anywhere
+  - Action: Delete file completely
+  - Rationale: Replaced by simpler `nrepl-eval.clj` using async message queue
+
+- [x] **Run code quality checks after cleanup** ✅ COMPLETED
+  - Run `./scripts/clojure-quality.sh` to format and lint
+  - Result: Code formatted, 1 minor warning (redundant let)
+  - Commit cleanup changes
+
+### **Future Cleanup Opportunities**
+
+- [ ] **Analyze unused private functions**
+  - Use tree-sitter to identify potentially unused `defn-` functions
+  - Review each for actual usage before removing
+  - Some may be called dynamically or via reflection
+
+- [ ] **Review legacy backward compatibility code**
+  - Check for functions added during Phase 2a.10 migration
+  - Remove any temporary compatibility shims no longer needed
+  - Document any intentionally preserved legacy interfaces
+
 ## 🔍 **RESEARCH ITEMS**
 
 - [ ] **Investigate ls-sessions scope** - Determine if `ls-sessions` lists ALL server sessions or only current connection's sessions via testing or nREPL documentation
