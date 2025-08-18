@@ -1050,7 +1050,7 @@ Use existing `mcp-proxy` tool to bridge HTTP requests to persistent stdio MCP se
 
 ## 🧹 **CODE CLEANUP TASKS**
 
-### **Immediate Cleanup** (2025-08-18)
+### **Immediate Cleanup** (2025-08-18) ✅ **COMPLETED**
 
 - [x] **Remove unused nrepl_eval_old.clj** ✅ COMPLETED
   - File: `src/nrepl_mcp_server/mcp_server/tools/nrepl_eval_old.clj`
@@ -1058,10 +1058,18 @@ Use existing `mcp-proxy` tool to bridge HTTP requests to persistent stdio MCP se
   - Action: Delete file completely
   - Rationale: Replaced by simpler `nrepl-eval.clj` using async message queue
 
+- [x] **Remove 13 unused functions from operations.clj** ✅ COMPLETED
+  - **Dead code removed**: `close-session`, `nrepl-load-file`, `create-session`, `describe-server`, `doc`, `source`, `complete`, `apropos`, `require-ns`, `disconnect-from-nrepl`, `interrupt`, `connect-to-nrepl`, `stacktrace`
+  - **Kept used functions**: `eval-code`, `eval-with-timeout`, `health-check`, `send-message`, `send-message-fire-and-forget`
+  - **Tree-sitter analysis**: Confirmed identical results between pre/post analysis - no differences found
+  - **Replacement**: All removed functions can be replicated using enhanced `nrepl-send-message` tool with comprehensive operation examples
+  - **Code size reduction**: ~300 lines of dead code removed from operations.clj
+
 - [x] **Run code quality checks after cleanup** ✅ COMPLETED
   - Run `./scripts/clojure-quality.sh` to format and lint
-  - Result: Code formatted, 1 minor warning (redundant let)
-  - Commit cleanup changes
+  - Fixed unused namespace import warning
+  - Result: Clean code with only 1 intentional warning (redundant let)
+  - Functionality verified: All tools working correctly after cleanup
 
 ### **Future Cleanup Opportunities**
 

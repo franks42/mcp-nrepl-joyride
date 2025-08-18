@@ -79,6 +79,7 @@
                             (deliver result-promise {:status :error :responses [] :error e}))))]
 
     ;; Use promise-based timeout as verified in Babashka
+    #_:clj-kondo/ignore
     (let [result (deref result-promise timeout-ms :timeout)]
       (if (= result :timeout)
         (do

@@ -27,7 +27,7 @@ class NReplTestServer:
         self.project_root = Path(__file__).parent
         self.test_nrepl_dir = self.project_root / "test-nrepl"
         self.server_info_file = self.project_root / ".nrepl-test-server.json"
-        self.port_file = self.test_nrepl_dir / ".test-nrepl-connection-port"
+        self.port_file = self.test_nrepl_dir / ".test-nrepl-server-port"
 
     def get_server_info(self) -> Optional[Dict[str, Any]]:
         """Get server information from JSON file."""
