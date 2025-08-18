@@ -22,6 +22,5 @@
 Test: **mcp-client** => steamableHTTP => **persistent-bridge** => stdio => **mcp-nrepl-server** => socket => **nrepl-server**
 bridge + mcp-nrepl-server are started in background (&): scripts/start-http-bridge.sh
 nrepl-server start/stop/status: scripts/nrepl_test_server.py
-      --tool local-eval --args '{"code": "(+ 1 2 3)"}' --quiet)
 mcp-client for testing: scripts/mcp_nrepl_client.py
-do NOT pass env var to script but use cmdline parameter, like: uv run python scripts/mcp_nrepl_client.py --mcp-url http://localhost:3000/mcp
+do NOT pass env var to script but use cmdline parameter, like: uv run python scripts/mcp_nrepl_client.py --base-url http://localhost:3000/mcp
