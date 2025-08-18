@@ -1,8 +1,8 @@
 # MCP-nREPL Project TODO List - CLEAN SLATE REFACTORING
 
-Last updated: 2025-08-15
-Phase 2b.6 completed: 2025-08-15
-**Status**: ✅ **PHASE 2B.6 COMPLETED** - Enhanced nrepl-eval with timeout and message-id recovery
+Last updated: 2025-08-18
+Phase 2c.2 completed: 2025-08-18
+**Status**: ✅ **PHASE 2C COMPLETED** - All tool renaming with proper prefixes and namespacing
 
 ## 🏁 **PHASE 2B.6 COMPLETION SUMMARY**
 
@@ -42,11 +42,34 @@ Phase 2b.6 completed: 2025-08-15
 
 ## 🔧 **PHASE 2C: TOOL RENAMING - LOCAL EXECUTION TOOLS**
 
-### **Phase 2c.1: Rename debug-* tools to local-* tools** 🔄 **IN PROGRESS**
+### **Phase 2c.1: Rename debug-* tools to local-* tools** ✅ **COMPLETED**
 
-**Goal**: Rename `local-eval` and `local-load-file` to `local-eval` and `local-load-file` to better reflect their purpose of executing code locally within the MCP server runtime (as opposed to remote nREPL execution).
+**Goal**: Rename `debug-eval` and `debug-load-file` to `local-eval` and `local-load-file` to better reflect their purpose of executing code locally within the MCP server runtime (as opposed to remote nREPL execution).
+
+### **Phase 2c.2: Rename nREPL tools with proper prefixes** ✅ **COMPLETED**
+
+**Goal**: Rename nREPL tools for better namespacing and clarity:
+- `nrepl-server` → `nrepl-connection` (more accurate - manages client-side connection)
+- `send-message-async` → `nrepl-send-message-async` (add nrepl prefix)
+- `get-result-async` → `nrepl-get-result-async` (add nrepl prefix)
+- `send-message-get-result` → `nrepl-send-message` (shorter sync wrapper)
 
 **Rationale**: 
+- **Consistency**: All nREPL tools should have `nrepl-` prefix for clarity
+- **Accuracy**: "connection" better describes client-side connection management vs "server"
+- **Namespacing**: Clear distinction between nREPL tools and local tools
+- **Simplicity**: "send-message" is shorter and clearer than "send-message-get-result"
+
+**Completion Summary**:
+- ✅ **File Renaming**: All 4 nREPL tool files renamed with proper namespaces
+- ✅ **Tool Registration**: Updated tool registry with new names
+- ✅ **Reference Updates**: Updated all test files, Python scripts, and documentation
+- ✅ **Code Quality**: Formatted and linted all changes (1 minor warning only)
+- ✅ **Functionality**: All 7 tools working correctly with new names
+- ✅ **Testing**: Verified local-eval, local-load-file, nrepl-connection, nrepl-eval functionality
+- ✅ **Bridge Integration**: HTTP bridge properly serving all renamed tools
+
+**Rationale (Phase 2c.1)**: 
 - **Clarity**: "local" better describes that these tools execute in the MCP server's SCI runtime
 - **Distinction**: Clear separation from nREPL tools which execute remotely
 - **Consistency**: Aligns with naming patterns where tool name reflects execution context

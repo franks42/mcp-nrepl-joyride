@@ -1,4 +1,4 @@
-(ns nrepl-mcp-server.mcp-server.tools.get-result-async
+(ns nrepl-mcp-server.mcp-server.tools.nrepl-get-result-async
   "Async result retrieval tool for MCP - Phase 2b.4"
   (:require [nrepl-mcp-server.state.results :as results]
             [nrepl-mcp-server.state.messages :as msg-state]
@@ -17,7 +17,7 @@
     {:content [{:type "text"
                 :text (json/generate-string
                        {:status "error"
-                        :operation "get-result-async"
+                        :operation "nrepl-get-result-async"
                         :error "No message-id provided"}
                        {:pretty true})}]
      :isError true}
@@ -32,7 +32,7 @@
           {:content [{:type "text"
                       :text (json/generate-string
                              {:status "success"
-                              :operation "get-result-async"
+                              :operation "nrepl-get-result-async"
                               :message-id message-id
                               :result (:result result)}
                              {:pretty true})}]})
@@ -41,7 +41,7 @@
         {:content [{:type "text"
                     :text (json/generate-string
                            {:status "timeout"
-                            :operation "get-result-async"
+                            :operation "nrepl-get-result-async"
                             :message-id message-id
                             :timeout-ms timeout
                             :error "Result not available within timeout"}
@@ -55,7 +55,7 @@
           {:content [{:type "text"
                       :text (json/generate-string
                              {:status "error"
-                              :operation "get-result-async"
+                              :operation "nrepl-get-result-async"
                               :message-id message-id
                               :error (:error result)}
                              {:pretty true})}]
@@ -65,7 +65,7 @@
         {:content [{:type "text"
                     :text (json/generate-string
                            {:status "error"
-                            :operation "get-result-async"
+                            :operation "nrepl-get-result-async"
                             :message-id message-id
                             :error (str "Unexpected result status: " (:status result))}
                            {:pretty true})}]
@@ -76,7 +76,7 @@
 ;; =============================================================================
 
 (registry/register-tool!
- "get-result-async"
+ "nrepl-get-result-async"
  handle
  {:description "Retrieve the result of an async nREPL message"
   :inputSchema {:type "object"

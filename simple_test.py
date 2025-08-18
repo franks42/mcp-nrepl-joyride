@@ -17,7 +17,7 @@ async def test_failing_call():
         "id": 1,
         "method": "tools/call",
         "params": {
-            "name": "nrepl-server",
+            "name": "nrepl-connection",
             "arguments": {"op": "connect", "connection": "56626"},
         },
     }

@@ -2,7 +2,7 @@
   "tcp_verification": [
     {
       "name": "connect_and_verify",
-      "tool": "nrepl-server",
+      "tool": "nrepl-connection",
       "args": {"op": "connect", "connection": "56626"},
       "expected": {"status": "success"},
       "description": "Connect to nREPL server"

@@ -56,7 +56,7 @@ def demonstrate_nrepl_concept():
     print("   pip install basilisp basilisp-nrepl-async")
     print()
     print("Then run:")
-    print("   basilisp nrepl-server --port 7890")
+    print("   basilisp nrepl-connection --port 7890")
     print()
     print("And connect your MCP server to it!")
 

@@ -20,7 +20,7 @@
     },
     {
       "name": "now_try_connect",
-      "tool": "nrepl-server",
+      "tool": "nrepl-connection",
       "args": {"op": "connect", "connection": "56626"},
       "description": "Now try connecting with clean state"
     }

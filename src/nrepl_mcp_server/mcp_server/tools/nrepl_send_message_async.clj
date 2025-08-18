@@ -1,4 +1,4 @@
-(ns nrepl-mcp-server.mcp-server.tools.send-message-async
+(ns nrepl-mcp-server.mcp-server.tools.nrepl-send-message-async
   "Async nREPL message sending tool for MCP - Phase 2b.1 (READY-TO-SEND)"
   (:require [nrepl-mcp-server.state.messages :as msg-state]
             [cheshire.core :as json]
@@ -16,7 +16,7 @@
     {:content [{:type "text"
                 :text (json/generate-string
                        {:status "error"
-                        :operation "send-message-async"
+                        :operation "nrepl-send-message-async"
                         :error "No message provided"}
                        {:pretty true})}]
      :isError true}
@@ -27,7 +27,7 @@
       {:content [{:type "text"
                   :text (json/generate-string
                          {:status "success"
-                          :operation "send-message-async"
+                          :operation "nrepl-send-message-async"
                           :message-id message-id
                           :message "Message queued for sending (READY-TO-SEND format)"}
                          {:pretty true})}]}
@@ -36,7 +36,7 @@
       {:content [{:type "text"
                   :text (json/generate-string
                          {:status "error"
-                          :operation "send-message-async"
+                          :operation "nrepl-send-message-async"
                           :error "Failed to queue message - no connection or formatting error"}
                          {:pretty true})}]
        :isError true})))
@@ -46,7 +46,7 @@
 ;; =============================================================================
 
 (registry/register-tool!
- "send-message-async"
+ "nrepl-send-message-async"
  handle
  {:description "Queue an nREPL message for async sending"
   :inputSchema {:type "object"

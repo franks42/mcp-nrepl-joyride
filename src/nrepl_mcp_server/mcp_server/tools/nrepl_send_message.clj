@@ -1,4 +1,4 @@
-(ns nrepl-mcp-server.mcp-server.tools.send-message-get-result
+(ns nrepl-mcp-server.mcp-server.tools.nrepl-send-message
   "Synchronous nREPL message sending tool for MCP - Phase 2b.5 (SYNC WRAPPER)"
   (:require [nrepl-mcp-server.state.messages :as msg-state]
             [nrepl-mcp-server.state.results :as results]
@@ -22,7 +22,7 @@
     {:content [{:type "text"
                 :text (json/generate-string
                        {:status "error"
-                        :operation "send-message-get-result"
+                        :operation "nrepl-send-message"
                         :error "No message provided"}
                        {:pretty true})}]
      :isError true}
@@ -32,10 +32,10 @@
     {:content [{:type "text"
                 :text (json/generate-string
                        {:status "error"
-                        :operation "send-message-get-result"
+                        :operation "nrepl-send-message"
                         :error "No nREPL connection available"
-                        :hint "Connect to an nREPL server first using the nrepl-server tool"
-                        :example "Use: nrepl-server with {\"op\": \"connect\", \"connection\": \"localhost:7890\"}"}
+                        :hint "Connect to an nREPL server first using the nrepl-connection tool"
+                        :example "Use: nrepl-connection with {\"op\": \"connect\", \"connection\": \"localhost:7890\"}"}
                        {:pretty true})}]
      :isError true}
 
@@ -53,7 +53,7 @@
             {:content [{:type "text"
                         :text (json/generate-string
                                {:status "success"
-                                :operation "send-message-get-result"
+                                :operation "nrepl-send-message"
                                 :message-id message-id
                                 :timeout-ms timeout-ms
                                 :result (:result result)}
@@ -63,7 +63,7 @@
           {:content [{:type "text"
                       :text (json/generate-string
                              {:status "timeout"
-                              :operation "send-message-get-result"
+                              :operation "nrepl-send-message"
                               :message-id message-id
                               :timeout-ms timeout-ms
                               :error "Result not available within timeout"}
@@ -77,7 +77,7 @@
             {:content [{:type "text"
                         :text (json/generate-string
                                {:status "error"
-                                :operation "send-message-get-result"
+                                :operation "nrepl-send-message"
                                 :message-id message-id
                                 :error (:error result)}
                                {:pretty true})}]
@@ -87,7 +87,7 @@
           {:content [{:type "text"
                       :text (json/generate-string
                              {:status "error"
-                              :operation "send-message-get-result"
+                              :operation "nrepl-send-message"
                               :message-id message-id
                               :error (str "Unexpected result status: " (:status result))}
                              {:pretty true})}]
@@ -97,7 +97,7 @@
       {:content [{:type "text"
                   :text (json/generate-string
                          {:status "error"
-                          :operation "send-message-get-result"
+                          :operation "nrepl-send-message"
                           :error "Failed to queue message - no connection or formatting error"}
                          {:pretty true})}]
        :isError true})))
@@ -107,7 +107,7 @@
 ;; =============================================================================
 
 (registry/register-tool!
- "send-message-get-result"
+ "nrepl-send-message"
  handle
  {:description "Send an nREPL message synchronously (blocks until response received)"
   :inputSchema {:type "object"

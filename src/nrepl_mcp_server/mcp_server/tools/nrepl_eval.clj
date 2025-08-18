@@ -1,7 +1,7 @@
 (ns nrepl-mcp-server.mcp-server.tools.nrepl-eval
   "Simple nREPL eval tool using async message queue - Phase 2b.6"
-  (:require [nrepl-mcp-server.mcp-server.tools.send-message-get-result :as smgr]
-            [nrepl-mcp-server.mcp-server.tools.get-result-async :as gra]
+  (:require [nrepl-mcp-server.mcp-server.tools.nrepl-send-message :as smgr]
+            [nrepl-mcp-server.mcp-server.tools.nrepl-get-result-async :as gra]
             [cheshire.core :as json]
             [nrepl-mcp-server.state.tool-registry :as registry]))
 

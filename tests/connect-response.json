@@ -2,7 +2,7 @@
   "connect_response_test": [
     {
       "name": "nrepl_connect",
-      "tool": "nrepl-server",
+      "tool": "nrepl-connection",
       "args": {"op": "connect", "connection": "56626"},
       "description": "What does nrepl-server connect actually return?"
     }

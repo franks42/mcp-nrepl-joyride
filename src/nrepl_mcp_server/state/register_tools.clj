@@ -13,11 +13,11 @@
     ;; Each will self-register when loaded (side effect)
    [nrepl-mcp-server.mcp-server.tools.local-eval]
    [nrepl-mcp-server.mcp-server.tools.local-load-file]
-   [nrepl-mcp-server.mcp-server.tools.nrepl-server]
+   [nrepl-mcp-server.mcp-server.tools.nrepl-connection]
    [nrepl-mcp-server.mcp-server.tools.nrepl-eval]  ;; New simplified implementation
-   [nrepl-mcp-server.mcp-server.tools.send-message-async]
-   [nrepl-mcp-server.mcp-server.tools.get-result-async]
-   [nrepl-mcp-server.mcp-server.tools.send-message-get-result]))
+   [nrepl-mcp-server.mcp-server.tools.nrepl-send-message-async]
+   [nrepl-mcp-server.mcp-server.tools.nrepl-get-result-async]
+   [nrepl-mcp-server.mcp-server.tools.nrepl-send-message]))
 
 ;; =============================================================================
 ;; Registration Orchestration  

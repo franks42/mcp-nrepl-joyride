@@ -8,7 +8,7 @@ debugging.
 
 Usage:
     python explore_mcp.py --tool local-eval --args '{"code": "(+ 1 2 3)"}'
-    python explore_mcp.py --tool nrepl-server --args '{"op": "status"}'
+    python explore_mcp.py --tool nrepl-connection --args '{"op": "status"}'
     python explore_mcp.py --list-tools
 """
 
@@ -164,7 +164,7 @@ Examples:
   %(prog)s --tool local-eval --load-code-file test.clj --quiet
   
   # Check nREPL connection status
-  %(prog)s --tool nrepl-server --args '{"op": "status"}'
+  %(prog)s --tool nrepl-connection --args '{"op": "status"}'
   
   # Quiet mode: just the data, no headers
   %(prog)s --tool local-eval --args '{"code": "42"}' --quiet

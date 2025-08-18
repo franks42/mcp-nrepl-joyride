@@ -35,9 +35,9 @@ def is_port_in_use(port, host="localhost"):
 
 
 def get_bb_nrepl_server_port():
-    """Get the port used by bb-nrepl-server if running"""
+    """Get the port used by bb-nrepl-connection if running"""
     try:
-        # Check if bb process is running on port 3000 (default bb-nrepl-server port)
+        # Check if bb process is running on port 3000 (default bb-nrepl-connection port)
         result = subprocess.run(
             ["lsof", "-ti:3000"], capture_output=True, text=True, timeout=5
         )
@@ -49,10 +49,12 @@ def get_bb_nrepl_server_port():
 
 
 def get_test_mcp_port():
-    """Get a port for test MCP server, avoiding bb-nrepl-server conflicts"""
+    """Get a port for test MCP server, avoiding bb-nrepl-connection conflicts"""
     bb_port = get_bb_nrepl_server_port()
     if bb_port:
-        print(f"⚠️  bb-nrepl-server detected on port {bb_port}, using alternate port")
+        print(
+            f"⚠️  bb-nrepl-connection detected on port {bb_port}, using alternate port"
+        )
         return find_free_port(3001)
     else:
         # Check if 3000 is free, use it if available

@@ -15,7 +15,7 @@
     },
     {
       "name": "nrepl_server_status",
-      "tool": "nrepl-server",
+      "tool": "nrepl-connection",
       "args": {"op": "status"},
       "expected": {"status": "success"},
       "description": "Check nREPL server status"

@@ -1,5 +1,5 @@
-(ns nrepl-mcp-server.mcp-server.tools.nrepl-server
-  "Unified nREPL server tool for MCP - handles connect, disconnect, status operations"
+(ns nrepl-mcp-server.mcp-server.tools.nrepl-connection
+  "Unified nREPL connection tool for MCP - handles connect, disconnect, status operations"
   (:require [nrepl-mcp-server.state.connection :as state]
             [nrepl-mcp-server.nrepl-client.connection :as conn]
             [nrepl-mcp-server.nrepl-client.handlers] ;; Load handlers to install watchers
@@ -168,9 +168,9 @@
 
 ;; Self-register this tool when namespace loads
 (registry/register-tool!
- "nrepl-server"
+ "nrepl-connection"
  handle
- {:description "nREPL server operations: connect, disconnect, status"
+ {:description "nREPL connection operations: connect, disconnect, status"
   :inputSchema {:type "object"
                 :properties {:op {:type "string"
                                   :description "Operation: 'connect', 'disconnect', or 'status'"

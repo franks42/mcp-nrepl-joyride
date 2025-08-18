@@ -247,7 +247,7 @@
    receive-watcher is started when connection is established."
   []
   (start-send-queue-watcher!)
-  ;; receive-watcher is started in nrepl-server tool after successful connection
+  ;; receive-watcher is started in nrepl-connection tool after successful connection
   )
 
 (defn stop-all-watchers!
