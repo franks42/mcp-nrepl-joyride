@@ -23,6 +23,17 @@
 ;; Registration Orchestration  
 ;; =============================================================================
 
+(defn register-all-tools []
+  (registry/register-tool!
+   nrepl-mcp-server.mcp-server.tools.nrepl-send-message/tool-name
+   nrepl-mcp-server.mcp-server.tools.nrepl-send-message/handle
+   nrepl-mcp-server.mcp-server.tools.nrepl-send-message/metadata)
+  )
+
+(register-all-tools)
+
+;;
+
 (defn register-tools!
   "Explicitly trigger tool registration by requiring tool namespaces
    
