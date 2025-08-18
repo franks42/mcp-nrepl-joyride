@@ -12,7 +12,37 @@
 
 (defn handle
   "Send an nREPL message synchronously.
-   Combines send-message-async + get-result-async with configurable timeout."
+   Combines send-message-async + get-result-async with configurable timeout.
+   
+   nrepl-operations-map:
+   Common nREPL operations you can send via the 'message' parameter:
+   
+   Session Management:
+   - Create session:    {\"op\": \"clone\"}
+   - Close session:     {\"op\": \"close\", \"session\": \"session-id\"}
+   
+   Code Operations:
+   - Evaluate code:     {\"op\": \"eval\", \"code\": \"(+ 1 2 3)\"}
+   - Load file:         {\"op\": \"load-file\", \"file\": \"file-content\", \"file-path\": \"/path/to/file.clj\"}
+   
+   Introspection:
+   - Server info:       {\"op\": \"describe\"}
+   - Symbol docs:       {\"op\": \"info\", \"symbol\": \"map\"}
+   - Symbol source:     {\"op\": \"info\", \"symbol\": \"defn\"} 
+   - Completions:       {\"op\": \"completions\", \"prefix\": \"ma\"}
+   - Find symbols:      {\"op\": \"apropos\", \"query\": \"string\"}
+   
+   Control Operations:
+   - Interrupt eval:    {\"op\": \"interrupt\"}
+   - Get stacktrace:    {\"op\": \"stacktrace\"}
+   
+   Advanced:
+   - List sessions:     {\"op\": \"ls-sessions\"}
+   - Clone session:     {\"op\": \"clone\", \"session\": \"existing-session-id\"}
+   - Require namespace: {\"op\": \"eval\", \"code\": \"(require 'clojure.string)\"}
+   
+   Optional parameters for most ops: \"session\", \"ns\", \"id\"
+   See: https://nrepl.org/nrepl/1.1/ops.html"
   [{:keys [message timeout-ms]
     :or {timeout-ms 30000}}] ; Default 30 second timeout
 
@@ -109,10 +139,10 @@
 (registry/register-tool!
  "nrepl-send-message"
  handle
- {:description "Send an nREPL message synchronously (blocks until response received)"
+ {:description "Send any nREPL operation synchronously. Supports eval, info, completions, sessions, etc. See docstring for nrepl-operations-map with examples."
   :inputSchema {:type "object"
                 :properties {:message {:type "object"
-                                       :description "nREPL message to send (e.g. {:op \"eval\" :code \"...\"})"
+                                       :description "nREPL message map. Examples: {\"op\":\"eval\",\"code\":\"(+ 1 2 3)\"}, {\"op\":\"info\",\"symbol\":\"map\"}, {\"op\":\"completions\",\"prefix\":\"ma\"}"
                                        :additionalProperties true}
                              :timeout-ms {:type "integer"
                                           :description "Timeout in milliseconds (default: 30000)"
