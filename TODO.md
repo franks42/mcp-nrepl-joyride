@@ -1071,6 +1071,47 @@ Use existing `mcp-proxy` tool to bridge HTTP requests to persistent stdio MCP se
   - Result: Clean code with only 1 intentional warning (redundant let)
   - Functionality verified: All tools working correctly after cleanup
 
+### **Explicit Registration Refactoring** (2025-08-18) 🔄 **IN PROGRESS**
+
+**Objective**: Convert all MCP tools from implicit self-registration to explicit centralized registration pattern.
+
+#### **Phase 1: Analysis and Planning** ✅ **COMPLETED**
+- [x] **Analyze current tool registration patterns across all MCP tools**
+- [x] **Create comprehensive plan for explicit registration refactoring**
+- [x] **Establish testing strategy for each phase**
+
+#### **Phase 2: Tool-by-Tool Conversion** 🔄 **IN PROGRESS**
+- [ ] **Extract tool metadata from local-eval tool**
+- [ ] **Extract tool metadata from local-load-file tool**  
+- [ ] **Extract tool metadata from nrepl-connection tool**
+- [ ] **Extract tool metadata from nrepl-eval tool**
+- [ ] **Extract tool metadata from nrepl-send-message-async tool**
+- [ ] **Extract tool metadata from nrepl-get-result-async tool**
+- [x] **Extract tool metadata from nrepl-send-message tool** ✅ COMPLETED
+
+#### **Phase 3: Central Registration Update**
+- [ ] **Update register-all-tools function with all tool registrations**
+- [ ] **Test all tools work correctly after explicit registration**
+
+#### **Phase 4: Cleanup**
+- [ ] **Remove commented registration code from all tool files**
+- [ ] **Remove tool-registry dependencies from tool files where possible**
+- [ ] **Run comprehensive testing suite**
+- [ ] **Format and lint all modified Clojure code**
+
+**Implementation Pattern (Per Tool)**:
+1. Extract metadata as separate `def` statements
+2. Comment out self-registration calls
+3. Add to central `register-all-tools` function
+4. Test functionality preserved
+5. Clean up when all tools converted
+
+**Benefits**:
+- Single point of control for all tool registrations
+- Pure tool files (no side effects during namespace loading)
+- Better testability (tools can be tested in isolation)
+- Enhanced introspection and maintainability
+
 ### **Future Cleanup Opportunities**
 
 - [ ] **Analyze unused private functions**

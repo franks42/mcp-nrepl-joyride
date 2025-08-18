@@ -14,3 +14,6 @@
 ;; Enable direct script execution with shebang
 (when (= *file* (System/getProperty "babashka.file"))
   (-main))
+
+;; Switch to user namespace for local-eval/local-load-file
+(in-ns 'user)

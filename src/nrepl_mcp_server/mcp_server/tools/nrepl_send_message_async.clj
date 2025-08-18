@@ -1,8 +1,7 @@
 (ns nrepl-mcp-server.mcp-server.tools.nrepl-send-message-async
   "Async nREPL message sending tool for MCP - Phase 2b.1 (READY-TO-SEND)"
   (:require [nrepl-mcp-server.state.messages :as msg-state]
-            [cheshire.core :as json]
-            [nrepl-mcp-server.state.tool-registry :as registry]))
+            [cheshire.core :as json]))
 
 ;; =============================================================================
 ;; Main Handler
@@ -41,16 +40,13 @@
                          {:pretty true})}]
        :isError true})))
 
-;; =============================================================================
-;; Self Registration
-;; =============================================================================
+(def tool-name "nrepl-send-message-async")
 
-(registry/register-tool!
- "nrepl-send-message-async"
- handle
- {:description "Queue an nREPL message for async sending"
-  :inputSchema {:type "object"
-                :properties {:message {:type "object"
-                                       :description "nREPL message to send (e.g. {:op \"eval\" :code \"...\"})"
-                                       :additionalProperties true}}
-                :required ["message"]}})
+(def metadata
+  {:description "Queue an nREPL message for async sending"
+   :inputSchema {:type "object"
+                 :properties {:message {:type "object"
+                                        :description "nREPL message to send (e.g. {:op \"eval\" :code \"...\"})"
+                                        :additionalProperties true}}
+                 :required ["message"]}})
+

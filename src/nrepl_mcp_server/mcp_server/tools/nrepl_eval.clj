@@ -2,8 +2,7 @@
   "Simple nREPL eval tool using async message queue - Phase 2b.6"
   (:require [nrepl-mcp-server.mcp-server.tools.nrepl-send-message :as smgr]
             [nrepl-mcp-server.mcp-server.tools.nrepl-get-result-async :as gra]
-            [cheshire.core :as json]
-            [nrepl-mcp-server.state.tool-registry :as registry]))
+            [cheshire.core :as json]))
 
 ;; =============================================================================
 ;; Main Handler
@@ -119,21 +118,18 @@
         ;; Success - format as nrepl-eval response
         (format-nrepl-response result code)))))
 
-;; =============================================================================
-;; Self Registration
-;; =============================================================================
+(def tool-name "nrepl-eval")
 
-(registry/register-tool!
- "nrepl-eval"
- handle
- {:description "Evaluate Clojure code via nREPL using async message queue with timeout recovery"
-  :inputSchema {:type "object"
-                :properties {:code {:type "string"
-                                    :description "Clojure code to evaluate"}
-                             :timeout {:type "integer"
-                                       :description "Timeout in milliseconds (default: 30000)"
-                                       :minimum 1000
-                                       :maximum 300000}
-                             :message-id {:type "string"
-                                          :description "Message ID for timeout recovery - call with same code and this ID to check for delayed result"}}
-                :required ["code"]}})
+(def metadata
+  {:description "Evaluate Clojure code via nREPL using async message queue with timeout recovery"
+   :inputSchema {:type "object"
+                 :properties {:code {:type "string"
+                                     :description "Clojure code to evaluate"}
+                              :timeout {:type "integer"
+                                        :description "Timeout in milliseconds (default: 30000)"
+                                        :minimum 1000
+                                        :maximum 300000}
+                              :message-id {:type "string"
+                                           :description "Message ID for timeout recovery - call with same code and this ID to check for delayed result"}}
+                 :required ["code"]}})
+

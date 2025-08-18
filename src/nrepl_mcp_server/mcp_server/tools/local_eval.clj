@@ -1,7 +1,6 @@
 (ns nrepl-mcp-server.mcp-server.tools.local-eval
   "Local eval tool for MCP server introspection"
-  (:require [cheshire.core :as json]
-            [nrepl-mcp-server.state.tool-registry :as registry]))
+  (:require [cheshire.core :as json]))
 
 (defn handle
   "Evaluate Clojure code within the MCP server runtime"
@@ -54,16 +53,12 @@
                            {:pretty true})}]
          :isError true}))))
 
-;; =============================================================================
-;; Self Registration
-;; =============================================================================
+(def tool-name "local-eval")
 
-;; Self-register this tool when namespace loads
-(registry/register-tool!
- "local-eval"
- handle
- {:description "Execute Clojure code within the MCP server runtime"
-  :inputSchema {:type "object"
-                :properties {:code {:type "string"
-                                    :description "Clojure code to evaluate"}}
-                :required ["code"]}})
+(def metadata
+  {:description "Execute Clojure code within the MCP server runtime"
+   :inputSchema {:type "object"
+                 :properties {:code {:type "string"
+                                     :description "Clojure code to evaluate"}}
+                 :required ["code"]}})
+

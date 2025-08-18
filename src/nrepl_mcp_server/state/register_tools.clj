@@ -25,10 +25,33 @@
 
 (defn register-all-tools []
   (registry/register-tool!
+   nrepl-mcp-server.mcp-server.tools.local-eval/tool-name
+   nrepl-mcp-server.mcp-server.tools.local-eval/handle
+   nrepl-mcp-server.mcp-server.tools.local-eval/metadata)
+  (registry/register-tool!
+   nrepl-mcp-server.mcp-server.tools.local-load-file/tool-name
+   nrepl-mcp-server.mcp-server.tools.local-load-file/handle
+   nrepl-mcp-server.mcp-server.tools.local-load-file/metadata)
+  (registry/register-tool!
+   nrepl-mcp-server.mcp-server.tools.nrepl-connection/tool-name
+   nrepl-mcp-server.mcp-server.tools.nrepl-connection/handle
+   nrepl-mcp-server.mcp-server.tools.nrepl-connection/metadata)
+  (registry/register-tool!
+   nrepl-mcp-server.mcp-server.tools.nrepl-eval/tool-name
+   nrepl-mcp-server.mcp-server.tools.nrepl-eval/handle
+   nrepl-mcp-server.mcp-server.tools.nrepl-eval/metadata)
+  (registry/register-tool!
+   nrepl-mcp-server.mcp-server.tools.nrepl-send-message-async/tool-name
+   nrepl-mcp-server.mcp-server.tools.nrepl-send-message-async/handle
+   nrepl-mcp-server.mcp-server.tools.nrepl-send-message-async/metadata)
+  (registry/register-tool!
+   nrepl-mcp-server.mcp-server.tools.nrepl-get-result-async/tool-name
+   nrepl-mcp-server.mcp-server.tools.nrepl-get-result-async/handle
+   nrepl-mcp-server.mcp-server.tools.nrepl-get-result-async/metadata)
+  (registry/register-tool!
    nrepl-mcp-server.mcp-server.tools.nrepl-send-message/tool-name
    nrepl-mcp-server.mcp-server.tools.nrepl-send-message/handle
-   nrepl-mcp-server.mcp-server.tools.nrepl-send-message/metadata)
-  )
+   nrepl-mcp-server.mcp-server.tools.nrepl-send-message/metadata))
 
 (register-all-tools)
 

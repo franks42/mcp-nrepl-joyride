@@ -4,7 +4,6 @@
             [nrepl-mcp-server.nrepl-client.connection :as conn]
             [nrepl-mcp-server.nrepl-client.handlers] ;; Load handlers to install watchers
             [cheshire.core :as json]
-            [nrepl-mcp-server.state.tool-registry :as registry]
             [nrepl-mcp-server.state.watchers :as watchers]))
 
 ;; =============================================================================
@@ -162,21 +161,17 @@
                        {:pretty true})}]
      :isError true}))
 
-;; =============================================================================
-;; Self Registration
-;; =============================================================================
+(def tool-name "nrepl-connection")
 
-;; Self-register this tool when namespace loads
-(registry/register-tool!
- "nrepl-connection"
- handle
- {:description "nREPL connection operations: connect, disconnect, status"
-  :inputSchema {:type "object"
-                :properties {:op {:type "string"
-                                  :description "Operation: 'connect', 'disconnect', or 'status'"
-                                  :enum ["connect" "disconnect" "status"]}
-                             :connection {:type "string"
-                                          :description "Connection info for connect: host:port, port, or file path"}
-                             :timeout {:type "integer"
-                                       :description "Timeout in milliseconds (default 5000)"}}
-                :required ["op"]}})
+(def metadata
+  {:description "nREPL connection operations: connect, disconnect, status"
+   :inputSchema {:type "object"
+                 :properties {:op {:type "string"
+                                   :description "Operation: 'connect', 'disconnect', or 'status'"
+                                   :enum ["connect" "disconnect" "status"]}
+                              :connection {:type "string"
+                                           :description "Connection info for connect: host:port, port, or file path"}
+                              :timeout {:type "integer"
+                                        :description "Timeout in milliseconds (default 5000)"}}
+                 :required ["op"]}})
+

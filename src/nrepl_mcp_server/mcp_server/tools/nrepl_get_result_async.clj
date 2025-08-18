@@ -2,8 +2,7 @@
   "Async result retrieval tool for MCP - Phase 2b.4"
   (:require [nrepl-mcp-server.state.results :as results]
             [nrepl-mcp-server.state.messages :as msg-state]
-            [cheshire.core :as json]
-            [nrepl-mcp-server.state.tool-registry :as registry]))
+            [cheshire.core :as json]))
 
 ;; =============================================================================
 ;; Main Handler
@@ -71,17 +70,14 @@
                            {:pretty true})}]
          :isError true}))))
 
-;; =============================================================================
-;; Self Registration
-;; =============================================================================
+(def tool-name "nrepl-get-result-async")
 
-(registry/register-tool!
- "nrepl-get-result-async"
- handle
- {:description "Retrieve the result of an async nREPL message"
-  :inputSchema {:type "object"
-                :properties {:message-id {:type "string"
-                                          :description "Message ID returned from send-message-async"}
-                             :timeout {:type "integer"
-                                       :description "Timeout in milliseconds (default 30000)"}}
-                :required ["message-id"]}})
+(def metadata
+  {:description "Retrieve the result of an async nREPL message"
+   :inputSchema {:type "object"
+                 :properties {:message-id {:type "string"
+                                           :description "Message ID returned from send-message-async"}
+                              :timeout {:type "integer"
+                                        :description "Timeout in milliseconds (default 30000)"}}
+                 :required ["message-id"]}})
+

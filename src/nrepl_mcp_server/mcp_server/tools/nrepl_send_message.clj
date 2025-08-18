@@ -3,8 +3,7 @@
   (:require [nrepl-mcp-server.state.messages :as msg-state]
             [nrepl-mcp-server.state.results :as results]
             [nrepl-mcp-server.state.connection :as conn]
-            [cheshire.core :as json]
-            [nrepl-mcp-server.state.tool-registry :as registry]))
+            [cheshire.core :as json]))
 
 ;; =============================================================================
 ;; Main Handler
@@ -134,7 +133,7 @@
 
 (def tool-name "nrepl-send-message")
 
-(def metadata 
+(def metadata
   {:description "Send any nREPL operation synchronously. Supports eval, info, completions, sessions, etc. See docstring for nrepl-operations-map with examples."
    :inputSchema {:type "object"
                  :properties {:message {:type "object"
@@ -146,20 +145,3 @@
                                            :maximum 300000}}
                  :required ["message"]}})
 
-;; =============================================================================
-;; Self Registration
-;; =============================================================================
-
-;; (registry/register-tool!
-;;  "nrepl-send-message"
-;;  handle
-;;  {:description "Send any nREPL operation synchronously. Supports eval, info, completions, sessions, etc. See docstring for nrepl-operations-map with examples."
-;;   :inputSchema {:type "object"
-;;                 :properties {:message {:type "object"
-;;                                        :description "nREPL message map. Examples: {\"op\":\"eval\",\"code\":\"(+ 1 2 3)\"}, {\"op\":\"info\",\"symbol\":\"map\"}, {\"op\":\"completions\",\"prefix\":\"ma\"}"
-;;                                        :additionalProperties true}
-;;                              :timeout-ms {:type "integer"
-;;                                           :description "Timeout in milliseconds (default: 30000)"
-;;                                           :minimum 1000
-;;                                           :maximum 300000}}
-;;                 :required ["message"]}})
