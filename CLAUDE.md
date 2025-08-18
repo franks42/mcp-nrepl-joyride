@@ -607,7 +607,7 @@ The debug tools **do not require the `state` parameter** that other MCP tools us
 - The planned refactoring will eliminate the unnecessary `state` parameter passing
 - This demonstrates a cleaner, more direct approach to tool implementation
 
-### Debug-Eval Features (✅ IMPLEMENTED)
+### Local-Eval Features (✅ IMPLEMENTED)
 - **🔍 Live Introspection**: Inspect atoms, state, queues, and connections in real-time
 - **🛠️ Hot Code Modification**: Modify functions and reload namespaces without restart
 - **📊 State Analysis**: Examine internal data structures and message queues
@@ -616,30 +616,30 @@ The debug tools **do not require the `state` parameter** that other MCP tools us
 
 ### Debug Tools Usage
 
-#### 1. debug-eval - Direct Code Execution
+#### 1. local-eval - Direct Code Execution
 ```bash
 # Simple arithmetic evaluation
-python3 ./mcp_nrepl_client.py --tool debug-eval --args '{"code": "(+ 1 2 3)"}'
+python3 ./mcp_nrepl_client.py --tool local-eval --args '{"code": "(+ 1 2 3)"}'
 
 # Inspect server state
-python3 ./mcp_nrepl_client.py --tool debug-eval --args '{"code": "(keys @mcp-nrepl-proxy.core/state)"}'
+python3 ./mcp_nrepl_client.py --tool local-eval --args '{"code": "(keys @mcp-nrepl-proxy.core/state)"}'
 
 # Access private vars (need double deref for private atoms)
-python3 ./mcp_nrepl_client.py --tool debug-eval --args '{"code": "(keys @@#'\''mcp-nrepl-proxy.state/message-queues)"}'
+python3 ./mcp_nrepl_client.py --tool local-eval --args '{"code": "(keys @@#'\''mcp-nrepl-proxy.state/message-queues)"}'
 
 # Modify functions on the fly
-python3 ./mcp_nrepl_client.py --tool debug-eval --args '{"code": "(defn my-fn [] :modified)"}'
+python3 ./mcp_nrepl_client.py --tool local-eval --args '{"code": "(defn my-fn [] :modified)"}'
 ```
 
-#### 2. debug-load-file - Load Complete Toolkits
+#### 2. local-load-file - Load Complete Toolkits
 ```bash
 # Load the comprehensive debug toolkit
-python3 ./mcp_nrepl_client.py --tool debug-load-file --args '{"file-path": "debug-toolkit.clj"}'
+python3 ./mcp_nrepl_client.py --tool local-load-file --args '{"file-path": "debug-toolkit.clj"}'
 
 # Then use simple shortcuts
-python3 ./mcp_nrepl_client.py --tool debug-eval --args '{"code": "(ds)"}'    # debug summary
-python3 ./mcp_nrepl_client.py --tool debug-eval --args '{"code": "(aa)"}'    # architecture analysis
-python3 ./mcp_nrepl_client.py --tool debug-eval --args '{"code": "(help)"}'  # show all commands
+python3 ./mcp_nrepl_client.py --tool local-eval --args '{"code": "(ds)"}'    # debug summary
+python3 ./mcp_nrepl_client.py --tool local-eval --args '{"code": "(aa)"}'    # architecture analysis
+python3 ./mcp_nrepl_client.py --tool local-eval --args '{"code": "(help)"}'  # show all commands
 ```
 
 ### Accessing Private Vars
@@ -670,13 +670,13 @@ Since we're running under Babashka's SCI interpreter, namespace switching with `
 This tool is particularly useful for understanding the current architectural issues:
 ```bash
 # See all pending messages
-python3 ./mcp_nrepl_client.py --tool debug-eval --args '{"code": "(:pending-messages @@#'\''mcp-nrepl-proxy.state/message-queues)"}'
+python3 ./mcp_nrepl_client.py --tool local-eval --args '{"code": "(:pending-messages @@#'\''mcp-nrepl-proxy.state/message-queues)"}'
 
 # Check message records
-python3 ./mcp_nrepl_client.py --tool debug-eval --args '{"code": "(count (:message-records @@#'\''mcp-nrepl-proxy.state/message-queues))"}'
+python3 ./mcp_nrepl_client.py --tool local-eval --args '{"code": "(count (:message-records @@#'\''mcp-nrepl-proxy.state/message-queues))"}'
 
 # Inspect failure records
-python3 ./mcp_nrepl_client.py --tool debug-eval --args '{"code": "(:failure-records @@#'\''mcp-nrepl-proxy.state/message-queues)"}'
+python3 ./mcp_nrepl_client.py --tool local-eval --args '{"code": "(:failure-records @@#'\''mcp-nrepl-proxy.state/message-queues)"}'
 ```
 
 **WARNING**: This is a powerful debugging tool - use with caution in production environments!

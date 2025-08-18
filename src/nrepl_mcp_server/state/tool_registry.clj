@@ -18,12 +18,12 @@
   "Register a tool with its handler and metadata
    
    Args:
-     tool-name   - String name of the tool (e.g., 'debug-eval')
+     tool-name   - String name of the tool (e.g., 'local-eval')
      handler     - Function that handles the tool invocation
      metadata    - Map containing tool description and JSON schema
    
    Example:
-     (register-tool! 'debug-eval' handle-fn {:description '...' :inputSchema {...}})"
+     (register-tool! 'local-eval' handle-fn {:description '...' :inputSchema {...}})"
   [tool-name handler metadata]
   (swap! tool-registry assoc tool-name {:handler handler :metadata metadata}))
 

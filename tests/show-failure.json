@@ -8,7 +8,7 @@
     },
     {
       "name": "failing_test",
-      "tool": "debug-eval",
+      "tool": "local-eval",
       "args": {"code": "(let [s (:socket @nrepl-mcp-server.state.connection/connection-state)] (when s {:local-port (.getLocalPort s) :remote-port (.getPort s)}))"},
       "description": "What exactly fails here?"
     }

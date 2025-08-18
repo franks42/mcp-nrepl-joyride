@@ -2,31 +2,31 @@
   "namespace_investigation": [
     {
       "name": "list_all_namespaces",
-      "tool": "debug-eval",
+      "tool": "local-eval",
       "args": {"code": "(all-ns)"},
       "description": "List all available namespaces"
     },
     {
       "name": "check_state_ns_exists",
-      "tool": "debug-eval", 
+      "tool": "local-eval", 
       "args": {"code": "(find-ns 'nrepl-mcp-server.state.connection)"},
       "description": "Check if state.connection namespace exists"
     },
     {
       "name": "check_if_ns_loaded",
-      "tool": "debug-eval",
+      "tool": "local-eval",
       "args": {"code": "(ns-publics 'nrepl-mcp-server.state.connection)"},
       "description": "Get public vars from state.connection namespace"
     },
     {
       "name": "try_direct_access",
-      "tool": "debug-eval",
+      "tool": "local-eval",
       "args": {"code": "nrepl-mcp-server.state.connection/connection-state"},
       "description": "Try direct access to connection-state var"
     },
     {
       "name": "require_namespace",
-      "tool": "debug-eval",
+      "tool": "local-eval",
       "args": {"code": "(do (require 'nrepl-mcp-server.state.connection) nrepl-mcp-server.state.connection/connection-state)"},
       "description": "Require the namespace first then access var"
     }

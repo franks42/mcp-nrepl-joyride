@@ -435,8 +435,8 @@ uv run python test_nrepl_lifecycle.py
 **COMPLETED**: Comprehensive debugging toolkit for MCP server runtime introspection
 
 **Features Implemented:**
-- [x] **debug-eval tool** - Execute arbitrary Clojure code in server runtime ✅
-- [x] **debug-load-file tool** - Load complete debugging toolkits from files ✅
+- [x] **local-eval tool** - Execute arbitrary Clojure code in server runtime ✅
+- [x] **local-load-file tool** - Load complete debugging toolkits from files ✅
 - [x] **debug-toolkit.clj** - Comprehensive helper functions and shortcuts ✅
 - [x] **State parameter elimination** - Debug tools don't need dependency injection ✅
 - [x] **SCI restriction bypass** - Access private vars with helper functions ✅
@@ -451,11 +451,11 @@ uv run python test_nrepl_lifecycle.py
 **Usage Examples:**
 ```bash
 # Load complete toolkit
-python3 ./mcp_nrepl_client.py --tool debug-load-file --args '{"file-path": "debug-toolkit.clj"}'
+python3 ./mcp_nrepl_client.py --tool local-load-file --args '{"file-path": "debug-toolkit.clj"}'
 
 # Use shortcuts for analysis
-python3 ./mcp_nrepl_client.py --tool debug-eval --args '{"code": "(ds)"}'  # debug summary
-python3 ./mcp_nrepl_client.py --tool debug-eval --args '{"code": "(aa)"}'  # architecture analysis
+python3 ./mcp_nrepl_client.py --tool local-eval --args '{"code": "(ds)"}'  # debug summary
+python3 ./mcp_nrepl_client.py --tool local-eval --args '{"code": "(aa)"}'  # architecture analysis
 ```
 
 **Commit**: `v0.12.0-debug-tools-simplified` ✅

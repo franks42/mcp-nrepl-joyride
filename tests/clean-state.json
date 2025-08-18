@@ -2,19 +2,19 @@
   "force_clean_state": [
     {
       "name": "check_current_state",
-      "tool": "debug-eval",
+      "tool": "local-eval",
       "args": {"code": "@nrepl-mcp-server.state.connection/connection-state"},
       "description": "See current connection state"
     },
     {
       "name": "force_reset_state",
-      "tool": "debug-eval", 
+      "tool": "local-eval", 
       "args": {"code": "(reset! nrepl-mcp-server.state.connection/connection-state {:status :disconnected :socket nil :port nil :connection-id nil :last-activity nil})"},
       "description": "Force reset connection state to clean disconnected"
     },
     {
       "name": "verify_clean_state",
-      "tool": "debug-eval",
+      "tool": "local-eval",
       "args": {"code": "@nrepl-mcp-server.state.connection/connection-state"},
       "description": "Verify state is now clean"
     },

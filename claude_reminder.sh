@@ -16,10 +16,10 @@ REMINDER_FILE="claude_reminder.md"
 
 # Function to show reminder content
 show_reminder() {
-    echo ""
-    echo "==============================================="
-    echo "⏰ $(date '+%H:%M:%S') - AUTOMATED REMINDER"
-    echo "==============================================="
+    # echo ""
+    # echo "==============================================="
+    # echo "⏰ $(date '+%H:%M:%S') - AUTOMATED REMINDER"
+    # echo "==============================================="
     
     if [[ -f "$REMINDER_FILE" ]]; then
         cat "$REMINDER_FILE"
@@ -28,15 +28,25 @@ show_reminder() {
         echo "📝 File $REMINDER_FILE not found - using default message"
     fi
     
-    echo "==============================================="
-    echo ""
+    # echo "==============================================="
+    # echo ""
 }
 
 # Show initial reminder
 echo "🚨 Claude Wrapper Started - Reminder every $PERIOD_MIN minutes"
 echo "📝 Reading reminders from: $REMINDER_FILE"
 echo ""
-show_reminder
+
+
+# Function to inject initial reminder 
+inject_initial_reminder() {
+    echo ""
+    echo ""
+    sleep 5
+    echo "Hi Claude Code!"
+    sleep 5
+    show_reminder
+}
 
 # Function to inject reminders periodically 
 inject_reminder() {
@@ -47,14 +57,17 @@ inject_reminder() {
 }
 
 # Start background reminder process
+inject_initial_reminder &
+REMINDER_PID1=$!
 inject_reminder &
-REMINDER_PID=$!
+REMINDER_PID2=$!
 
 # Cleanup function
 cleanup() {
     echo ""
     echo "🛑 Stopping reminder process..."
-    kill $REMINDER_PID 2>/dev/null
+    kill $REMINDER_PID1 2>/dev/null
+    kill $REMINDER_PID2 2>/dev/null
     exit 0
 }
 

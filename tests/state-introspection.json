@@ -2,43 +2,43 @@
   "comprehensive_state_access": [
     {
       "name": "connection_state_atom",
-      "tool": "debug-eval",
+      "tool": "local-eval",
       "args": {"code": "@nrepl-mcp-server.state.connection/connection-state"},
       "description": "Access connection state atom"
     },
     {
       "name": "socket_exists_check",
-      "tool": "debug-eval",
+      "tool": "local-eval",
       "args": {"code": "(boolean (:socket @nrepl-mcp-server.state.connection/connection-state))"},
       "description": "Check if socket exists in connection state"
     },
     {
       "name": "socket_type_check",
-      "tool": "debug-eval",
+      "tool": "local-eval",
       "args": {"code": "(str (type (:socket @nrepl-mcp-server.state.connection/connection-state)))"},
       "description": "Get socket type"
     },
     {
       "name": "safe_socket_methods",
-      "tool": "debug-eval",
+      "tool": "local-eval",
       "args": {"code": "(let [s (:socket @nrepl-mcp-server.state.connection/connection-state)] (when s {:type (str (type s)) :closed? (.isClosed s)}))"},
       "description": "Safe socket method calls"
     },
     {
       "name": "full_socket_details",
-      "tool": "debug-eval",
+      "tool": "local-eval",
       "args": {"code": "(let [s (:socket @nrepl-mcp-server.state.connection/connection-state)] (when s {:local-port (.getLocalPort s) :remote-port (.getPort s)}))"},
       "description": "Get socket port details"
     },
     {
       "name": "message_queues_atom",
-      "tool": "debug-eval",
+      "tool": "local-eval",
       "args": {"code": "@nrepl-mcp-server.state.queue/message-queues"},
       "description": "Access message queues atom"
     },
     {
       "name": "all_state_namespaces",
-      "tool": "debug-eval",
+      "tool": "local-eval",
       "args": {"code": "(filter #(re-find #\"state\" (str %)) (all-ns))"},
       "description": "Find all state-related namespaces"
     }

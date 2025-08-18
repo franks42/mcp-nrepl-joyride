@@ -28,7 +28,7 @@ async def test_failing_call():
         "id": 2,
         "method": "tools/call",
         "params": {
-            "name": "debug-eval",
+            "name": "local-eval",
             "arguments": {
                 "code": "(let [s (:socket @nrepl-mcp-server.state.connection/connection-state)] (when s {:local-port (.getLocalPort s) :remote-port (.getPort s)}))"
             },

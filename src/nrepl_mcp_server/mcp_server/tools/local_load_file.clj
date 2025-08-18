@@ -1,5 +1,5 @@
-(ns nrepl-mcp-server.mcp-server.tools.debug-load-file
-  "Debug load-file tool for loading Clojure files in MCP server runtime"
+(ns nrepl-mcp-server.mcp-server.tools.local-load-file
+  "Local load-file tool for loading Clojure files in MCP server runtime"
   (:require [cheshire.core :as json]
             [nrepl-mcp-server.state.tool-registry :as registry])
   (:import [java.io StringWriter PrintWriter]))
@@ -70,7 +70,7 @@
 
 ;; Self-register this tool when namespace loads
 (registry/register-tool!
- "debug-load-file"
+ "local-load-file"
  handle
  {:description "Load and evaluate a Clojure file in the MCP server runtime"
   :inputSchema {:type "object"

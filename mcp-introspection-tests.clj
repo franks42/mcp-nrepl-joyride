@@ -1,5 +1,5 @@
 ;; MCP Server Introspection Test Suite
-;; Use with debug-load-file to test MCP server internal capabilities
+;; Use with local-load-file to test MCP server internal capabilities
 ;; Clean version without println statements to avoid JSON response conflicts
 
 ;; Test 1: Available namespaces
@@ -13,11 +13,11 @@
 
 ;; Test 4: MCP tool registry simulation
 (def tool-registry 
-  {"debug-eval" {:description "Execute Clojure code within the MCP server runtime"
+  {"local-eval" {:description "Execute Clojure code within the MCP server runtime"
                  :schema {:type "object"
                          :properties {:code {:type "string"}}
                          :required ["code"]}}
-   "debug-load-file" {:description "Load and evaluate a Clojure file in the MCP server runtime"
+   "local-load-file" {:description "Load and evaluate a Clojure file in the MCP server runtime"
                       :schema {:type "object"
                               :properties {:file-path {:type "string"}}
                               :required ["file-path"]}}})
@@ -51,8 +51,8 @@
      :error (str "Unknown tool: " tool-name)}))
 
 (def test-calls 
-  [(simulate-tool-call "debug-eval" {:code "(+ 1 2 3)"})
-   (simulate-tool-call "debug-load-file" {:file-path "test.clj"})
+  [(simulate-tool-call "local-eval" {:code "(+ 1 2 3)"})
+   (simulate-tool-call "local-load-file" {:file-path "test.clj"})
    (simulate-tool-call "unknown-tool" {})])
 
 ;; Test 8: Environment capabilities check

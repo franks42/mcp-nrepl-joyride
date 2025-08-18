@@ -96,12 +96,12 @@ class SSEMCPClient:
         return await self.send_message(message)
 
     async def test_debug_eval(self):
-        """Test debug-eval tool."""
+        """Test local-eval tool."""
         message = {
             "jsonrpc": "2.0",
             "id": 3,
             "method": "tools/call",
-            "params": {"name": "debug-eval", "arguments": {"code": "(+ 1 2 3)"}},
+            "params": {"name": "local-eval", "arguments": {"code": "(+ 1 2 3)"}},
         }
         return await self.send_message(message)
 

@@ -23,8 +23,8 @@ nrepl-mcp-server/              ; Top-level project namespace
     server.clj                 ; stdio server, JSON-RPC handling
     dispatch.clj               ; Tool routing via registry (purely generic)
     tools/                     ; One file per MCP tool function
-      debug_eval.clj           ; debug-eval tool (self-registering)
-      debug_load_file.clj      ; debug-load-file tool (self-registering)
+      debug_eval.clj           ; local-eval tool (self-registering)
+      debug_load_file.clj      ; local-load-file tool (self-registering)
       nrepl_server.clj         ; Unified nREPL operations (self-registering)
       send_message_async.clj   ; Async message sending (Phase 2b)
       get_result_async.clj     ; Async result retrieval (Phase 2b)
@@ -432,7 +432,7 @@ The existing `send-message` function is preserved:
 └─────────────────────────────────────────────┘
 ```
 
-### 14.3 Implications for debug-eval Implementation
+### 14.3 Implications for local-eval Implementation
 
 **Requirements hierarchy:**
 1. **MANDATORY**: Capture stdout to prevent protocol corruption
@@ -441,9 +441,9 @@ The existing `send-message` function is preserved:
 
 ### 14.4 Current Implementation Status
 
-✅ **Phase 1 Complete**: Protocol-safe debug-eval with stdout capture
+✅ **Phase 1 Complete**: Protocol-safe local-eval with stdout capture
 ```clojure
-(defn debug-eval
+(defn local-eval
   [{:keys [code] :as args}]
   (try
     (let [result-atom (atom nil)
@@ -467,7 +467,7 @@ The existing `send-message` function is preserved:
 
 ```clojure
 ;; CRITICAL: Without stdout capture, this would break MCP:
-(debug-eval {:code "(println \"Hello\")"})
+(local-eval {:code "(println \"Hello\")"})
 ;; stdout "Hello\n" would corrupt JSON-RPC stream
 
 ;; SAFE: With capture, protocol remains intact:
@@ -493,9 +493,9 @@ The existing `send-message` function is preserved:
 ./scripts/test-phase1.sh
 
 # All tests pass with protocol compliance:
-# ✅ debug-eval with println
-# ✅ debug-eval with print
-# ✅ debug-eval with pr/prn
+# ✅ local-eval with println
+# ✅ local-eval with print
+# ✅ local-eval with pr/prn
 # ✅ No JSON corruption observed
 # ✅ MCP protocol compliance confirmed
 ```
@@ -507,9 +507,9 @@ The existing `send-message` function is preserved:
 
 ### 14.8 Future Enhancement Path
 
-**If stderr capture is desired for debug-eval:**
+**If stderr capture is desired for local-eval:**
 ```clojure
-;; Could implement similar to debug-load-file approach:
+;; Could implement similar to local-load-file approach:
 (let [stderr-writer (StringWriter.)]
   (binding [*err* (PrintWriter. stderr-writer)]
     ;; ... evaluation logic
@@ -554,7 +554,7 @@ Phase 2 implements a reactive, state-driven connection management system using C
 Located in `src/mcp_server/state.clj`, provides:
 - Single source of truth for connection status
 - Helper functions for state updates
-- Introspection via debug-eval
+- Introspection via local-eval
 
 #### nrepl-server MCP Tool
 Single tool with operations mimicking nREPL protocol:
@@ -584,23 +584,23 @@ Will be implemented with message queue functionality:
 1. Build state namespace with connection atom
 2. Implement nrepl-server MCP tool with parameter resolution
 3. Add connection handler watcher for reactive processing
-4. Test via debug-eval introspection before adding message queues
+4. Test via local-eval introspection before adding message queues
 
-### 15.6 Testing Approach with debug-eval
+### 15.6 Testing Approach with local-eval
 
 ```clojure
 ;; Introspect connection state
-(debug-eval {:code "@mcp-server.state/connection-state"})
+(local-eval {:code "@mcp-server.state/connection-state"})
 
 ;; Simulate state transitions
-(debug-eval {:code "(swap! mcp-server.state/connection-state 
+(local-eval {:code "(swap! mcp-server.state/connection-state 
                      assoc :status :pending-connect :hostname \"localhost\" :port 7888)"})
 
 ;; Verify watcher firing
-(debug-eval {:code "(Thread/sleep 100) @mcp-server.state/connection-state"})
+(local-eval {:code "(Thread/sleep 100) @mcp-server.state/connection-state"})
 
 ;; Test error scenarios
-(debug-eval {:code "(swap! mcp-server.state/connection-state 
+(local-eval {:code "(swap! mcp-server.state/connection-state 
                      assoc :status :failed :error \"Connection refused\")"})
 ```
 
@@ -609,7 +609,7 @@ Will be implemented with message queue functionality:
 - **Single Connection**: Phase 2 supports one connection (multi-connection in future)
 - **Explicit Lifecycle**: Require explicit disconnect before reconnect
 - **Timeout Control**: Configurable timeouts with sensible defaults (5s)
-- **Testability**: All state observable via debug-eval for development
+- **Testability**: All state observable via local-eval for development
 - **Incremental Development**: Can test state management before adding real TCP connections
 
 ### 15.8 Error Handling Philosophy
@@ -648,8 +648,8 @@ Phase 2 implements a self-registering tools pattern that eliminates tool-specifi
   (:require
     [nrepl-mcp_server.state.tool-registry :as registry]
     ;; Explicitly require all tool namespaces (triggers self-registration)
-    [nrepl-mcp_server.mcp_server.tools.debug-eval]
-    [nrepl-mcp_server.mcp_server.tools.debug-load-file]
+    [nrepl-mcp_server.mcp_server.tools.local-eval]
+    [nrepl-mcp_server.mcp_server.tools.local-load-file]
     [nrepl-mcp_server.mcp_server.tools.nrepl-server]))
 
 (defn register-tools!
@@ -667,7 +667,7 @@ Each tool file includes self-registration at namespace load:
 ```clojure
 ;; At end of each tool file:
 (registry/register-tool!
- "debug-eval"
+ "local-eval"
  handle
  {:description "Execute Clojure code within the MCP server runtime"
   :inputSchema {:type "object"
@@ -759,11 +759,11 @@ MCP server ready with dynamically registered tools
 ```clojure
 ;; Check registry status
 (registry/registry-size)          ; => 3
-(registry/list-tool-names)        ; => ["debug-eval" "debug-load-file" "nrepl-server"]
+(registry/list-tool-names)        ; => ["local-eval" "local-load-file" "nrepl-server"]
 (registry/get-registered-tools)   ; => {"tool-name" {:handler fn :metadata map}}
 
 ;; Runtime tool lookup (used by dispatcher)
-(registry/get-tool "debug-eval")  ; => {:handler fn :metadata map}
+(registry/get-tool "local-eval")  ; => {:handler fn :metadata map}
 ```
 
 ### 16.6 Testing and Validation
@@ -771,22 +771,22 @@ MCP server ready with dynamically registered tools
 #### Server Startup Confirmation
 ```bash
 $ BABASHKA_CLASSPATH=src bb src/nrepl_mcp_server/core.clj
-🔧 Registered 3 MCP tools: ["debug-eval" "debug-load-file" "nrepl-server"]
+🔧 Registered 3 MCP tools: ["local-eval" "local-load-file" "nrepl-server"]
 🚀 Starting nREPL-MCP server...
 ```
 
-#### Runtime Introspection via debug-eval
+#### Runtime Introspection via local-eval
 ```clojure
 ;; Verify registry state
-(debug-eval {:code "(count @nrepl-mcp_server.state.tool-registry/tool-registry)"})
+(local-eval {:code "(count @nrepl-mcp_server.state.tool-registry/tool-registry)"})
 ;; => 3
 
 ;; List registered tools  
-(debug-eval {:code "(keys @nrepl-mcp_server.state.tool-registry/tool-registry)"})
-;; => ("debug-eval" "debug-load-file" "nrepl-server")
+(local-eval {:code "(keys @nrepl-mcp_server.state.tool-registry/tool-registry)"})
+;; => ("local-eval" "local-load-file" "nrepl-server")
 
 ;; Check tool metadata
-(debug-eval {:code "(:description (:metadata (get @nrepl-mcp_server.state.tool-registry/tool-registry \"debug-eval\")))"})
+(local-eval {:code "(:description (:metadata (get @nrepl-mcp_server.state.tool-registry/tool-registry \"local-eval\")))"})
 ;; => "Execute Clojure code within the MCP server runtime"
 ```
 
@@ -825,7 +825,7 @@ This pattern serves as the foundation for all future MCP tool development in the
 ## 17. Cross-Namespace Introspection Capabilities (January 2025)
 
 ### 17.1 Discovery Summary
-Phase 1 testing revealed powerful cross-namespace introspection capabilities within the SCI (Small Clojure Interpreter) runtime environment. The `debug-eval` tool can access and manipulate state across all loaded namespaces, providing comprehensive runtime visibility.
+Phase 1 testing revealed powerful cross-namespace introspection capabilities within the SCI (Small Clojure Interpreter) runtime environment. The `local-eval` tool can access and manipulate state across all loaded namespaces, providing comprehensive runtime visibility.
 
 ### 17.2 Introspection Scope
 
@@ -848,7 +848,7 @@ Phase 1 testing revealed powerful cross-namespace introspection capabilities wit
 ```clojure
 ;; Access public vars from other namespaces
 @nrepl-mcp_server.state.tool-registry/tool-registry
-;; => {"debug-eval" {:handler ...} "debug-load-file" {:handler ...} ...}
+;; => {"local-eval" {:handler ...} "local-load-file" {:handler ...} ...}
 
 ;; List public vars in any namespace
 (keys (ns-publics (find-ns (symbol "nrepl-mcp_server.state.connection"))))
@@ -861,11 +861,11 @@ The tool registry atom can be fully accessed and modified:
 ```clojure
 ;; Get all tool names
 (keys @nrepl-mcp_server.state.tool-registry/tool-registry)
-;; => ("debug-eval" "debug-load-file" "nrepl-server")
+;; => ("local-eval" "local-load-file" "nrepl-server")
 
 ;; Inspect tool metadata
 (get-in @nrepl-mcp_server.state.tool-registry/tool-registry 
-        ["debug-eval" :metadata :description])
+        ["local-eval" :metadata :description])
 ;; => "Execute Clojure code within the MCP server runtime"
 
 ;; Count registered tools
@@ -917,7 +917,7 @@ async def test_registry_consistency(self) -> bool:
     mcp_tool_names = sorted([tool["name"] for tool in mcp_result["tools"]])
     
     # Get tools from internal registry via introspection
-    registry_result = await self.client.call_tool("debug-eval", {
+    registry_result = await self.client.call_tool("local-eval", {
         "code": "(sort (keys @nrepl-mcp_server.state.tool-registry/tool-registry))"
     })
     
@@ -946,7 +946,7 @@ This test ensures:
 (defn architecture-analysis []
   {:tool-registry-consistency 
    (= (set (keys @nrepl-mcp_server.state.tool-registry/tool-registry))
-      (set ["debug-eval" "debug-load-file" "nrepl-server"]))
+      (set ["local-eval" "local-load-file" "nrepl-server"]))
    :namespace-health 
    (> (count (all-ns)) 50)})
 ```
@@ -987,7 +987,7 @@ The registry consistency test could be extended for comprehensive health monitor
 
 ### 17.11 Key Achievements
 
-1. **Complete Visibility**: All server internals accessible via debug-eval
+1. **Complete Visibility**: All server internals accessible via local-eval
 2. **Architecture Validation**: Can verify design assumptions at runtime
 3. **Testing Enhancement**: Registry consistency test ensures API accuracy
 4. **Transport Independence**: Introspection works via stdio, HTTP, and future transports

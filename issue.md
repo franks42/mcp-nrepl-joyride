@@ -15,14 +15,14 @@ Current validation looks for `"status"` directly in MCP response, not in parsed 
 
 ## Impact
 - Tests incorrectly fail despite server working perfectly
-- debug-eval and nrepl-server tools affected
+- local-eval and nrepl-server tools affected
 - Framework issue, not server issue
 
 ## Evidence
 Manual curl tests show server works:
 ```bash
 # This works fine:
-curl -X POST http://localhost:3000/mcp/ -d '{"method": "tools/call", "params": {"name": "debug-eval", "arguments": {"code": "(+ 1 2 3)"}}}'
+curl -X POST http://localhost:3000/mcp/ -d '{"method": "tools/call", "params": {"name": "local-eval", "arguments": {"code": "(+ 1 2 3)"}}}'
 # Returns: {"content": [{"text": "{\"status\": \"success\", \"result\": 6}"}]}
 ```
 

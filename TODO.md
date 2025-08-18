@@ -40,6 +40,63 @@ Phase 2b.6 completed: 2025-08-15
 - 📝 **Update architecture doc as we implement** - living documentation
 - 🧪 Test-driven development with comprehensive coverage
 
+## 🔧 **PHASE 2C: TOOL RENAMING - LOCAL EXECUTION TOOLS**
+
+### **Phase 2c.1: Rename debug-* tools to local-* tools** 🔄 **IN PROGRESS**
+
+**Goal**: Rename `local-eval` and `local-load-file` to `local-eval` and `local-load-file` to better reflect their purpose of executing code locally within the MCP server runtime (as opposed to remote nREPL execution).
+
+**Rationale**: 
+- **Clarity**: "local" better describes that these tools execute in the MCP server's SCI runtime
+- **Distinction**: Clear separation from nREPL tools which execute remotely
+- **Consistency**: Aligns with naming patterns where tool name reflects execution context
+
+**Implementation Plan**:
+
+#### Step 1: File and Namespace Renaming
+- [ ] Rename `src/nrepl_mcp_server/mcp_server/tools/debug_eval.clj` → `local_eval.clj`
+- [ ] Rename `src/nrepl_mcp_server/mcp_server/tools/debug_load_file.clj` → `local_load_file.clj`
+- [ ] Update namespace declarations from `local-eval` → `local-eval`
+- [ ] Update namespace declarations from `local-load-file` → `local-load-file`
+
+#### Step 2: Tool Registration Updates
+- [ ] Update tool registration calls to use new names
+- [ ] Update self-registration in each tool file
+- [ ] Update `register_tools.clj` require statements
+
+#### Step 3: Test Updates
+- [ ] Update all test files (JSON test definitions)
+- [ ] Update Python test scripts that call these tools
+- [ ] Update bash test scripts in `/scripts/`
+
+#### Step 4: Documentation Updates
+- [ ] Update CLAUDE.md references
+- [ ] Update TODO.md references (this file)
+- [ ] Update architecture documentation
+- [ ] Update cookbook examples
+
+#### Step 5: Settings and Config Updates
+- [ ] Update `.claude/settings.local.json` auto-approval patterns
+- [ ] Update any example commands in documentation
+
+**Files to Update (Primary)**:
+1. `src/nrepl_mcp_server/mcp_server/tools/debug_eval.clj` → `local_eval.clj`
+2. `src/nrepl_mcp_server/mcp_server/tools/debug_load_file.clj` → `local_load_file.clj`
+3. `src/nrepl_mcp_server/state/register_tools.clj`
+4. All test files in `/tests/` directory
+5. Python scripts: `explore_mcp.py`, `test_http_bridge.py`, etc.
+6. Shell scripts in `/scripts/`
+7. Documentation files in `/docs/`
+
+**Testing Strategy**:
+1. Run `./scripts/format.sh` after all changes
+2. Run `clj-kondo --lint src/` to verify no issues
+3. Start HTTP bridge: `./scripts/start-http-bridge.sh`
+4. Test tool listing shows new names
+5. Test both tools work with new names
+6. Run comprehensive test suite
+7. Verify all references updated with grep search
+
 ## 🚀 **CLEAN SLATE REFACTORING PHASES**
 
 ### **Phase 1: Archive Legacy & Minimal Foundation** ✅ **COMPLETED**
@@ -47,16 +104,16 @@ Phase 2b.6 completed: 2025-08-15
 - [x] **Move /src to /old/src** (readonly archive for copy/paste reference)
 - [x] **Move test scripts to /old tree** (preserve for reference)
 - [x] **Create new minimal project structure**
-- [x] **Implement absolute minimum MCP server** (debug-eval + debug-load-file only)
+- [x] **Implement absolute minimum MCP server** (local-eval + local-load-file only)
 - [x] **Create test wrapper scripts** (avoid permission prompts) - `./scripts/test-quick.sh` and `./scripts/test-comprehensive.sh`
 - [x] **Write comprehensive test coverage** for minimal server - **Phase-specific test suites created**:
 - [x] **Implement stdout/stderr capture** - Protocol-complete implementation using `with-out-str` approach
 - [x] **Document MCP protocol findings** - stderr does NOT interfere with MCP stdio communication
 - [x] **Clean up code quality** - All clj-kondo warnings resolved, tree-sitter validated
-  - `./scripts/test-phase1.sh` - **19 comprehensive tests** including **MCP introspection via debug-eval**:
+  - `./scripts/test-phase1.sh` - **19 comprehensive tests** including **MCP introspection via local-eval**:
     - Basic MCP protocol (2 tests)
-    - debug-eval functionality (7 tests) 
-    - debug-load-file functionality (3 tests)
+    - local-eval functionality (7 tests) 
+    - local-load-file functionality (3 tests)
     - **MCP introspection** (5 tests) - namespace inspection, tool metadata simulation, server state
     - Advanced integration (2 tests)
   - `./scripts/test-phase2.sh` - Future core MCP functions (nrepl-connect, send-message, get-result)
@@ -69,7 +126,7 @@ Phase 2b.6 completed: 2025-08-15
 - [x] **Create state namespace** (`src/mcp_server/state.clj`)
   - Connection state atom with status tracking
   - Helper functions for state updates
-  - Expose state for debug-eval introspection
+  - Expose state for local-eval introspection
   
 - [x] **Create connection namespace** (`src/mcp_server/connection.clj`)
   - Connection parameter resolution (host:port, port, file, env)
@@ -105,8 +162,8 @@ nrepl-mcp-server/
     server.clj                 ; stdio server, JSON-RPC handling
     dispatch.clj               ; Tool routing/dispatch table
     tools/                     ; One file per MCP tool
-      debug_eval.clj           ; debug-eval tool
-      debug_load_file.clj      ; debug-load-file tool
+      debug_eval.clj           ; local-eval tool
+      debug_load_file.clj      ; local-load-file tool
       nrepl_connect.clj        ; connect operation
       nrepl_disconnect.clj     ; disconnect operation
       nrepl_status.clj         ; status operation
@@ -225,7 +282,7 @@ nrepl-mcp-server/
 - [x] Update all tools to self-register at namespace load
 - [x] Refactor `dispatch.clj` to be purely registry-based
 - [x] Remove all tool-specific knowledge from dispatcher
-- [x] Test functionality: "🔧 Registered 3 MCP tools: ['debug-eval' 'debug-load-file' 'nrepl-server']"
+- [x] Test functionality: "🔧 Registered 3 MCP tools: ['local-eval' 'local-load-file' 'nrepl-server']"
 - [x] Format and lint code following best practices
 - [x] Update architecture documentation with self-registering tools pattern
 
@@ -265,7 +322,7 @@ nrepl-mcp-server/
 - [x] Fix all namespace/directory mismatches (dashes vs underscores)
 - [x] Update all import references to new namespace structure
 - [x] Rename tcp_connection.clj to socket_connection.clj for accuracy
-- [x] Test server startup: "🔧 Registered 4 MCP tools: ['debug-eval' 'debug-load-file' 'nrepl-server' 'nrepl-eval']"
+- [x] Test server startup: "🔧 Registered 4 MCP tools: ['local-eval' 'local-load-file' 'nrepl-server' 'nrepl-eval']"
 
 **Architecture Achievement**: Successfully integrated complete legacy nREPL implementation while maintaining clean modular organization and self-registering tools pattern. All 4 tools register and load correctly with proper namespace separation.
 
@@ -374,8 +431,8 @@ This violates single source of truth principle and creates synchronization risks
   - Return message-id immediately to caller
   
 - [x] **Testing & Validation**:
-  - Use debug-eval to introspect `@send-queue` - verify message added
-  - Use debug-eval to check `@result-queue` - verify `:pending` entry created
+  - Use local-eval to introspect `@send-queue` - verify message added
+  - Use local-eval to check `@result-queue` - verify `:pending` entry created
   - Verify UUID v7 format and uniqueness
   - Test connection check (should fail when disconnected)
   - **TEST FUNCTION**: `(validate-phase1-queuing)`
@@ -391,7 +448,7 @@ This violates single source of truth principle and creates synchronization risks
   
 - [x] **Testing & Validation**:
   - Mock nREPL send (don't need real server yet)
-  - Use debug-eval to verify queue processing
+  - Use local-eval to verify queue processing
   - Check status transitions: `:pending` → `:sending` → `:sent`
   - Verify FIFO order preservation
   - **TEST FUNCTION**: `(validate-phase2-sending)`
@@ -407,7 +464,7 @@ This violates single source of truth principle and creates synchronization risks
   - Handle nREPL error responses → status `:error`
   
 - [x] **Testing & Validation**:
-  - Simulate received messages via debug-eval
+  - Simulate received messages via local-eval
   - Test multi-part response handling
   - Verify message correlation by id
   - Check status transitions: `:sent` → `:partial` → `:done`
@@ -524,7 +581,7 @@ This violates single source of truth principle and creates synchronization risks
 
 ##### **Testing Strategy**
 - Use HTTP bridge for stateful testing across phases
-- debug-eval for queue introspection at each checkpoint
+- local-eval for queue introspection at each checkpoint
 - Incremental testing - each phase can be tested independently
 - Mock nREPL responses for phases 2-3 testing
 - Real nREPL server for phase 5 integration testing
@@ -564,7 +621,7 @@ This violates single source of truth principle and creates synchronization risks
   - Pick up messages from send-queue
   - Send to nREPL server
   - Update result queue with status
-  - **Monitor with debug-eval functions**
+  - **Monitor with local-eval functions**
 - [ ] **4c: Receive Handling**
   - Receive replies from nREPL server
   - Dispatch on errors and failures  
@@ -736,21 +793,21 @@ usage = mcp__tree_sitter__find_usage(
 
 **CLOJURE NAMING RULES (NEVER MIX!):**
 - ✅ **Namespace names**: ONLY HYPHENS (`-`) - `nrepl-mcp-server.mcp-server.dispatch`
-- ✅ **Variable names**: ONLY HYPHENS (`-`) - `debug-eval`, `send-message-async`
+- ✅ **Variable names**: ONLY HYPHENS (`-`) - `local-eval`, `send-message-async`
 - ✅ **Function names**: ONLY HYPHENS (`-`) - `get-active-connection`, `mark-connected!`
 - ✅ **File/Directory names**: ONLY UNDERSCORES (`_`) - `mcp_server/dispatch.clj`
 
 **EXAMPLES:**
 ```clojure
 ;; ✅ CORRECT - File: mcp_server/tools/debug_eval.clj
-(ns nrepl-mcp-server.mcp-server.tools.debug-eval)  ; HYPHENS in namespace
+(ns nrepl-mcp-server.mcp-server.tools.local-eval)  ; HYPHENS in namespace
 
 ;; ❌ WRONG - Causes hard-to-find bugs
 (ns nrepl-mcp-server.mcp_server.tools.debug_eval)  ; MIXED - NO!
 ```
 
 **WHY THIS MATTERS:**
-- **File system mapping**: `mcp_server/debug_eval.clj` → `nrepl-mcp-server.mcp-server.debug-eval`
+- **File system mapping**: `mcp_server/debug_eval.clj` → `nrepl-mcp-server.mcp-server.local-eval`
 - **Clojure convention**: Namespace segments use hyphens, files use underscores
 - **Bug prevention**: Mixing causes namespace resolution failures
 - **clj-kondo compliance**: Eliminates "avoid underscore" warnings
@@ -779,7 +836,7 @@ uv run python stdio_mcp_client.py \
 # Call specific tools
 uv run python stdio_mcp_client.py \
   --server-cmd "bb -cp src src/new_mcp_server/core.clj" \
-  --tool debug-eval --args '{"code": "(+ 1 2 3)"}'
+  --tool local-eval --args '{"code": "(+ 1 2 3)"}'
 ```
 
 ### **Real nREPL Test Server**
@@ -797,7 +854,7 @@ uv run python stdio_mcp_client.py \
 - ✅ **Clean code quality** (no linting errors)
 - ✅ **Architecture doc updated** (reflects actual implementation)
 - ✅ **Proper layer separation** (no circular dependencies)
-- ✅ **Comprehensive test coverage** (debug-eval testable)
+- ✅ **Comprehensive test coverage** (local-eval testable)
 
 **Final success:**
 - 🎯 **Proper 3-layer architecture** implemented
@@ -910,7 +967,7 @@ Use existing `mcp-proxy` tool to bridge HTTP requests to persistent stdio MCP se
   - Use HTTP bridge for stateful queue testing
   - Test send-message-async → get message-id flow
   - Validate get-result-async with promise waiting
-  - Use debug-eval to inspect queue state between operations
+  - Use local-eval to inspect queue state between operations
   - Verify queue persistence across multiple HTTP requests
 
 - [ ] **Async Queue Testing Scenarios**

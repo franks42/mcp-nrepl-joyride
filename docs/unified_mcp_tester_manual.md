@@ -262,7 +262,7 @@ Test files use JSON format with test suites as top-level keys:
   "connectivity": [
     {
       "name": "debug_eval_basic",
-      "tool": "debug-eval",
+      "tool": "local-eval",
       "args": {"code": "(+ 1 2 3)"},
       "expected": {"status": "success"},
       "description": "Basic arithmetic evaluation"
@@ -272,13 +272,13 @@ Test files use JSON format with test suites as top-level keys:
   "persistence": [
     {
       "name": "define_variable",
-      "tool": "debug-eval",
+      "tool": "local-eval",
       "args": {"code": "(def test-var 42)"},
       "description": "Define a test variable"
     },
     {
       "name": "access_variable",
-      "tool": "debug-eval",
+      "tool": "local-eval",
       "args": {"code": "test-var"},
       "description": "Access previously defined variable"
     }
@@ -392,7 +392,7 @@ Key points:
 | Command | Description | Example |
 |---------|-------------|---------|
 | `list` | List available tools | `mcp> list` |
-| `call` | Call a tool | `mcp> call debug-eval {"code": "(+ 1 2)"}` |
+| `call` | Call a tool | `mcp> call local-eval {"code": "(+ 1 2)"}` |
 | `quit` | Exit interactive mode | `mcp> quit` |
 
 ### Loading Files in Interactive Mode
@@ -401,9 +401,9 @@ Key points:
 
 **Workarounds**:
 
-1. **Use the debug-load-file tool** (if available):
+1. **Use the local-load-file tool** (if available):
    ```
-   mcp> call debug-load-file {"file-path": "debug-toolkit.clj"}
+   mcp> call local-load-file {"file-path": "debug-toolkit.clj"}
    ```
 
 2. **Copy-paste from file**:
@@ -414,7 +414,7 @@ Key points:
    EOF
    
    # Then copy-paste into interactive session:
-   mcp> call debug-eval {"code": "(defn greet [name] (str \"Hello, \" name))"}
+   mcp> call local-eval {"code": "(defn greet [name] (str \"Hello, \" name))"}
    ```
 
 3. **Use batch mode with test file**:
@@ -445,11 +445,11 @@ mcp> load /path/to/args.json
 ```
 mcp> list
 Available tools:
-  - debug-eval: Evaluate code in server runtime
+  - local-eval: Evaluate code in server runtime
   - nrepl-server: nREPL server operations
-  - debug-load-file: Load debug toolkit
+  - local-load-file: Load debug toolkit
 
-mcp> call debug-eval {"code": "(def x 42)"}
+mcp> call local-eval {"code": "(def x 42)"}
 {
   "content": [
     {
@@ -458,7 +458,7 @@ mcp> call debug-eval {"code": "(def x 42)"}
   ]
 }
 
-mcp> call debug-eval {"code": "x"}
+mcp> call local-eval {"code": "x"}
 {
   "content": [
     {

@@ -21,7 +21,7 @@
     },
     {
       "name": "inspect_socket_state",
-      "tool": "debug-eval",
+      "tool": "local-eval",
       "args": {"code": "(let [state @nrepl-mcp-server.state.connection/connection-state] {:status (:status state) :has-socket? (boolean (:socket state)) :socket-type (when (:socket state) (.getSimpleName (class (:socket state))))})"},
       "expected": {"status": "success"},
       "description": "Check actual TCP socket exists"
@@ -57,7 +57,7 @@
     },
     {
       "name": "verify_tcp_connection",
-      "tool": "debug-eval",
+      "tool": "local-eval",
       "args": {"code": "(let [sock (:socket @nrepl-mcp-server.state.connection/connection-state)] (when sock {:connected (not (.isClosed sock)) :local-port (.getLocalPort sock) :remote-port (.getPort sock) :remote-address (str (.getInetAddress sock))}))"},
       "description": "Verify real TCP socket details"
     }

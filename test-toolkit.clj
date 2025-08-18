@@ -1,4 +1,4 @@
-;; Simple test toolkit for debug-load-file
+;; Simple test toolkit for local-load-file
 
 (def greeting "Hello from loaded file!")
 

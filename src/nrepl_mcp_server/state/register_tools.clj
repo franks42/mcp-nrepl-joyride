@@ -11,8 +11,8 @@
 
     ;; Explicitly require all tool namespaces
     ;; Each will self-register when loaded (side effect)
-   [nrepl-mcp-server.mcp-server.tools.debug-eval]
-   [nrepl-mcp-server.mcp-server.tools.debug-load-file]
+   [nrepl-mcp-server.mcp-server.tools.local-eval]
+   [nrepl-mcp-server.mcp-server.tools.local-load-file]
    [nrepl-mcp-server.mcp-server.tools.nrepl-server]
    [nrepl-mcp-server.mcp-server.tools.nrepl-eval]  ;; New simplified implementation
    [nrepl-mcp-server.mcp-server.tools.send-message-async]

@@ -7,7 +7,7 @@ any test framework overhead or validation. Perfect for exploration and
 debugging.
 
 Usage:
-    python explore_mcp.py --tool debug-eval --args '{"code": "(+ 1 2 3)"}'
+    python explore_mcp.py --tool local-eval --args '{"code": "(+ 1 2 3)"}'
     python explore_mcp.py --tool nrepl-server --args '{"op": "status"}'
     python explore_mcp.py --list-tools
 """
@@ -114,10 +114,10 @@ class MCPExplorer:
             return None
 
     def extract_clojure_value(self, response: Dict[str, Any]) -> Any:
-        """Extract the Clojure return value from debug-eval responses."""
+        """Extract the Clojure return value from local-eval responses."""
         content = self.extract_content(response)
         if isinstance(content, dict):
-            # For debug-eval, look for the actual Clojure result
+            # For local-eval, look for the actual Clojure result
             if "result" in content:
                 return content["result"]
             elif "value" in content:
@@ -137,13 +137,13 @@ Examples:
   %(prog)s --list-tools
   
   # Default: show clean tool response (JSON)
-  %(prog)s --tool debug-eval --args '{"code": "(+ 1 2 3)"}'
+  %(prog)s --tool local-eval --args '{"code": "(+ 1 2 3)"}'
   
   # Show raw MCP JSON-RPC response  
-  %(prog)s --tool debug-eval --args '{"code": "(+ 1 2 3)"}' --output raw
+  %(prog)s --tool local-eval --args '{"code": "(+ 1 2 3)"}' --output raw
   
-  # Show just the Clojure return value (for debug-eval)
-  %(prog)s --tool debug-eval --args '{"code": "(+ 1 2 3)"}' --output clj
+  # Show just the Clojure return value (for local-eval)
+  %(prog)s --tool local-eval --args '{"code": "(+ 1 2 3)"}' --output clj
   
   # 🚀 SHORTCUT: Evaluate Clojure code directly (returns just the value)
   %(prog)s --eval "(+ 1 2 3)"
@@ -152,7 +152,7 @@ Examples:
   
   # 💡 NEW: Easy code passing for any tool (no JSON escaping needed!)
   %(prog)s --tool nrepl-eval --code "(+ 1 2 3)"
-  %(prog)s --tool debug-eval --code "(println \"Hello World\")"
+  %(prog)s --tool local-eval --code "(println \"Hello World\")"
   %(prog)s --tool nrepl-eval --code "(defn greet [name] (str \"Hello \" name))"
   
   # 🚀 ZERO ESCAPING: Use stdin for complex code  
@@ -161,13 +161,13 @@ Examples:
   
   # 💫 BEST: Load from file (no confirmation prompts!)
   %(prog)s --tool nrepl-eval --load-code-file my-code.clj --base-url http://localhost:3000/mcp
-  %(prog)s --tool debug-eval --load-code-file test.clj --quiet
+  %(prog)s --tool local-eval --load-code-file test.clj --quiet
   
   # Check nREPL connection status
   %(prog)s --tool nrepl-server --args '{"op": "status"}'
   
   # Quiet mode: just the data, no headers
-  %(prog)s --tool debug-eval --args '{"code": "42"}' --quiet
+  %(prog)s --tool local-eval --args '{"code": "42"}' --quiet
         """,
     )
 
@@ -192,7 +192,7 @@ Examples:
         help="Load code from file path (no escaping, handles any file size)",
     )
     parser.add_argument(
-        "--eval", help="Evaluate Clojure code directly (shortcut for debug-eval)"
+        "--eval", help="Evaluate Clojure code directly (shortcut for local-eval)"
     )
     parser.add_argument(
         "--list-tools", action="store_true", help="List available tools"
@@ -201,7 +201,7 @@ Examples:
         "--output",
         choices=["raw", "json", "clj"],
         default="json",
-        help="Output format: raw (full MCP), json (tool response), clj (Clojure value for debug-eval)",
+        help="Output format: raw (full MCP), json (tool response), clj (Clojure value for local-eval)",
     )
     parser.add_argument(
         "--quiet", action="store_true", help="Only show essential output"
@@ -243,7 +243,7 @@ Examples:
 
         elif args.eval:
             # Special case: direct Clojure evaluation
-            response = await explorer.call_tool("debug-eval", {"code": args.eval})
+            response = await explorer.call_tool("local-eval", {"code": args.eval})
 
             # Always return just the Clojure value for --eval
             clj_value = explorer.extract_clojure_value(response)
@@ -329,7 +329,7 @@ Examples:
                     print(json.dumps(response, indent=2))
 
             elif args.output == "clj":
-                # Show Clojure value (for debug-eval)
+                # Show Clojure value (for local-eval)
                 clj_value = explorer.extract_clojure_value(response)
                 if clj_value is not None:
                     if not args.quiet:

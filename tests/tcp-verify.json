@@ -9,25 +9,25 @@
     },
     {
       "name": "check_socket_exists",
-      "tool": "debug-eval",
+      "tool": "local-eval",
       "args": {"code": "(boolean (:socket @nrepl-mcp-server.state.connection/connection-state))"},
       "description": "Check if socket object exists"
     },
     {
       "name": "check_socket_type",
-      "tool": "debug-eval",
+      "tool": "local-eval",
       "args": {"code": "(str (type (:socket @nrepl-mcp-server.state.connection/connection-state)))"},
       "description": "Get socket class type"
     },
     {
       "name": "check_socket_connected",
-      "tool": "debug-eval",
+      "tool": "local-eval",
       "args": {"code": "(let [s (:socket @nrepl-mcp-server.state.connection/connection-state)] (when s (not (.isClosed s))))"},
       "description": "Check if socket is not closed"
     },
     {
       "name": "get_connection_details",
-      "tool": "debug-eval",
+      "tool": "local-eval",
       "args": {"code": "(let [s (:socket @nrepl-mcp-server.state.connection/connection-state)] (when s {:local-port (.getLocalPort s) :remote-port (.getPort s) :remote-host (str (.getHostAddress (.getInetAddress s)))}))"},
       "description": "Get actual TCP connection details"
     }

@@ -121,7 +121,7 @@ SCI is often used in contexts where **untrusted code** might run:
     {:server-keys (keys @mcp-nrepl-proxy.core/state)
      :queue-keys (keys @@#'mcp-nrepl-proxy.state/message-queues)}))
 
-;; Functions persist across debug-eval calls
+;; Functions persist across local-eval calls
 (debug-summary)  ; Works in subsequent calls
 ```
 
@@ -142,8 +142,8 @@ This suggests the restrictions are more about:
 ### ✅ **SCI (Babashka's interpreter):**
 - **The MCP server itself** - `bb src/mcp_nrepl_proxy/core.clj`
 - **All our namespace files** - config.clj, utils.clj, tools/*.clj, etc.
-- **debug-eval code** - Code executed via the debug-eval tool
-- **debug-toolkit.clj** - When loaded via debug-load-file
+- **local-eval code** - Code executed via the local-eval tool
+- **debug-toolkit.clj** - When loaded via local-load-file
 
 ### ✅ **Full JVM Clojure:**
 - **External nREPL servers** - The ones we connect TO (Joyride, CIDER, etc.)
@@ -156,7 +156,7 @@ This suggests the restrictions are more about:
 ┌─────────────────────────────────────────┐
 │           MCP Server (SCI)              │
 │  ┌─────────────────────────────────┐    │
-│  │  debug-eval executes in SCI     │    │
+│  │  local-eval executes in SCI     │    │
 │  │  - Limited namespace switching  │    │
 │  │  - Can bypass with var reader   │    │
 │  └─────────────────────────────────┘    │
@@ -198,17 +198,17 @@ This suggests the restrictions are more about:
 (nrepl/eval conn "(require 'java.io)")
 ```
 
-### When Using debug-eval:
+### When Using local-eval:
 ```clojure
 ;; ❌ This runs in SCI, so restricted:
-(debug-eval "(in-ns 'some.namespace)")
+(local-eval "(in-ns 'some.namespace)")
 
 ;; ✅ This works - using var reader:
-(debug-eval "@@#'some.namespace/some-var")
+(local-eval "@@#'some.namespace/some-var")
 
 ;; ✅ Even better - use helper functions:
-(debug-eval "(def helper (fn [] @@#'some.namespace/some-var))")
-(debug-eval "(helper)")
+(local-eval "(def helper (fn [] @@#'some.namespace/some-var))")
+(local-eval "(helper)")
 ```
 
 ## Discovered Patterns for SCI
@@ -241,7 +241,7 @@ Create a comprehensive toolkit file that can be loaded once:
 
 ### 3. **Persistent Function Environment**
 ```clojure
-;; Define once, use many times across debug-eval calls
+;; Define once, use many times across local-eval calls
 (def analysis-fn 
   (fn [] 
     ;; Complex analysis using multiple namespace accesses
