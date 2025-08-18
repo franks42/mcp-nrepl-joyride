@@ -5,7 +5,7 @@
 
 BASE_URL=${MCP_SERVER_URL:-http://localhost:3000/mcp}
 
-exec uv run python "$(dirname "$0")/explore_mcp.py" \
+exec uv run python "$(dirname "$0")/mcp_nrepl_client.py" \
   --tool nrepl-eval \
   --code-stdin \
   --base-url "$BASE_URL" \

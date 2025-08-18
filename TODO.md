@@ -107,7 +107,7 @@ Phase 2c.2 completed: 2025-08-18
 2. `src/nrepl_mcp_server/mcp_server/tools/debug_load_file.clj` → `local_load_file.clj`
 3. `src/nrepl_mcp_server/state/register_tools.clj`
 4. All test files in `/tests/` directory
-5. Python scripts: `explore_mcp.py`, `test_http_bridge.py`, etc.
+5. Python scripts: `mcp_nrepl_client.py`, `test_http_bridge.py`, etc.
 6. Shell scripts in `/scripts/`
 7. Documentation files in `/docs/`
 
@@ -836,7 +836,7 @@ usage = mcp__tree_sitter__find_usage(
 - **clj-kondo compliance**: Eliminates "avoid underscore" warnings
 
 **PYTHON (completely different rules):**
-- ✅ **Everything**: ONLY UNDERSCORES (`_`) - `explore_mcp.py`, `extract_content()`
+- ✅ **Everything**: ONLY UNDERSCORES (`_`) - `mcp_nrepl_client.py`, `extract_content()`
 - ❌ **NEVER hyphens** - Python treats `-` as minus operator
 
 **CRITICAL RULE**: 
@@ -1071,7 +1071,7 @@ Use existing `mcp-proxy` tool to bridge HTTP requests to persistent stdio MCP se
   - Result: Clean code with only 1 intentional warning (redundant let)
   - Functionality verified: All tools working correctly after cleanup
 
-### **Explicit Registration Refactoring** (2025-08-18) 🔄 **IN PROGRESS**
+### **Explicit Registration Refactoring** (2025-08-18) ✅ **COMPLETED**
 
 **Objective**: Convert all MCP tools from implicit self-registration to explicit centralized registration pattern.
 
@@ -1080,24 +1080,53 @@ Use existing `mcp-proxy` tool to bridge HTTP requests to persistent stdio MCP se
 - [x] **Create comprehensive plan for explicit registration refactoring**
 - [x] **Establish testing strategy for each phase**
 
-#### **Phase 2: Tool-by-Tool Conversion** 🔄 **IN PROGRESS**
-- [ ] **Extract tool metadata from local-eval tool**
-- [ ] **Extract tool metadata from local-load-file tool**  
-- [ ] **Extract tool metadata from nrepl-connection tool**
-- [ ] **Extract tool metadata from nrepl-eval tool**
-- [ ] **Extract tool metadata from nrepl-send-message-async tool**
-- [ ] **Extract tool metadata from nrepl-get-result-async tool**
+#### **Phase 2: Tool-by-Tool Conversion** ✅ **COMPLETED**
+- [x] **Extract tool metadata from local-eval tool** ✅ COMPLETED
+- [x] **Extract tool metadata from local-load-file tool** ✅ COMPLETED
+- [x] **Extract tool metadata from nrepl-connection tool** ✅ COMPLETED
+- [x] **Extract tool metadata from nrepl-eval tool** ✅ COMPLETED
+- [x] **Extract tool metadata from nrepl-send-message-async tool** ✅ COMPLETED
+- [x] **Extract tool metadata from nrepl-get-result-async tool** ✅ COMPLETED
 - [x] **Extract tool metadata from nrepl-send-message tool** ✅ COMPLETED
 
-#### **Phase 3: Central Registration Update**
-- [ ] **Update register-all-tools function with all tool registrations**
-- [ ] **Test all tools work correctly after explicit registration**
+#### **Phase 3: Central Registration Update** ✅ **COMPLETED**
+- [x] **Update register-all-tools function with all tool registrations** ✅ COMPLETED
+- [x] **Test all tools work correctly after explicit registration** ✅ COMPLETED
 
-#### **Phase 4: Cleanup**
-- [ ] **Remove commented registration code from all tool files**
-- [ ] **Remove tool-registry dependencies from tool files where possible**
-- [ ] **Run comprehensive testing suite**
-- [ ] **Format and lint all modified Clojure code**
+#### **Phase 4: Cleanup** ✅ **COMPLETED**
+- [x] **Remove commented registration code from all tool files** ✅ COMPLETED
+- [x] **Remove tool-registry dependencies from tool files where possible** ✅ COMPLETED
+- [x] **Run comprehensive testing suite** ✅ COMPLETED
+- [x] **Format and lint all modified Clojure code** ✅ COMPLETED
+
+#### **Bonus: Namespace Consistency** ✅ **COMPLETED** (2025-08-18)
+- [x] **Make local-eval and local-load-file start in user namespace** ✅ COMPLETED
+- [x] **Add (in-ns 'user) call to core.clj for consistency with nREPL tools** ✅ COMPLETED
+- [x] **Test both tools return 'user' namespace** ✅ COMPLETED
+- [x] **Format, lint, and validate all changes** ✅ COMPLETED
+
+### **Script Renaming: explore_mcp.py → mcp_nrepl_client.py** (2025-08-18) ✅ **COMPLETED**
+
+**Objective**: Rename the main MCP client script to follow Python naming conventions and be more descriptive.
+
+**Tasks**:
+- [x] **Rename explore_mcp.py to mcp_nrepl_client.py** ✅ COMPLETED
+- [x] **Update references in TODO.md** ✅ COMPLETED  
+- [x] **Update references in claude_reminder.md** ✅ COMPLETED
+- [x] **Update references in shell scripts** ✅ COMPLETED
+- [x] **Update help text and usage examples within the script** ✅ COMPLETED
+- [x] **Update any other documentation references** ✅ COMPLETED
+- [x] **Test all functionality works after renaming** ✅ COMPLETED
+- [x] **Run Python code quality checks** ✅ COMPLETED
+
+**Testing Results**:
+- ✅ Help functionality working correctly (`--help`)
+- ✅ Tool listing working (`--list-tools`)
+- ✅ Direct evaluation working (`--eval`)
+- ✅ Tool calling working (`--tool`)
+- ✅ Shell wrapper script working (`nrepl-eval`)
+- ✅ Python code quality passing (black, isort, flake8, mypy)
+- ✅ All script names automatically updated in examples via %(prog)s
 
 **Implementation Pattern (Per Tool)**:
 1. Extract metadata as separate `def` statements

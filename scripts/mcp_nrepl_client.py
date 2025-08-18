@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """
-Simple MCP Explorer - See raw MCP tool responses
+MCP nREPL Client - Interactive client for MCP nREPL servers
 
 Shows exactly what MCP callers receive - the raw JSON structure without
 any test framework overhead or validation. Perfect for exploration and
-debugging.
+debugging nREPL-enabled MCP servers.
 
 Usage:
-    python explore_mcp.py --tool local-eval --args '{"code": "(+ 1 2 3)"}'
-    python explore_mcp.py --tool nrepl-connection --args '{"op": "status"}'
-    python explore_mcp.py --list-tools
+    python mcp_nrepl_client.py --tool local-eval --args '{"code": "(+ 1 2 3)"}'
+    python mcp_nrepl_client.py --tool nrepl-connection --args '{"op": "status"}'
+    python mcp_nrepl_client.py --list-tools
 """
 
 import argparse
@@ -129,7 +129,7 @@ class MCPExplorer:
 
 async def main():
     parser = argparse.ArgumentParser(
-        description="Simple MCP Explorer - See raw tool responses",
+        description="MCP nREPL Client - Interactive client for MCP nREPL servers",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
