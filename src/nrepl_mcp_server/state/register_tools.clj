@@ -53,8 +53,6 @@
    nrepl-mcp-server.mcp-server.tools.nrepl-send-message/handle
    nrepl-mcp-server.mcp-server.tools.nrepl-send-message/metadata))
 
-(register-all-tools)
-
 ;;
 
 (defn register-tools!
@@ -81,3 +79,6 @@
   []
   {:tool-count (registry/registry-size)
    :tool-names (vec (registry/list-tool-names))})
+
+;; real registration happens here !!!
+(register-all-tools)

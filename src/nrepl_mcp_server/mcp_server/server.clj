@@ -75,6 +75,9 @@
   ;; Start watchers before entering the loop
   (watchers/start-all-watchers!)
 
+  ;; Switch to user namespace for local-eval/local-load-file
+  (in-ns 'user)
+
   ;; Set up shutdown hook to stop watchers
   (.addShutdownHook (Runtime/getRuntime)
                     (Thread. (fn []

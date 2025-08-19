@@ -16,4 +16,5 @@
   (-main))
 
 ;; Switch to user namespace for local-eval/local-load-file
-(in-ns 'user)
+;; (in-ns 'user)
+;;(eval (read-string "(in-ns 'user)"))
