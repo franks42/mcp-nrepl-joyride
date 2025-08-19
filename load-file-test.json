@@ -1,0 +1,8 @@
+{
+  "message": {
+    "op": "load-file",
+    "file": ";; Test file for nREPL load-file operation\n(ns test-load-file\n  (:require [clojure.string :as str]))\n\n(defn greeting \n  \"A simple greeting function\"\n  [name]\n  (str \"Hello, \" name \"!\"))\n\n(defn add-numbers\n  \"Add two numbers together\"\n  [a b]\n  (+ a b))\n\n(def test-data\n  {:message \"This file was loaded successfully\"\n   :timestamp (System/currentTimeMillis)})\n\n;; This should be accessible after loading\n(defn loaded-marker []\n  :file-successfully-loaded)\n\n(println \"test-load-file.clj loaded successfully!\")",
+    "file-path": "/Users/franksiebenlist/Development/mcp-nrepl-joyride/test-load-file.clj",
+    "file-name": "test-load-file.clj"
+  }
+}

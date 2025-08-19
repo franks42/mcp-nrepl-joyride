@@ -155,6 +155,19 @@
   (remove-watch message-queue key))
 
 ;; =============================================================================
+;; Cleanup Support
+;; =============================================================================
+
+(defn clear-all-messages!
+  "Clear all message queues and pending messages - used during disconnect cleanup"
+  []
+  (reset! message-queue {:send-queue clojure.lang.PersistentQueue/EMPTY
+                         :pending-messages {}
+                         :message-counter 0})
+  (binding [*out* *err*]
+    (println "[Messages] Cleared all message queues and pending messages")))
+
+;; =============================================================================
 ;; Debug Support
 ;; =============================================================================
 

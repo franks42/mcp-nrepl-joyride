@@ -1,6 +1,9 @@
 (ns nrepl-mcp-server.nrepl-client.connection
   "nREPL client TCP connection management"
   (:require [nrepl-mcp-server.state.connection :as state]
+            [nrepl-mcp-server.state.watchers :as watchers]
+            [nrepl-mcp-server.state.messages :as messages]
+            [nrepl-mcp-server.state.results :as results]
             [clojure.string :as str]
             [clojure.java.io :as io])
   (:import [java.net Socket InetSocketAddress]))
@@ -93,6 +96,18 @@
   []
   (if-let [active-conn (state/get-active-connection)]
     (let [{:keys [socket connection-id]} active-conn]
+      ;; Stop all watchers first to prevent processing stale messages
+      (binding [*out* *err*]
+        (println "[Connection] Stopping watchers for disconnect..."))
+      (watchers/stop-all-watchers!)
+
+      ;; Clear all message and result queues to prevent stale state
+      (binding [*out* *err*]
+        (println "[Connection] Clearing message and result queues..."))
+      (messages/clear-all-messages!)
+      (results/clear-all-results!)
+
+      ;; Close the socket
       (when socket
         (try
           (.close socket)
@@ -101,8 +116,15 @@
           (catch Exception e
             (binding [*out* *err*]
               (println "[Connection] Error closing socket:" (.getMessage e))))))
+
       ;; Mark connection as closed in unified state
       (state/mark-connection-closed! connection-id :user-disconnect "User requested disconnect")
+
+      ;; CRITICAL FIX: Remove closed connection from connections map to prevent accumulation
+      (state/cleanup-old-connections! :threshold-ms 0) ; Remove immediately
+
+      (binding [*out* *err*]
+        (println "[Connection] Connection cleanup completed for:" connection-id))
       {:status :success :connection-id connection-id})
     (do
       (binding [*out* *err*]

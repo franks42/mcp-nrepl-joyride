@@ -1,0 +1,8 @@
+{
+  "message": {
+    "op": "load-file",
+    "file": ";; Test file for nREPL load-file operation\n(ns test-load-file-jvm\n  (:require [clojure.string :as str]))\n\n(defn jvm-greeting \n  \"A simple greeting function for JVM\"\n  [name]\n  (str \"JVM Hello, \" name \"!\"))\n\n(defn jvm-add-numbers\n  \"Add two numbers together on JVM\"\n  [a b]\n  (+ a b))\n\n(def jvm-test-data\n  {:message \"This JVM file was loaded successfully\"\n   :timestamp (System/currentTimeMillis)\n   :jvm-version (System/getProperty \"java.version\")})\n\n;; This should be accessible after loading\n(defn jvm-loaded-marker []\n  :jvm-file-successfully-loaded)\n\n(println \"test-load-file-jvm.clj loaded successfully on JVM!\")",
+    "file-path": "test-load-file-jvm.clj",
+    "file-name": "test-load-file-jvm.clj"
+  }
+}

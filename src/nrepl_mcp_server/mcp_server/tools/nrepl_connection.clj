@@ -40,7 +40,10 @@
               (case (:status result)
                 :success
                 (do
-                  ;; Start receive-watcher now that we have an active connection
+                  ;; Ensure any old watchers are stopped before starting new ones
+                  (watchers/stop-all-watchers!)
+                  ;; Start fresh watchers now that we have an active connection
+                  (watchers/start-all-watchers!)
                   (watchers/start-receive-watcher!)
                   {:content [{:type "text"
                               :text (json/generate-string

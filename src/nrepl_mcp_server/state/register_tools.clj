@@ -17,7 +17,8 @@
    [nrepl-mcp-server.mcp-server.tools.nrepl-eval]  ;; New simplified implementation
    [nrepl-mcp-server.mcp-server.tools.nrepl-send-message-async]
    [nrepl-mcp-server.mcp-server.tools.nrepl-get-result-async]
-   [nrepl-mcp-server.mcp-server.tools.nrepl-send-message]))
+   [nrepl-mcp-server.mcp-server.tools.nrepl-send-message]
+   [nrepl-mcp-server.mcp-server.tools.local-nrepl-server]))  ;; Babashka nREPL server lifecycle
 
 ;; =============================================================================
 ;; Registration Orchestration  
@@ -51,7 +52,11 @@
   (registry/register-tool!
    nrepl-mcp-server.mcp-server.tools.nrepl-send-message/tool-name
    nrepl-mcp-server.mcp-server.tools.nrepl-send-message/handle
-   nrepl-mcp-server.mcp-server.tools.nrepl-send-message/metadata))
+   nrepl-mcp-server.mcp-server.tools.nrepl-send-message/metadata)
+  (registry/register-tool!
+   nrepl-mcp-server.mcp-server.tools.local-nrepl-server/tool-name
+   nrepl-mcp-server.mcp-server.tools.local-nrepl-server/handle
+   nrepl-mcp-server.mcp-server.tools.local-nrepl-server/metadata))
 
 ;;
 

@@ -70,6 +70,8 @@
 (defn start-send-queue-watcher!
   "Start the send queue watcher to automatically process queued messages"
   []
+  ;; Remove any existing watcher first to prevent duplicates
+  (msg-state/remove-message-watcher :send-queue-watcher)
   (msg-state/add-message-watcher :send-queue-watcher send-queue-watcher)
   (binding [*out* *err*]
     (println "[Watcher] Send queue watcher started")))
@@ -84,6 +86,9 @@
 ;; =============================================================================
 ;; Receive Watcher - Phase 2b.3 Implementation
 ;; =============================================================================
+
+;; Forward declaration for recursive reference
+(declare stop-receive-watcher!)
 
 (defonce receive-watcher-state
   (atom {:running false
@@ -187,28 +192,30 @@
   "Start the receive watcher for processing nREPL responses.
    Runs in a background thread and listens for incoming responses."
   []
-  (if (:running @receive-watcher-state)
+  ;; Always stop any existing watcher first to ensure clean state
+  (when (:running @receive-watcher-state)
     (binding [*out* *err*]
-      (println "[Receive-Watcher] Already running"))
+      (println "[Receive-Watcher] Stopping existing watcher before starting new one"))
+    (stop-receive-watcher!))
 
-    (if-let [raw-connection (conn-state/get-active-connection)]
-      (if-let [connection (msg-state/adapt-connection-for-messaging raw-connection)]
-        (do
-          ;; Start the background receive thread
-          (swap! receive-watcher-state assoc :running true :connection connection)
-          (let [receive-thread (Thread. #(receive-loop! connection))]
-            (.setDaemon receive-thread true)  ; Daemon thread for clean shutdown
-            (.setName receive-thread "nREPL-Receive-Watcher")
-            (.start receive-thread)
-            (swap! receive-watcher-state assoc :thread receive-thread)
-            (binding [*out* *err*]
-              (println "[Receive-Watcher] Started background receive thread"))))
-
-        (binding [*out* *err*]
-          (println "[Receive-Watcher] Error: Failed to adapt connection")))
+  (if-let [raw-connection (conn-state/get-active-connection)]
+    (if-let [connection (msg-state/adapt-connection-for-messaging raw-connection)]
+      (do
+        ;; Start the background receive thread
+        (swap! receive-watcher-state assoc :running true :connection connection)
+        (let [receive-thread (Thread. #(receive-loop! connection))]
+          (.setDaemon receive-thread true)  ; Daemon thread for clean shutdown
+          (.setName receive-thread "nREPL-Receive-Watcher")
+          (.start receive-thread)
+          (swap! receive-watcher-state assoc :thread receive-thread)
+          (binding [*out* *err*]
+            (println "[Receive-Watcher] Started background receive thread"))))
 
       (binding [*out* *err*]
-        (println "[Receive-Watcher] Error: No active connection")))))
+        (println "[Receive-Watcher] Error: Failed to adapt connection")))
+
+    (binding [*out* *err*]
+      (println "[Receive-Watcher] Error: No active connection"))))
 
 (defn stop-receive-watcher!
   "Stop the receive watcher background thread"

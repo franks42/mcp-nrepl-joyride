@@ -91,6 +91,19 @@
   (remove-watch result-queue key))
 
 ;; =============================================================================
+;; Cleanup Support  
+;; =============================================================================
+
+(defn clear-all-results!
+  "Clear all result queues and promises - used during disconnect cleanup"
+  []
+  (reset! result-queue {:result-promises {}
+                        :completed-results {}
+                        :error-results {}})
+  (binding [*out* *err*]
+    (println "[Results] Cleared all result queues and promises")))
+
+;; =============================================================================
 ;; Debug Support
 ;; =============================================================================
 
