@@ -1369,6 +1369,69 @@ The async message queue infrastructure is now **production-ready**:
 
 **The async nREPL-MCP bridge is fully operational and robust!**
 
+## 🚧 **PENDING ENHANCEMENTS**
+
+### **nrepl-load-file Tool Implementation** 🔄 **READY FOR IMPLEMENTATION**
+
+**Objective**: Create `nrepl-load-file` MCP tool for complex code loading without string escaping issues.
+
+**⚠️ IMPORTANT DISTINCTION**: This tool executes Clojure's built-in `load-file` function within the nREPL runtime environment (i.e., `(load-file "path/to/file.clj")`). This is NOT the nREPL protocol's `:op "load-file"` operation which is designed for editor-nREPL-filesystem integration.
+
+**Key Design Decisions**:
+- **Simple approach**: Wrapper around `nrepl-eval` with `(load-file "path")` 
+- **Leverage existing infrastructure**: Use proven async message queue and timeout handling
+- **Standard semantics**: Follows Clojure's native `load-file` behavior (single evaluation)
+- **Enhanced output capture**: Include both stdout AND stderr (current nrepl-eval misses stderr)
+
+**Implementation Tasks**:
+- [ ] **Create nrepl-load-file tool** (`src/nrepl_mcp_server/mcp_server/tools/nrepl_load_file.clj`)
+  - Thin wrapper around nrepl-eval that executes `(load-file "path")` within nREPL runtime
+  - **NOT nREPL protocol operation**: Uses Clojure's built-in `load-file` function, not `:op "load-file"`
+  - Parameters: `file-path` (required), `timeout` (optional, default 30s)
+  - Construct: `(load-file "/absolute/path/to/file.clj")`
+  - Handle path escaping for quotes and backslashes
+  - **Path handling**: Recommend absolute paths in tool description/validation (nREPL working directory often unclear)
+  - Return same format as nrepl-eval but with `operation: "nrepl-load-file"`
+  - **Tool description**: "Execute Clojure's load-file function within nREPL runtime. Use absolute file paths as nREPL working directory may vary. (Not nREPL protocol operation)"
+
+- [ ] **Fix stderr capture in nrepl-eval** (`format-nrepl-response` function)
+  - **BUG**: Current implementation only extracts `:out` field, missing `:err` field
+  - **Fix**: Include both stdout (`:out`) and stderr (`:err`) when present
+  - **Testing**: Verify stderr capture works in both nrepl-eval and nrepl-load-file
+  - **Response format**: 
+    ```json
+    {
+      "status": "success",
+      "operation": "nrepl-load-file", 
+      "file-path": "/path/to/file.clj",
+      "value": ":file-loaded",
+      "ns": "user",
+      "out": "stdout content\n",     // Only when present
+      "err": "stderr content\n"      // Only when present  
+    }
+    ```
+
+- [ ] **Add tool registration** (`src/nrepl_mcp_server/state/register_tools.clj`)
+  - Add to explicit registration pattern
+  - Include proper inputSchema with file-path and timeout parameters
+
+- [ ] **Create comprehensive tests**
+  - Test file loading with stdout/stderr output
+  - Test error handling (file not found, syntax errors)
+  - Test path escaping (files with quotes, spaces, backslashes)
+  - Test relative vs absolute paths (document working directory behavior)
+  - Test integration with existing async message queue
+  - Verify timeout parameter works correctly
+
+**Benefits**:
+- ✅ **Eliminates string escaping hell** - Load complex code from files
+- ✅ **Captures complete output** - Both stdout and stderr included
+- ✅ **Familiar behavior** - Matches REPL `(load-file ...)` semantics
+- ✅ **Proven infrastructure** - Uses robust async message queue
+- ✅ **Simple implementation** - Minimal code, maximum reliability
+
+**Ready for implementation upon user confirmation.**
+
 ## 🔍 **RESEARCH ITEMS**
 
 - [ ] **Investigate ls-sessions scope** - Determine if `ls-sessions` lists ALL server sessions or only current connection's sessions via testing or nREPL documentation

@@ -46,13 +46,14 @@
       ;; Success - return the eval result
       {:content [{:type "text"
                   :text (json/generate-string
-                         {:status "success"
-                          :operation "nrepl-eval"
-                          :code code
-                          :value (or (:value nrepl-result)
-                                     (str nrepl-result))
-                          :ns (:ns nrepl-result)
-                          :out (:out nrepl-result)}
+                         (cond-> {:status "success"
+                                  :operation "nrepl-eval"
+                                  :code code
+                                  :value (or (:value nrepl-result)
+                                             (str nrepl-result))
+                                  :ns (:ns nrepl-result)}
+                           (:out nrepl-result) (assoc :out (:out nrepl-result))
+                           (:err nrepl-result) (assoc :err (:err nrepl-result)))
                          {:pretty true})}]})))
 
 (defn handle
