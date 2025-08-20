@@ -596,6 +596,20 @@ python3 ./mcp_nrepl_client.py --tool nrepl-health-check --quiet
 3. **Missing operations** → Examine Tool Integration status
 4. **Environment errors** → Analyze Environment Diagnostics
 
+## 💾 Memory Storage Reminder
+
+**CRITICAL**: When using `mcp__memory__store_memory`, tags MUST be an ARRAY not a string!
+
+```python
+# ❌ WRONG (causes validation error):
+"tags": "tag1,tag2,tag3"
+
+# ✅ CORRECT:
+"tags": ["tag1", "tag2", "tag3"]
+```
+
+**Remember: Memory tags = ARRAY not string!**
+
 ## 🔍 Debug Tools for Live Server Introspection
 
 **NEW CAPABILITY**: Direct REPL access into the running MCP server for debugging and introspection.

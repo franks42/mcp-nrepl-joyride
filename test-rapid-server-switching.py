@@ -5,8 +5,8 @@ Tests the robustness of connection lifecycle, message queue management, and both
 nrepl-eval and nrepl-load-file functionality during rapid connection switching
 """
 
-import subprocess
 import json
+import subprocess
 import sys
 import time
 
