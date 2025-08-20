@@ -1,39 +1,42 @@
 # MCP-nREPL Project Context (August 20, 2025)
 
 ## 🎯 Current Project Status
-**Status**: ✅ **BASE64 ENHANCEMENT COMPLETE** - All tests passing!  
-**Latest Version**: v0.7.5 (commit: adb7482) - 100% test validation milestone  
+**Status**: ✅ **AI AGENT ONBOARDING ENHANCEMENT COMPLETE** - Production ready!  
+**Latest Version**: v0.8.0-ai-onboarding (commit: f802c25) - AI-optimized tool discovery milestone  
 **Repository**: https://github.com/franks42/mcp-nrepl-joyride.git
 
-## 🎉 CURRENT SUCCESS STATUS (Session Aug 20, 16:00)
+## 🎉 CURRENT SUCCESS STATUS (Session Aug 20, 16:30)
 
-### ✅ Base64 Enhancement FULLY VALIDATED AND WORKING
-**What Was Accomplished**: Successfully implemented and validated base64 interface:
-- ✅ **Complete base64 enhancement** with `--input-base64` and `--output-base64` flags
-- ✅ **Comprehensive test suite** with 30 tests covering all permutations (100% pass rate)
-- ✅ **Critical bug fixes** - Test 6.1 (invalid base64 error) and Test 9.2 (auto-decode stdout)
-- ✅ **Enhanced error handling** with structured JSON responses instead of exceptions
-- ✅ **Python client improvements** with robust decode handling
-- ✅ **Complete documentation** including three-stream architecture guide
+### ✅ AI Agent Onboarding Enhancement FULLY IMPLEMENTED AND TESTED
+**What Was Accomplished**: Successfully created AI-optimized tool discovery and usage system:
+- ✅ **must-read-mcp-nrepl-context tool** with strategic naming for AI priority discovery
+- ✅ **Comprehensive markdown guide** covering system architecture, tool selection, and usage patterns
+- ✅ **Enhanced tool descriptions** with emoji-based hierarchy and clear recommendations
+- ✅ **Internal tool warnings** preventing misuse of low-level async infrastructure
+- ✅ **Complete testing validation** - All 30 base64 tests still passing (100% success rate)
+- ✅ **Zero regressions** from enhancement work
 
-### 🏆 Major Achievements Completed
-1. ✅ **Fixed Test 6.1**: Replaced exception throwing with structured error response pattern
-   - Uses error marker `::base64-decode-failed` instead of throwing exceptions
-   - Returns proper JSON: `{"status": "error", "error": "Failed to decode base64 code"}`
+### 🏆 Major AI Onboarding Achievements Completed
+1. ✅ **must-read-mcp-nrepl-context Tool Created**: Strategic AI agent onboarding system
+   - Comprehensive markdown guide covering system architecture and tool selection
+   - Strategic naming ensures AI agents discover context first before using other tools
+   - Complete troubleshooting guide and usage patterns for all scenarios
 
-2. ✅ **Fixed Test 9.2**: Auto-decode stdout functionality working
-   - Changed from `local-eval` to `nrepl-eval` (println not available in SCI)
-   - Corrected field name from `"stdout-decoded"` to `"out-decoded"`
-   - Test now properly captures and decodes stdout from nREPL
+2. ✅ **Tool Hierarchy Optimization**: Clear prioritization for AI agent workflows
+   - 🚀 PRIMARY: nrepl-eval (recommended for most AI tasks)
+   - 🔗 ESSENTIAL: nrepl-connection (required first step)
+   - 📁 PRODUCTION: nrepl-load-file (application code loading)
+   - ⚠️ DISCOURAGED: Internal async tools with strong warnings
 
-3. ✅ **Enhanced Python Client**: Robust `decode_base64_response` function
-   - Handles non-dict inputs gracefully to prevent TypeErrors
-   - Comprehensive parameter validation and orthogonal flag design
+3. ✅ **AI-Friendly Descriptions**: All 10 tools enhanced with clear guidance
+   - Emoji-based visual hierarchy for quick recognition
+   - Explicit usage recommendations and limitations
+   - Strong discouragement of internal/low-level tools
 
-4. ✅ **Comprehensive Test Coverage**: 30/30 tests passing (100% success rate)
-   - All base64 enhancement permutations validated
-   - Parameter support: `--quick`, `--basic-only`, `--base64-only`, `--no-nrepl`, `--help`
-   - Performance testing with 50 rapid requests confirms stability
+4. ✅ **Foundation Preserved**: All base64 enhancements intact (30/30 tests passing)
+   - Quote-escaping elimination still fully operational
+   - Multi-stream architecture documentation complete
+   - Zero regressions from onboarding enhancement work
 
 ### 🎯 Base64 Enhancement: Quote-Escaping Solution (✅ FULLY IMPLEMENTED)
 **Problem**: AI agents struggle with JSON quote escaping for complex Clojure code  
@@ -165,23 +168,23 @@ NEW (clean):  nrepl-eval → nrepl-send-message → async tools ✅
 
 ## 🔮 IMMEDIATE NEXT PRIORITIES
 
-### 🎯 AI Agent Onboarding Enhancement (CURRENT FOCUS)
-- **Create must-read-mcp-nrepl-context tool** - Essential context for AI agents
-- **Update all tool descriptions** for AI-friendly clarity and usage guidance
-- **Implement discovery optimization** - Ensure AI agents read context first
-- **Comprehensive tool interface documentation** with examples and patterns
+### 🚀 Production Deployment & Advanced Features (READY)
+- **AI agent onboarding system COMPLETE** - v0.8.0 milestone achieved
+- **Advanced AI workflows** - Multi-connection scenarios, complex VS Code automation
+- **Performance optimizations** - Connection pooling, result caching improvements  
+- **Extended tool ecosystem** - Additional specialized tools for AI agent workflows
 
-### 🧪 Enhanced Testing and Validation (READY)
-- **Base64 interface fully validated** - All 30 tests passing (100% success rate)
-- **anyio.ClosedResourceError resolved** - Was harmless logging noise, no functional impact
-- **Transport layer stable** - HTTP bridge working perfectly
-- **Production-ready deployment** - All enhancements validated and tested
+### 🔧 Enhanced Integration Capabilities (PLANNED)
+- **VS Code extension integration** - Direct Claude Code integration patterns
+- **Joyride automation templates** - Pre-built AI agent workflow examples
+- **Advanced nREPL operations** - More specialized protocol operations for AI agents
+- **Workflow orchestration** - Complex multi-step AI agent task automation
 
-### 🔧 Next Tool Enhancements (PLANNED)
-- **nrepl-load-file**: Create tool for loading Clojure files via nREPL  
-- **Enhanced tool descriptions**: AI-friendly documentation for all existing tools
-- **Performance optimizations**: Connection pooling, caching improvements
-- **Advanced workflows**: Additional MCP tools for complex AI agent scenarios
+### 📈 Ecosystem Expansion (FUTURE)
+- **Additional language support** - Extend beyond Clojure (Python, JavaScript)
+- **Cloud deployment patterns** - Containerized deployment strategies
+- **Advanced debugging tools** - Enhanced introspection and monitoring
+- **Community contributions** - Open source ecosystem development
 
 ## 🚨 Critical Context for Future Sessions
 
@@ -201,23 +204,23 @@ NEW (clean):  nrepl-eval → nrepl-send-message → async tools ✅
 - **Error handling**: Delegate to sync wrapper, update operation names
 
 ### For New Claude Sessions (CRITICAL CONTEXT)
-1. **Read this file first** - Contains current SUCCESS state context
+1. **Read this file first** - Contains current PRODUCTION READY state context
 2. **Read**: `claude_reminder.md` for workflow guidelines
-3. ✅ **SUCCESS**: Base64 enhancement COMPLETE with 100% test validation
-4. ✅ **Interface fully tested** - All `--input-base64`/`--output-base64` functionality working
-5. **Query memory**: `mcp__memory__recall_memory "base64 enhancement v0.7.5"`
-6. **Query memory**: `mcp__memory__recall_memory "100% test success"`
-7. **CURRENT FOCUS**: Create AI agent onboarding tools and enhanced documentation
+3. ✅ **SUCCESS**: AI Agent Onboarding Enhancement COMPLETE with v0.8.0 milestone
+4. ✅ **Full system operational** - All base64 + onboarding features working perfectly
+5. **Query memory**: `mcp__memory__recall_memory "ai onboarding v0.8.0"`
+6. **Query memory**: `mcp__memory__recall_memory "must-read-mcp-nrepl-context"`
+7. **READY FOR**: Advanced AI agent workflows and ecosystem expansion
 8. **Protocol**: ALWAYS format→lint after Clojure changes (learned lesson!)
 
-## 🎯 Current Session Status (COMPLETE SUCCESS)
-- ✅ **Base64 enhancement** - Fully implemented and validated (30/30 tests passing)
-- ✅ **Critical bug fixes** - Test 6.1 and 9.2 resolved without cheating
-- ✅ **Code committed and tagged** - v0.7.5 milestone with comprehensive validation
-- ✅ **Transport layer stable** - HTTP bridge working perfectly
-- ✅ **Protocol compliance** - Proper format→lint workflow followed
-- ✅ **Production ready** - All enhancements validated and documented
-- 🎯 **Next phase**: AI agent onboarding enhancement (must-read-mcp-nrepl-context tool)
+## 🎯 Current Session Status (MILESTONE ACHIEVEMENT)
+- ✅ **AI Agent Onboarding Enhancement** - Complete with strategic tool discovery system
+- ✅ **must-read-mcp-nrepl-context tool** - Comprehensive markdown guide implemented
+- ✅ **Tool hierarchy optimization** - All 10 tools enhanced with AI-friendly descriptions
+- ✅ **Internal tool warnings** - Low-level tools properly discouraged from direct use
+- ✅ **Zero regressions** - All 30 base64 tests still passing (100% success rate)
+- ✅ **Production milestone** - v0.8.0-ai-onboarding tagged and released
+- 🚀 **Ready for advanced features** - Foundation complete for complex AI agent workflows
 
 ## 🎯 Success Metrics (ACHIEVED AND VALIDATED)
 - ✅ **100% test pass rate** - All 30 base64 enhancement tests passing consistently

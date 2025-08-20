@@ -1,71 +1,42 @@
 (ns nrepl-mcp-server.mcp-server.tools.nrepl-load-file
-  "nREPL load-file tool - Execute Clojure's load-file function within nREPL runtime"
+  "nREPL load-file tool - Load and evaluate Clojure files in connected nREPL server runtime"
   (:require [nrepl-mcp-server.mcp-server.tools.nrepl-eval :as nrepl-eval]
-            [clojure.string :as str]
-            [cheshire.core :as json]))
-
-(defn- escape-file-path
-  "Escape file path for safe inclusion in Clojure string literal"
-  [path]
-  (-> path
-      (str/replace "\\" "\\\\")  ; Escape backslashes first
-      (str/replace "\"" "\\\""))) ; Then escape quotes
+            [nrepl-mcp-server.mcp-server.tools.load-file-shared :as shared]))
 
 (defn handle
-  "Execute Clojure's load-file function within nREPL runtime.
+  "Load and evaluate a Clojure file in the connected nREPL server's runtime environment.
    
-   IMPORTANT: This uses Clojure's built-in (load-file \"path\") function,
-   NOT the nREPL protocol's :op \"load-file\" operation.
+   Uses Clojure's built-in (load-file \"path\") function executed within the nREPL server.
+   This is NOT the nREPL protocol's :op \"load-file\" operation (which is IDE-specific).
    
-   Recommendation: Use absolute file paths as nREPL working directory may vary."
+   The file is loaded and evaluated in whatever runtime the nREPL server is running:
+   - Clojure JVM
+   - ClojureScript (Node.js/browser)  
+   - Babashka (SCI)
+   - Or any other Clojure-compatible runtime
+   
+   Use absolute file paths for reliability as the nREPL server's working directory may vary."
   [{:keys [file-path timeout connection] :or {timeout 30000}}]
+  (try
+    ;; Validate parameters using shared utilities
+    (shared/validate-parameters {:file-path file-path} ["file-path"])
+    (shared/validate-file-path file-path)
 
-  (cond
-    ;; Validation: file-path is required
-    (empty? file-path)
-    {:content [{:type "text"
-                :text (json/generate-string
-                       {:status "error"
-                        :operation "nrepl-load-file"
-                        :error "file-path parameter is required"
-                        :hint "Provide the path to the Clojure file to load"
-                        :example "Use: {\"file-path\": \"/absolute/path/to/file.clj\"}"}
-                       {:pretty true})}]
-     :isError true}
-
-    ;; Process the file loading
-    :else
-    (let [escaped-path (escape-file-path file-path)
+    ;; Execute load-file via nrepl-eval delegation
+    (let [escaped-path (shared/escape-file-path file-path)
           code (str "(load-file \"" escaped-path "\")")
           result (nrepl-eval/handle {:code code :timeout timeout :connection connection})]
 
-      ;; Transform nrepl-eval response to nrepl-load-file format
-      (if (:isError result)
-        ;; Error case - update operation name and add file-path context
-        (let [response-text (-> result :content first :text)
-              response-data (json/parse-string response-text true)]
-          {:content [{:type "text"
-                      :text (json/generate-string
-                             (assoc response-data
-                                    :operation "nrepl-load-file"
-                                    :file-path file-path)
-                             {:pretty true})}]
-           :isError true})
+      ;; Format response using shared utilities
+      (shared/format-load-file-response result "nrepl-load-file" file-path))
 
-        ;; Success case - update operation name and add file-path context
-        (let [response-text (-> result :content first :text)
-              response-data (json/parse-string response-text true)]
-          {:content [{:type "text"
-                      :text (json/generate-string
-                             (assoc response-data
-                                    :operation "nrepl-load-file"
-                                    :file-path file-path)
-                             {:pretty true})}]})))))
+    (catch Exception e
+      (shared/handle-load-file-error e "nrepl-load-file" file-path))))
 
 (def tool-name "nrepl-load-file")
 
 (def metadata
-  {:description "📁 PRODUCTION FILE LOADER: Load Clojure files into connected nREPL server using Clojure's load-file function. RECOMMENDED for loading application code, namespaces, and project files. Use absolute paths for reliability. Executes in full nREPL environment with complete Clojure capabilities."
+  {:description "📁 NREPL FILE LOADER: Load and evaluate Clojure files in connected nREPL server's runtime using Clojure's built-in load-file function. Executes in the nREPL server's environment (Clojure JVM, ClojureScript, Babashka SCI, etc.). Use for loading application code, namespaces, and project files. Recommend absolute file paths for reliability."
    :inputSchema {:type "object"
                  :properties {:file-path {:type "string"
                                           :description "Path to Clojure file to load (recommend absolute paths)"}

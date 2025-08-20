@@ -1,72 +1,47 @@
 (ns nrepl-mcp-server.mcp-server.tools.local-load-file
-  "Local load-file tool for loading Clojure files in MCP server runtime"
-  (:require [cheshire.core :as json])
+  "Local load-file tool - Load and evaluate Clojure files in MCP server's runtime (Babashka SCI)"
+  (:require [nrepl-mcp-server.mcp-server.tools.load-file-shared :as shared])
   (:import [java.io StringWriter PrintWriter]))
 
 (defn handle
-  "Load and evaluate a Clojure file in the MCP server runtime"
+  "Load and evaluate a Clojure file in the MCP server's runtime environment (Babashka SCI).
+   
+   Uses Clojure's built-in load-file function to load and evaluate the specified file
+   within the MCP server's own Babashka SCI runtime. This is useful for:
+   - Loading development scripts and toolkits into the MCP server
+   - Extending MCP server functionality with additional Clojure code
+   - Testing code in the SCI environment
+   
+   NOTE: This executes in SCI (limited Clojure subset), not a full Clojure environment.
+   For loading code into connected nREPL servers, use nrepl-load-file instead."
   [{:keys [file-path]}]
-  (if (empty? file-path)
-    {:content [{:type "text"
-                :text "❌ file-path parameter is required"}]
-     :isError true}
-    (try
-      (let [file-content (slurp file-path)
-            ;; Split into individual forms
-            forms (read-string (str "(" file-content ")"))
-            ;; Evaluate each form with output capture
-            stdout-writer (StringWriter.)
-            stderr-writer (StringWriter.)]
-        (binding [*out* (PrintWriter. stdout-writer)
-                  *err* (PrintWriter. stderr-writer)]
-          (let [results (mapv (fn [form]
-                                (try
-                                  {:form (pr-str form)
-                                   :result (pr-str (eval form))
-                                   :status :success}
-                                  (catch Exception e
-                                    {:form (pr-str form)
-                                     :error (.getMessage e)
-                                     :status :error})))
-                              forms)
-                success-count (count (filter #(= (:status %) :success) results))
-                total-count (count results)
-                captured-stdout (str stdout-writer)
-                captured-stderr (str stderr-writer)]
-            {:content [{:type "text"
-                        :text (json/generate-string
-                               {:status "completed"
-                                :file file-path
-                                :forms-evaluated total-count
-                                :successful success-count
-                                :failed (- total-count success-count)
-                                :results results
-                                :stdout captured-stdout
-                                :stderr captured-stderr}
-                               {:pretty true})}]})))
-      (catch java.io.FileNotFoundException e
-        {:content [{:type "text"
-                    :text (json/generate-string
-                           {:status "error"
-                            :file file-path
-                            :error "File not found"
-                            :message (.getMessage e)}
-                           {:pretty true})}]
-         :isError true})
-      (catch Exception e
-        {:content [{:type "text"
-                    :text (json/generate-string
-                           {:status "error"
-                            :file file-path
-                            :error (.getMessage e)
-                            :stacktrace (mapv str (.getStackTrace e))}
-                           {:pretty true})}]
-         :isError true}))))
+  (try
+    ;; Validate parameters using shared utilities
+    (shared/validate-parameters {:file-path file-path} ["file-path"])
+    (shared/validate-file-path file-path)
+
+    ;; Execute load-file with output capture
+    (let [stdout-writer (StringWriter.)
+          stderr-writer (StringWriter.)]
+      (binding [*out* (PrintWriter. stdout-writer)
+                *err* (PrintWriter. stderr-writer)]
+        (let [result (load-file file-path)
+              captured-stdout (str stdout-writer)
+              captured-stderr (str stderr-writer)]
+          (shared/format-load-file-response
+           {:value (pr-str result)
+            :out captured-stdout
+            :err captured-stderr}
+           "local-load-file"
+           file-path))))
+
+    (catch Exception e
+      (shared/handle-load-file-error e "local-load-file" file-path))))
 
 (def tool-name "local-load-file")
 
 (def metadata
-  {:description "📂 DEBUG FILE LOADER: Load Clojure files into MCP server runtime (SCI environment). Use for loading debug scripts and development toolkits. For production code loading into nREPL servers, use nrepl-load-file instead."
+  {:description "📂 MCP SERVER FILE LOADER: Load and evaluate Clojure files in MCP server's runtime (Babashka SCI) using Clojure's built-in load-file function. Use for loading scripts, toolkits, and extensions into the MCP server itself. Limited to SCI-compatible Clojure subset. For loading code into connected nREPL servers, use nrepl-load-file instead."
    :inputSchema {:type "object"
                  :properties {:file-path {:type "string"
                                           :description "Path to Clojure file to load"}}
