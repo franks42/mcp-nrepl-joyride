@@ -1,8 +1,22 @@
 (ns nrepl-mcp-server.mcp-server.tools.nrepl-eval
-  "Simple nREPL eval tool using delegation to nrepl-send-message - Phase 2b.6 Refactored"
+  "Simple nREPL eval tool using delegation to nrepl-send-message - Phase 2b.6 Refactored with Base64 Enhancement"
   (:require [nrepl-mcp-server.mcp-server.tools.tool-delegation :as delegate]
             [cheshire.core :as json]
             [clojure.edn :as edn]))
+
+;; =============================================================================
+;; Base64 Utilities
+;; =============================================================================
+
+(defn- decode-base64
+  "Decode base64 string to UTF-8 text"
+  [b64-str]
+  (String. (.decode (java.util.Base64/getDecoder) b64-str) "UTF-8"))
+
+(defn- encode-base64
+  "Encode UTF-8 text to base64 string"
+  [text]
+  (.encodeToString (java.util.Base64/getEncoder) (.getBytes text "UTF-8")))
 
 ;; =============================================================================
 ;; EDN to JSON Conversion Helpers
@@ -50,8 +64,8 @@
 ;; =============================================================================
 
 (defn- format-nrepl-eval-response
-  "Format nrepl-send-message result as nrepl-eval response with EDN conversion."
-  [sync-result code]
+  "Format nrepl-send-message result as nrepl-eval response with EDN conversion and optional base64 encoding."
+  [sync-result code output-base64]
   (if (delegate/is-success-result? sync-result)
     ;; Success - extract nREPL response and format
     (let [result-data (delegate/extract-result-data sync-result :result)
@@ -67,15 +81,22 @@
                                  (:out nrepl-response) (assoc :out (:out nrepl-response))
                                  (:err nrepl-response) (assoc :err (:err nrepl-response)))]
 
-      ;; Try to add EDN parsing and wrap in proper MCP format
-      (let [final-response (if-let [parsed-value (try-parse-edn value-str)]
-                             (try
-                               (assoc response-with-output :value-parsed (convert-edn-to-json parsed-value))
-                               (catch Exception _
-                                 ;; Conversion failed - return without value-parsed
-                                 response-with-output))
-                             ;; No EDN parsing possible - return as is
-                             response-with-output)]
+      ;; Try to add EDN parsing and base64 encoding
+      (let [response-with-edn (if-let [parsed-value (try-parse-edn value-str)]
+                                (try
+                                  (assoc response-with-output :value-parsed (convert-edn-to-json parsed-value))
+                                  (catch Exception _
+                                    ;; Conversion failed - return without value-parsed
+                                    response-with-output))
+                                ;; No EDN parsing possible - return as is
+                                response-with-output)
+            ;; Add base64 encoding if requested
+            final-response (if output-base64
+                             (cond-> response-with-edn
+                               value-str (assoc :value-base64 (encode-base64 value-str))
+                               (:out response-with-edn) (assoc :out-base64 (encode-base64 (:out response-with-edn)))
+                               (:err response-with-edn) (assoc :err-base64 (encode-base64 (:err response-with-edn))))
+                             response-with-edn)]
         {:content [{:type "text"
                     :text (json/generate-string final-response {:pretty true})}]}))
 
@@ -104,24 +125,39 @@
 
 (defn handle
   "Evaluate Clojure code via nREPL using delegation to nrepl-send-message.
-   Supports timeout recovery, connection selection, and EDN-to-JSON conversion."
-  [{:keys [code message-id timeout connection] :or {timeout 30000}}]
+   Supports timeout recovery, connection selection, EDN-to-JSON conversion, and base64 encoding.
+   NEW: Base64 support eliminates quote escaping for AI agents and complex code."
+  [{:keys [code code-base64 output-base64 message-id timeout connection] :or {timeout 30000}}]
 
   (cond
-    ;; Validation: code is required for normal evaluation
-    (and (empty? code) (not message-id))
-    (format-error-response "No code provided")
+    ;; Validation: Prevent ambiguity between code and code-base64
+    (and code code-base64)
+    (format-error-response "Cannot specify both 'code' and 'code-base64' parameters - use one or the other")
+
+    ;; Validation: code or code-base64 is required for normal evaluation
+    (and (empty? code) (empty? code-base64) (not message-id))
+    (format-error-response "No code provided - specify either 'code' or 'code-base64' parameter")
 
     ;; Delegate to nrepl-send-message sync wrapper
     :else
-    (let [nrepl-message (when code {:op "eval" :code code})
+    (let [;; Determine actual code to execute
+          actual-code (cond
+                        code code
+                        code-base64 (try
+                                      (decode-base64 code-base64)
+                                      (catch Exception e
+                                        (throw (ex-info "Failed to decode base64 code"
+                                                        {:error (.getMessage e)
+                                                         :code-base64 code-base64}))))
+                        :else nil)
+          nrepl-message (when actual-code {:op "eval" :code actual-code})
           result (delegate/call-async-tool "nrepl-send-message"
                                            (cond-> {:timeout-ms timeout}
                                              connection (assoc :connection connection)
                                              message-id (assoc :message-id message-id)
                                              nrepl-message (assoc :message nrepl-message)))]
-      ;; Format result as nrepl-eval response with EDN conversion
-      (format-nrepl-eval-response result code))))
+      ;; Format result as nrepl-eval response with EDN conversion and optional base64 encoding
+      (format-nrepl-eval-response result actual-code output-base64))))
 
 ;; =============================================================================
 ;; Tool Metadata
@@ -130,10 +166,14 @@
 (def tool-name "nrepl-eval")
 
 (def metadata
-  {:description "Evaluate Clojure code via nREPL with clean delegation, timeout recovery, connection selection, and EDN-to-JSON conversion. Returns both string representation (value) and parsed structure (value-parsed) for programmatic access."
+  {:description "Evaluate Clojure code via nREPL with clean delegation, timeout recovery, connection selection, EDN-to-JSON conversion, and base64 encoding. NEW: Base64 support eliminates quote escaping for AI agents and complex code. Returns both string representation (value) and parsed structure (value-parsed) for programmatic access."
    :inputSchema {:type "object"
                  :properties {:code {:type "string"
-                                     :description "Clojure code to evaluate"}
+                                     :description "Clojure code to evaluate (mutually exclusive with code-base64)"}
+                              :code-base64 {:type "string"
+                                            :description "Clojure code as base64 string - eliminates quote escaping (mutually exclusive with code)"}
+                              :output-base64 {:type "boolean"
+                                              :description "Return result fields (value, out, err) as base64 encoded strings (default: false)"}
                               :connection {:type "string"
                                            :description "Connection identifier (nickname, connection-id, or host:port). Optional - uses single connection if not specified."}
                               :timeout {:type "integer"
@@ -142,4 +182,6 @@
                                         :maximum 300000}
                               :message-id {:type "string"
                                            :description "Message ID for timeout recovery - call with same code and this ID to check for delayed result"}}
-                 :required ["code"]}})
+                 :anyOf [{:required ["code"]}
+                         {:required ["code-base64"]}
+                         {:required ["message-id"]}]}})

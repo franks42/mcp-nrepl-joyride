@@ -14,6 +14,7 @@ Usage:
 
 import argparse
 import asyncio
+import base64
 import json
 import sys
 from typing import Any, Dict
@@ -33,6 +34,45 @@ try:
     RICH_AVAILABLE = True
 except ImportError:
     RICH_AVAILABLE = False
+
+
+# =============================================================================
+# Base64 Utilities
+# =============================================================================
+
+
+def encode_code_to_base64(code: str) -> str:
+    """Encode Clojure code to base64"""
+    return base64.b64encode(code.encode("utf-8")).decode("ascii")
+
+
+def decode_base64_to_code(b64_str: str) -> str:
+    """Decode base64 to Clojure code"""
+    return base64.b64decode(b64_str).decode("utf-8")
+
+
+def decode_base64_response(response_data: dict) -> dict:
+    """Auto-decode base64 fields in response if present"""
+    if isinstance(response_data, dict):
+        decoded_data = response_data.copy()
+        # Decode common base64 fields
+        for field in [
+            "value-base64",
+            "result-base64",
+            "out-base64",
+            "err-base64",
+            "stdout-base64",
+            "stderr-base64",
+            "error-base64",
+        ]:
+            if field in decoded_data:
+                try:
+                    decoded_value = decode_base64_to_code(decoded_data[field])
+                    decoded_field_name = field.replace("-base64", "-decoded")
+                    decoded_data[decoded_field_name] = decoded_value
+                except Exception:
+                    pass  # Keep original if decode fails
+    return decoded_data
 
 
 class MCPExplorer:
@@ -173,6 +213,19 @@ Examples:
   
   # Quiet mode: just the data, no headers
   %(prog)s --tool local-eval --args '{"code": "42"}' --quiet
+  
+  # 🚀 NEW: Zero-escaping code submission (works with any tool!)
+  %(prog)s --tool nrepl-eval --encode-code "(println \"Hello 'quoted' world!\")"
+  %(prog)s --tool local-eval --encode-code "{:data [\"item1\" \"item2\"]}"
+  
+  # 🔧 Pre-encoded approach
+  %(prog)s --tool nrepl-eval --code-base64 "KHByaW50bG4gIkhlbGxvIHdvcmxkISIp"
+  
+  # 🔄 Round-trip base64 (input and output)
+  %(prog)s --tool local-eval --encode-code "(+ 1 2)" --output-base64 --decode-output
+  
+  # 🤖 AI-friendly: Complex quotes work perfectly
+  %(prog)s --tool nrepl-eval --encode-code "(defn greet [name] (str \"Hello '\" name \"'!\"))"
         """,
     )
 
@@ -201,6 +254,21 @@ Examples:
         help="Load code from file path (no escaping, handles any file size)",
     )
     parser.add_argument(
+        "--encode-code",
+        help="Auto-encode this Clojure code to base64 (easiest for humans)",
+    )
+    parser.add_argument("--code-base64", help="Pre-encoded base64 Clojure code string")
+    parser.add_argument(
+        "--output-base64",
+        action="store_true",
+        help="Request base64-encoded output from server",
+    )
+    parser.add_argument(
+        "--decode-output",
+        action="store_true",
+        help="Auto-decode base64 output to readable text",
+    )
+    parser.add_argument(
         "--eval", help="Evaluate Clojure code directly (shortcut for local-eval)"
     )
     parser.add_argument(
@@ -222,18 +290,30 @@ Examples:
         parser.error("Must specify --list-tools, --tool, or --eval")
 
     # Code parameters require --tool
-    if (args.code or args.code_stdin or args.load_code_file) and not args.tool:
+    if (
+        args.code
+        or args.code_stdin
+        or args.load_code_file
+        or args.encode_code
+        or args.code_base64
+    ) and not args.tool:
         parser.error(
-            "--code/--code-stdin/--load-code-file requires --tool to be specified"
+            "--code/--code-stdin/--load-code-file/--encode-code/--code-base64 requires --tool to be specified"
         )
 
     # Code parameters are mutually exclusive
     code_params = sum(
-        [bool(args.code), bool(args.code_stdin), bool(args.load_code_file)]
+        [
+            bool(args.code),
+            bool(args.code_stdin),
+            bool(args.load_code_file),
+            bool(args.encode_code),
+            bool(args.code_base64),
+        ]
     )
     if code_params > 1:
         parser.error(
-            "--code, --code-stdin, and --load-code-file are mutually exclusive"
+            "Code parameters are mutually exclusive: --code, --code-stdin, --load-code-file, --encode-code, --code-base64"
         )
 
     try:
@@ -281,8 +361,12 @@ Examples:
             if args.connection:
                 tool_args["connection"] = args.connection
 
-            # If --code is specified, add it to the arguments (overriding any existing 'code')
-            if args.code:
+            # Process base64 parameters first
+            if args.encode_code:
+                tool_args["code-base64"] = encode_code_to_base64(args.encode_code)
+            elif args.code_base64:
+                tool_args["code-base64"] = args.code_base64
+            elif args.code:
                 tool_args["code"] = args.code
             elif args.code_stdin:
                 # Read code from stdin
@@ -315,6 +399,10 @@ Examples:
                     )
                     return 1
 
+            # Add output-base64 parameter if requested
+            if args.output_base64:
+                tool_args["output-base64"] = True
+
             response = await explorer.call_tool(args.tool, tool_args)
 
             # Handle different output formats
@@ -329,6 +417,10 @@ Examples:
                 # Show extracted tool response (parsed JSON from content)
                 content = explorer.extract_content(response)
                 if content is not None:
+                    # Auto-decode base64 output if requested
+                    if args.decode_output:
+                        content = decode_base64_response(content)
+
                     if not args.quiet:
                         print(f"\\n=== Tool Response: {args.tool} ===")
                     if isinstance(content, (dict, list)):
