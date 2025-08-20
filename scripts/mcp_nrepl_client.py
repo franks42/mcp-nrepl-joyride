@@ -72,7 +72,10 @@ def decode_base64_response(response_data: dict) -> dict:
                     decoded_data[decoded_field_name] = decoded_value
                 except Exception:
                     pass  # Keep original if decode fails
-    return decoded_data
+        return decoded_data
+    else:
+        # Return original data if not a dict
+        return response_data
 
 
 class MCPExplorer:

@@ -37,71 +37,77 @@
                         (try
                           (decode-base64 code)
                           (catch Exception e
-                            (throw (ex-info "Failed to decode base64 code"
-                                            {:error (.getMessage e)
-                                             :code code}))))
+                            ;; Return error marker instead of throwing
+                            ::base64-decode-failed))
                         code)]
-      (if (empty? actual-code)
+      (if (= actual-code ::base64-decode-failed)
         {:content [{:type "text"
                     :text (json/generate-string
                            {:status "error"
-                            :error "Decoded code is empty"}
+                            :error "Failed to decode base64 code"}
                            {:pretty true})}]
          :isError true}
-        (try
+        (if (empty? actual-code)
+          {:content [{:type "text"
+                      :text (json/generate-string
+                             {:status "error"
+                              :error "Decoded code is empty"}
+                             {:pretty true})}]
+           :isError true}
+          (try
           ;; Use with-out-str to capture stdout from println statements
-          (let [result-atom (atom nil)
-                stdout-capture (with-out-str
-                                 (let [result (eval (read-string actual-code))]
+            (let [result-atom (atom nil)
+                  stdout-capture (with-out-str
+                                   (let [result (eval (read-string actual-code))]
                                    ;; Store result in atom so we can access it
-                                   (reset! result-atom result)))
+                                     (reset! result-atom result)))
                 ;; Get the result from the atom
-                result @result-atom
+                  result @result-atom
                 ;; Convert result to serializable format
-                serializable-result (cond
-                                      (nil? result) nil
-                                      (string? result) result
-                                      (or (number? result)
-                                          (keyword? result)
-                                          (boolean? result)) result
-                                      (or (map? result)
-                                          (vector? result)
-                                          (list? result)
-                                          (set? result)) (pr-str result)
-                                      (instance? clojure.lang.Atom result)
-                                      (str "#atom " (pr-str @result))
-                                      :else (str "#" (.getName (class result)) " " result))
+                  serializable-result (cond
+                                        (nil? result) nil
+                                        (string? result) result
+                                        (or (number? result)
+                                            (keyword? result)
+                                            (boolean? result)) result
+                                        (or (map? result)
+                                            (vector? result)
+                                            (list? result)
+                                            (set? result)) (pr-str result)
+                                        (instance? clojure.lang.Atom result)
+                                        (str "#atom " (pr-str @result))
+                                        :else (str "#" (.getName (class result)) " " result))
                 ;; Build base response
-                base-response {:status "success"
-                               :code actual-code
-                               :result serializable-result
-                               :result-type (.getName (class result))
-                               :stdout stdout-capture
-                               :stderr ""}  ;; TODO: stderr capture is more complex
+                  base-response {:status "success"
+                                 :code actual-code
+                                 :result serializable-result
+                                 :result-type (.getName (class result))
+                                 :stdout stdout-capture
+                                 :stderr ""}  ;; TODO: stderr capture is more complex
                 ;; Add base64 encoding if requested
-                final-response (if output-base64
-                                 (cond-> base-response
-                                   serializable-result (assoc :result-base64 (encode-base64 (str serializable-result)))
-                                   (not-empty stdout-capture) (assoc :stdout-base64 (encode-base64 stdout-capture))
+                  final-response (if output-base64
+                                   (cond-> base-response
+                                     serializable-result (assoc :result-base64 (encode-base64 (str serializable-result)))
+                                     (not-empty stdout-capture) (assoc :stdout-base64 (encode-base64 stdout-capture))
                                    ;; stderr would go here if we had it
-                                   )
-                                 base-response)]
-            {:content [{:type "text"
-                        :text (json/generate-string final-response {:pretty true})}]})
-          (catch Exception e
-            (let [error-response {:status "error"
-                                  :code actual-code
-                                  :error (.getMessage e)
-                                  :stdout ""
-                                  :stderr ""
-                                  :stacktrace (mapv str (.getStackTrace e))}
-                  ;; Add base64 encoding for error if requested
-                  final-error (if output-base64
-                                (assoc error-response :error-base64 (encode-base64 (.getMessage e)))
-                                error-response)]
+                                     )
+                                   base-response)]
               {:content [{:type "text"
-                          :text (json/generate-string final-error {:pretty true})}]
-               :isError true})))))))
+                          :text (json/generate-string final-response {:pretty true})}]})
+            (catch Exception e
+              (let [error-response {:status "error"
+                                    :code actual-code
+                                    :error (.getMessage e)
+                                    :stdout ""
+                                    :stderr ""
+                                    :stacktrace (mapv str (.getStackTrace e))}
+                  ;; Add base64 encoding for error if requested
+                    final-error (if output-base64
+                                  (assoc error-response :error-base64 (encode-base64 (.getMessage e)))
+                                  error-response)]
+                {:content [{:type "text"
+                            :text (json/generate-string final-error {:pretty true})}]
+                 :isError true}))))))))
 
 (def tool-name "local-eval")
 
