@@ -1,42 +1,41 @@
 # MCP-nREPL Project Context (August 20, 2025)
 
 ## 🎯 Current Project Status
-**Status**: ✅ **AI AGENT ONBOARDING ENHANCEMENT COMPLETE** - Production ready!  
-**Latest Version**: v0.8.0-ai-onboarding (commit: f802c25) - AI-optimized tool discovery milestone  
+**Status**: ✅ **LOAD-FILE TOOLS UNIFICATION COMPLETE** - Ready for Claude Code integration!  
+**Latest Version**: v0.9.0-load-file-unification (commit: fc47fa9) - Unified semantics milestone  
 **Repository**: https://github.com/franks42/mcp-nrepl-joyride.git
 
-## 🎉 CURRENT SUCCESS STATUS (Session Aug 20, 16:30)
+## 🎉 CURRENT SUCCESS STATUS (Session Aug 20, 17:45)
 
-### ✅ AI Agent Onboarding Enhancement FULLY IMPLEMENTED AND TESTED
-**What Was Accomplished**: Successfully created AI-optimized tool discovery and usage system:
-- ✅ **must-read-mcp-nrepl-context tool** with strategic naming for AI priority discovery
-- ✅ **Comprehensive markdown guide** covering system architecture, tool selection, and usage patterns
-- ✅ **Enhanced tool descriptions** with emoji-based hierarchy and clear recommendations
-- ✅ **Internal tool warnings** preventing misuse of low-level async infrastructure
-- ✅ **Complete testing validation** - All 30 base64 tests still passing (100% success rate)
-- ✅ **Zero regressions** from enhancement work
+### ✅ Load-File Tools Unification FULLY COMPLETED AND VALIDATED
+**What Was Accomplished**: Successfully unified both load-file tools with standard semantics:
+- ✅ **Shared utilities created** - load_file_shared.clj with common validation, formatting, error handling
+- ✅ **local-load-file refactored** - Replaced 60+ lines of manual parsing with simple (load-file path) call
+- ✅ **Standard Clojure semantics** - Both tools now use built-in load-file function with proper namespace handling
+- ✅ **Comprehensive test coverage** - 16-test suite validates all scenarios (100% pass rate)
+- ✅ **Code quality verified** - Zero linting errors, clean formatting, no regressions
+- ✅ **Production milestone** - v0.9.0-load-file-unification tagged and released
 
-### 🏆 Major AI Onboarding Achievements Completed
-1. ✅ **must-read-mcp-nrepl-context Tool Created**: Strategic AI agent onboarding system
-   - Comprehensive markdown guide covering system architecture and tool selection
-   - Strategic naming ensures AI agents discover context first before using other tools
-   - Complete troubleshooting guide and usage patterns for all scenarios
+### 🏆 Major Load-File Unification Achievements Completed
+1. ✅ **Shared Utilities Architecture**: Maximum code reuse between load-file implementations
+   - load_file_shared.clj with common validation, path escaping, response formatting
+   - Unified error handling with consistent JSON structure across both tools
+   - Parameter validation and file existence checking shared between tools
 
-2. ✅ **Tool Hierarchy Optimization**: Clear prioritization for AI agent workflows
-   - 🚀 PRIMARY: nrepl-eval (recommended for most AI tasks)
-   - 🔗 ESSENTIAL: nrepl-connection (required first step)
-   - 📁 PRODUCTION: nrepl-load-file (application code loading)
-   - ⚠️ DISCOURAGED: Internal async tools with strong warnings
+2. ✅ **local-load-file Simplified**: From complex parsing to standard semantics
+   - Replaced 60+ lines of manual form-by-form processing with simple (load-file path)
+   - Now uses standard Clojure load-file function like nrepl-load-file
+   - Proper namespace handling and *file* binding semantics restored
 
-3. ✅ **AI-Friendly Descriptions**: All 10 tools enhanced with clear guidance
-   - Emoji-based visual hierarchy for quick recognition
-   - Explicit usage recommendations and limitations
-   - Strong discouragement of internal/low-level tools
+3. ✅ **Unified Tool Behavior**: Consistent semantics across both runtime environments
+   - Both tools use identical approach: standard load-file function
+   - nrepl-load-file: Executes in nREPL server runtime (any Clojure-compatible)
+   - local-load-file: Executes in MCP server SCI runtime (Babashka subset)
 
-4. ✅ **Foundation Preserved**: All base64 enhancements intact (30/30 tests passing)
-   - Quote-escaping elimination still fully operational
-   - Multi-stream architecture documentation complete
-   - Zero regressions from onboarding enhancement work
+4. ✅ **Production Quality Validation**: Comprehensive testing and code quality
+   - 16-test comprehensive suite covering all success/failure scenarios
+   - Zero linting errors or warnings in refactored code
+   - All previous enhancements preserved (base64, AI onboarding, multi-connection)
 
 ### 🎯 Base64 Enhancement: Quote-Escaping Solution (✅ FULLY IMPLEMENTED)
 **Problem**: AI agents struggle with JSON quote escaping for complex Clojure code  
@@ -168,23 +167,24 @@ NEW (clean):  nrepl-eval → nrepl-send-message → async tools ✅
 
 ## 🔮 IMMEDIATE NEXT PRIORITIES
 
-### 🚀 Production Deployment & Advanced Features (READY)
-- **AI agent onboarding system COMPLETE** - v0.8.0 milestone achieved
-- **Advanced AI workflows** - Multi-connection scenarios, complex VS Code automation
-- **Performance optimizations** - Connection pooling, result caching improvements  
-- **Extended tool ecosystem** - Additional specialized tools for AI agent workflows
+### 🎯 **NEXT MAJOR MILESTONE: Claude Code Integration (CURRENT FOCUS)**
+- **Integration Planning**: Determine Claude Code MCP server configuration requirements
+- **stdio Protocol Setup**: Configure MCP-nREPL server for native Claude Code stdio access
+- **Configuration Discovery**: Identify config file format and required entries
+- **Direct Tool Access**: Enable Claude Code to natively use all MCP-nREPL tools
+- **Ultimate Goal**: Seamless AI-assisted Clojure development without HTTP bridge
 
-### 🔧 Enhanced Integration Capabilities (PLANNED)
-- **VS Code extension integration** - Direct Claude Code integration patterns
-- **Joyride automation templates** - Pre-built AI agent workflow examples
-- **Advanced nREPL operations** - More specialized protocol operations for AI agents
-- **Workflow orchestration** - Complex multi-step AI agent task automation
+### 🧪 Integration Validation & Testing (PLANNED)
+- **stdio Protocol Testing**: Validate direct Claude Code communication
+- **Tool Discovery Verification**: Ensure must-read-mcp-nrepl-context appears first
+- **Workflow Testing**: Complex multi-tool scenarios via Claude Code interface
+- **Performance Validation**: Direct stdio vs HTTP bridge comparison
 
-### 📈 Ecosystem Expansion (FUTURE)
-- **Additional language support** - Extend beyond Clojure (Python, JavaScript)
-- **Cloud deployment patterns** - Containerized deployment strategies
-- **Advanced debugging tools** - Enhanced introspection and monitoring
-- **Community contributions** - Open source ecosystem development
+### 🚀 Advanced AI Development Workflows (FUTURE)
+- **VS Code Integration Patterns**: Complex Joyride automation via Claude Code
+- **Multi-connection Workflows**: Advanced nREPL server management scenarios
+- **Live Development Sessions**: Real-time Clojure development with AI assistance
+- **Ecosystem Documentation**: Best practices for AI-assisted Clojure development
 
 ## 🚨 Critical Context for Future Sessions
 
@@ -206,21 +206,76 @@ NEW (clean):  nrepl-eval → nrepl-send-message → async tools ✅
 ### For New Claude Sessions (CRITICAL CONTEXT)
 1. **Read this file first** - Contains current PRODUCTION READY state context
 2. **Read**: `claude_reminder.md` for workflow guidelines
-3. ✅ **SUCCESS**: AI Agent Onboarding Enhancement COMPLETE with v0.8.0 milestone
-4. ✅ **Full system operational** - All base64 + onboarding features working perfectly
-5. **Query memory**: `mcp__memory__recall_memory "ai onboarding v0.8.0"`
-6. **Query memory**: `mcp__memory__recall_memory "must-read-mcp-nrepl-context"`
-7. **READY FOR**: Advanced AI agent workflows and ecosystem expansion
+3. ✅ **SUCCESS**: Load-File Tools Unification COMPLETE with v0.9.0 milestone
+4. ✅ **Full system operational** - All enhancements working: base64, AI onboarding, load-file unification
+5. **Query memory**: `mcp__memory__recall_memory "load-file unification v0.9.0"`
+6. **Query memory**: `mcp__memory__recall_memory "claude code integration"`
+7. **NEXT MILESTONE**: Claude Code native integration via stdio protocol
 8. **Protocol**: ALWAYS format→lint after Clojure changes (learned lesson!)
 
-## 🎯 Current Session Status (MILESTONE ACHIEVEMENT)
-- ✅ **AI Agent Onboarding Enhancement** - Complete with strategic tool discovery system
-- ✅ **must-read-mcp-nrepl-context tool** - Comprehensive markdown guide implemented
-- ✅ **Tool hierarchy optimization** - All 10 tools enhanced with AI-friendly descriptions
-- ✅ **Internal tool warnings** - Low-level tools properly discouraged from direct use
-- ✅ **Zero regressions** - All 30 base64 tests still passing (100% success rate)
-- ✅ **Production milestone** - v0.8.0-ai-onboarding tagged and released
-- 🚀 **Ready for advanced features** - Foundation complete for complex AI agent workflows
+## 🎯 Current Session Status (MAJOR MILESTONE ACHIEVEMENT)
+- ✅ **Load-File Tools Unification** - Complete with unified semantics and shared utilities
+- ✅ **Production-ready architecture** - All 3 major milestones complete (base64, AI onboarding, load-file)
+- ✅ **Comprehensive testing** - 16-test load-file suite + existing test coverage
+- ✅ **Zero technical debt** - Clean code quality, no linting warnings on new code
+- ✅ **v0.9.0 milestone** - Tagged and released with comprehensive changelog
+- 🎯 **READY FOR**: Claude Code native integration - the ultimate validation!
+
+## 🚀 CLAUDE CODE INTEGRATION - READY FOR TESTING! (Aug 20, 2025)
+
+### ✅ CONFIGURATION COMPLETE - Ready for New Claude Session Testing
+**Status**: Configuration added to ~/.claude.json, Claude restart required for MCP tool discovery
+
+**Configuration Entry Applied**:
+```json
+"nrepl_mcp_server": {
+  "command": "bb",
+  "args": ["-cp", "src", "src/nrepl_mcp_server/core.clj"]
+}
+```
+
+### 🧪 CRITICAL TESTING NEEDED (For New Claude Session)
+**NEW CLAUDE: Please test the following immediately after restart:**
+
+1. **Tool Discovery Test**:
+   - Check if `must-read-mcp-nrepl-context` tool appears first in tool list
+   - Verify all MCP-nREPL tools are available natively (no HTTP bridge needed)
+   - Confirm tool descriptions are AI-friendly and informative
+
+2. **Basic Functionality Test**:
+   ```
+   # Test the must-read tool first
+   Use must-read-mcp-nrepl-context tool (no args needed)
+   
+   # Test local evaluation
+   Use local-eval tool with code: (+ 1 2 3)
+   
+   # Test nREPL server lifecycle
+   Use local-nrepl-server tool with {"op": "start"}
+   Use nrepl-connection tool with {"op": "connect", "connection": "1667"}
+   Use nrepl-eval tool with {"code": "(str \"Hello from nREPL: \" (+ 10 20))"}
+   ```
+
+3. **Advanced Workflow Test**:
+   - Test load-file tools with simple Clojure files
+   - Test multi-connection capabilities if available
+   - Verify base64 encoding works for complex code
+   - Test error handling and recovery scenarios
+
+### 🎯 Success Criteria for New Claude
+- **Tool availability**: All MCP-nREPL tools appear in native tool list
+- **must-read priority**: Must-read tool is discovered and used first
+- **Direct stdio**: No HTTP bridge needed, direct MCP communication
+- **Full functionality**: Core evaluation, connection management, file loading work
+- **AI-friendly**: Tool descriptions guide proper usage patterns
+
+### 🚨 If Testing Fails
+- **Check working directory**: bb command must run from project root
+- **Verify Babashka**: Ensure bb is in PATH and working
+- **Check classpath**: -cp src argument essential for module loading
+- **Review logs**: Claude Code should show MCP server startup logs
+
+**This is the ultimate validation - direct Claude Code integration as originally envisioned!**
 
 ## 🎯 Success Metrics (ACHIEVED AND VALIDATED)
 - ✅ **100% test pass rate** - All 30 base64 enhancement tests passing consistently

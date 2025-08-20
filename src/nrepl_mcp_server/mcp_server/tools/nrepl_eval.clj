@@ -176,6 +176,4 @@
                                         :minimum 1000
                                         :maximum 300000}
                               :message-id {:type "string"
-                                           :description "Message ID for timeout recovery - call with same code and this ID to check for delayed result"}}
-                 :anyOf [{:required ["code"]}
-                         {:required ["message-id"]}]}})
+                                           :description "Message ID for timeout recovery - call with same code and this ID to check for delayed result"}}}})
