@@ -137,9 +137,11 @@ NEW (clean):  nrepl-eval → nrepl-send-message → async tools ✅
 
 ### Key File Locations (LATEST)
 - **Main refactored tool**: `src/nrepl_mcp_server/mcp_server/tools/nrepl_eval.clj`
+- **Local eval tool**: `src/nrepl_mcp_server/mcp_server/tools/local_eval.clj`
 - **Delegation helper**: `src/nrepl_mcp_server/mcp_server/tools/tool_delegation.clj`  
 - **Comprehensive test**: `./test-nrepl-eval-comprehensive.sh`
 - **Client**: `scripts/mcp_nrepl_client.py`
+- **Base64 plan**: `docs/base64-interface-enhancement-plan.md` 📋 **NEW**
 - **Context file**: `mycontext.md` (this file)
 
 ### Architecture Patterns (ESTABLISHED)
@@ -150,10 +152,12 @@ NEW (clean):  nrepl-eval → nrepl-send-message → async tools ✅
 
 ### For New Claude Sessions (IMPORTANT)
 1. **Read this file first** - Contains all critical context
-2. **Read**: `claude_reminder.md` for workflow guidelines
-3. **Query memory**: `mcp__memory__recall_memory "mcp-nrepl project status"`
-4. **Check current work** with memory tags
-5. **Update memory** with progress and discoveries
+2. **Read**: `claude_reminder.md` for workflow guidelines  
+3. **Read**: `docs/base64-interface-enhancement-plan.md` for next implementation
+4. **Query memory**: `mcp__memory__recall_memory "mcp-nrepl project status"`
+5. **Query memory**: `mcp__memory__recall_memory "base64-enhancement"`
+6. **Check current work** with memory tags
+7. **Update memory** with progress and discoveries
 
 ## 🎯 Success Metrics ACHIEVED TODAY
 - ✅ **100% test pass rate** - All 15 tests passing
