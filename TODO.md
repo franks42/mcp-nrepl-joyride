@@ -1371,6 +1371,52 @@ The async message queue infrastructure is now **production-ready**:
 
 ## 🚧 **PENDING ENHANCEMENTS**
 
+### **Multi-Connection Architecture Refactoring** 🔄 **PHASE 1 IN PROGRESS**
+
+**Objective**: Transform single-connection architecture to support multiple concurrent nREPL connections with per-connection queue management.
+
+**Plan Document**: `multi-connection-refactoring-plan.md` (detailed 6-phase implementation plan)
+
+**Key Changes**:
+- Per-connection message/result queues instead of global queues
+- Connection nicknames (e.g., "browser", "backend") for user-friendly management  
+- No "active" connection ambiguity - explicit or single-only rule
+- Per-connection watchers for clean separation and easy cleanup
+- Enhanced nrepl-connection tool with list/disconnect-all operations
+
+**Implementation Phases (Interface-First Strategy)**:
+
+#### **Phase 1: Add Connection Parameter to Tool Interfaces** 🔄 **IN PROGRESS**
+- [x] **1.1 Implement resolve-connection-id function in connection.clj** ✅ **COMPLETED**
+  - Added Phase 1 single-connection logic with actionable error messages
+  - Returns active connection ID regardless of user identifier
+  - Throws helpful errors for no connections available
+- [x] **1.2 Add connection parameter to nrepl-eval.clj first (test case)** ✅ **COMPLETED**  
+  - Added connection parameter to function signature and metadata
+  - Implemented connection resolution with error handling
+  - Updated inputSchema to include connection parameter description
+- [x] **1.3 Test connection parameter with single connection** ✅ **COMPLETED**
+  - ✅ Connection parameter works: `{"code": "(+ 1 2 3)", "connection": "test-identifier"}` → value: 6
+  - ✅ Backward compatibility: `{"code": "(* 7 8)"}` → value: 56
+  - ✅ Error handling: No connection available → actionable error message
+  - ✅ Error handling: Connection parameter with no connection → specific error message
+- [ ] **1.4 Add connection parameter to remaining nREPL tools** 🔄 **NEXT**
+- [ ] **1.5 Update mcp_nrepl_client.py with connection support** 🔄 **PENDING**
+
+2. **Simple Nickname Support** (0.5 days) - Basic nickname mapping with existing infrastructure
+3. **Enhanced nrepl-connection Tool** (0.5 days) - List/disconnect-all operations for single connection
+4. **Per-Connection Queue Infrastructure** (2 days) - Backend refactoring with validated frontend
+5. **Multi-Connection Testing** (1 day) - True multi-server scenarios with validated tools
+6. **Cleanup & Documentation** (1 day) - Remove dead code, update docs
+
+**Risk Level**: High (core architecture change)
+**Baseline Commit**: d7c7057 (stable working state preserved)
+**Testing Strategy**: Incremental with rollback points after each phase
+
+**Use Case**: Browser + app-server nREPL for same application, mobile simulator connections
+
+**Phase 1 Status**: Interface-first approach validated. Connection parameter successfully added to nrepl-eval tool with full backward compatibility and proper error handling. Ready to proceed to remaining nREPL tools.
+
 ### **nrepl-load-file Tool Implementation** 🔄 **READY FOR IMPLEMENTATION**
 
 **Objective**: Create `nrepl-load-file` MCP tool for complex code loading without string escaping issues.

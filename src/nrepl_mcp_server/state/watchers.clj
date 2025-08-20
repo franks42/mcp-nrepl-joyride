@@ -12,11 +12,11 @@
 ;; =============================================================================
 
 (defn- process-send-queue!
-  "DUMB WATCHER: Process one READY-TO-SEND message from queue.
+  "DUMB WATCHER: Process one READY-TO-SEND message from connection-specific queue.
    All formatting and validation was done at enqueue time.
    This just dequeues and sends - no logic, no adaptation."
-  []
-  (when-let [ready-to-send (msg-state/dequeue-message!)]
+  [connection-id]
+  (when-let [ready-to-send (msg-state/dequeue-message! connection-id)]
     (let [{:keys [message-id connection message]} ready-to-send]
       (try
         ;; Update status to sending
@@ -51,17 +51,20 @@
               (println "[Send-Watcher] Exception details:" e))))))))
 
 (defn- send-queue-watcher
-  "Watcher function that processes the send queue when it changes.
-   Called whenever message-queue atom changes."
+  "Watcher function that processes connection send queues when they change.
+   Called whenever connection-message-queues atom changes."
   [_ _ old-state new-state]
-  ;; Only process if send queue has grown (new messages added)
-  (when (> (count (:send-queue new-state))
-           (count (:send-queue old-state)))
-    (binding [*out* *err*]
-      (println "[Watcher] Send queue changed, processing..."))
-    ;; Process all available messages in queue
-    (while (> (count (:send-queue @msg-state/message-queue)) 0)
-      (process-send-queue!))))
+  (doseq [[connection-id queue-state] new-state]
+    (let [old-queue-state (get old-state connection-id)
+          old-queue-count (if old-queue-state (count (:send-queue old-queue-state)) 0)
+          new-queue-count (count (:send-queue queue-state))]
+      ;; Only process if this connection's send queue has grown (new messages added)
+      (when (> new-queue-count old-queue-count)
+        (binding [*out* *err*]
+          (println "[Watcher] Send queue changed for connection" connection-id ", processing..."))
+        ;; Process all available messages in this connection's queue
+        (while (> (count (:send-queue (get @msg-state/connection-message-queues connection-id))) 0)
+          (process-send-queue! connection-id))))))
 
 ;; =============================================================================
 ;; Watcher Management
@@ -90,10 +93,12 @@
 ;; Forward declaration for recursive reference
 (declare stop-receive-watcher!)
 
-(defonce receive-watcher-state
-  (atom {:running false
-         :thread nil
-         :connection nil}))
+(defonce ^{:doc "Per-connection receive watcher state.
+                Structure: {connection-id {:running boolean
+                                          :thread Thread
+                                          :connection connection-object}}"}
+  receive-watcher-state
+  (atom {}))
 
 (defn- process-nrepl-response!
   "Process a single nREPL response and deliver to the appropriate promise.
@@ -148,13 +153,13 @@
    
    Uses surgically extracted bencode reading logic from messaging.clj
    instead of duplicating the conversion logic."
-  [connection]
+  [connection-id connection]
   (binding [*out* *err*]
-    (println "[Receive-Watcher] Starting receive loop for connection:" (:id connection)))
+    (println "[Receive-Watcher] Starting receive loop for connection:" connection-id))
 
   (try
     (let [input-stream (:in connection)]
-      (while (:running @receive-watcher-state)
+      (while (get-in @receive-watcher-state [connection-id :running])
         (try
           ;; USING EXTRACTED LOGIC: Use messaging/convert-bencode-response (private, but available via namespace)
           ;; Read bencode response from nREPL
@@ -169,8 +174,8 @@
 
           (catch java.io.EOFException _e
             (binding [*out* *err*]
-              (println "[Receive-Watcher] EOF - connection closed"))
-            (swap! receive-watcher-state assoc :running false))
+              (println "[Receive-Watcher] EOF - connection" connection-id "closed"))
+            (swap! receive-watcher-state assoc-in [connection-id :running] false))
 
           (catch Exception e
             (binding [*out* *err*]
@@ -181,84 +186,109 @@
 
     (catch Exception e
       (binding [*out* *err*]
-        (println "[Receive-Watcher] Fatal error in receive loop:" (.getMessage e)))
-      (swap! receive-watcher-state assoc :running false))
+        (println "[Receive-Watcher] Fatal error in receive loop for connection" connection-id ":" (.getMessage e)))
+      (swap! receive-watcher-state assoc-in [connection-id :running] false))
 
     (finally
       (binding [*out* *err*]
         (println "[Receive-Watcher] Receive loop terminated")))))
 
 (defn start-receive-watcher!
-  "Start the receive watcher for processing nREPL responses.
+  "Start the receive watcher for a specific connection.
    Runs in a background thread and listens for incoming responses."
-  []
-  ;; Always stop any existing watcher first to ensure clean state
-  (when (:running @receive-watcher-state)
+  [connection-id]
+  ;; Always stop any existing watcher for this connection first
+  (when (get-in @receive-watcher-state [connection-id :running])
     (binding [*out* *err*]
-      (println "[Receive-Watcher] Stopping existing watcher before starting new one"))
-    (stop-receive-watcher!))
+      (println "[Receive-Watcher] Stopping existing watcher for connection" connection-id))
+    (stop-receive-watcher! connection-id))
 
-  (if-let [raw-connection (conn-state/get-active-connection)]
+  (if-let [raw-connection (conn-state/get-connection-by-id connection-id)]
     (if-let [connection (msg-state/adapt-connection-for-messaging raw-connection)]
       (do
-        ;; Start the background receive thread
-        (swap! receive-watcher-state assoc :running true :connection connection)
-        (let [receive-thread (Thread. #(receive-loop! connection))]
+        ;; Start the background receive thread for this connection
+        (swap! receive-watcher-state assoc connection-id {:running true :connection connection :thread nil})
+        (let [receive-thread (Thread. #(receive-loop! connection-id connection))]
           (.setDaemon receive-thread true)  ; Daemon thread for clean shutdown
-          (.setName receive-thread "nREPL-Receive-Watcher")
+          (.setName receive-thread (str "nREPL-Receive-Watcher-" connection-id))
           (.start receive-thread)
-          (swap! receive-watcher-state assoc :thread receive-thread)
+          (swap! receive-watcher-state assoc-in [connection-id :thread] receive-thread)
           (binding [*out* *err*]
-            (println "[Receive-Watcher] Started background receive thread"))))
+            (println "[Receive-Watcher] Started background receive thread for connection:" connection-id))))
 
       (binding [*out* *err*]
-        (println "[Receive-Watcher] Error: Failed to adapt connection")))
+        (println "[Receive-Watcher] Error: Failed to adapt connection" connection-id)))
 
     (binding [*out* *err*]
-      (println "[Receive-Watcher] Error: No active connection"))))
+      (println "[Receive-Watcher] Error: Connection not found:" connection-id))))
 
 (defn stop-receive-watcher!
-  "Stop the receive watcher background thread"
-  []
-  (when (:running @receive-watcher-state)
+  "Stop the receive watcher background thread for a specific connection"
+  [connection-id]
+  (when (get-in @receive-watcher-state [connection-id :running])
     (binding [*out* *err*]
-      (println "[Receive-Watcher] Stopping background receive thread"))
+      (println "[Receive-Watcher] Stopping background receive thread for connection:" connection-id))
 
     ;; Signal stop
-    (swap! receive-watcher-state assoc :running false)
+    (swap! receive-watcher-state assoc-in [connection-id :running] false)
 
     ;; Wait for thread to finish (with timeout)
-    (when-let [thread (:thread @receive-watcher-state)]
+    (when-let [thread (get-in @receive-watcher-state [connection-id :thread])]
       (try
         (.join thread 5000)  ; Wait up to 5 seconds
         (when (.isAlive thread)
           (binding [*out* *err*]
-            (println "[Receive-Watcher] Thread didn't stop gracefully, interrupting"))
+            (println "[Receive-Watcher] Thread for connection" connection-id "didn't stop gracefully, interrupting"))
           (.interrupt thread))
         (catch Exception e
           (binding [*out* *err*]
-            (println "[Receive-Watcher] Error stopping thread:" (.getMessage e))))))
+            (println "[Receive-Watcher] Error stopping thread for connection" connection-id ":" (.getMessage e))))))
 
-    ;; Reset state
-    (swap! receive-watcher-state assoc :thread nil :connection nil)
+    ;; Remove connection from state
+    (swap! receive-watcher-state dissoc connection-id)
     (binding [*out* *err*]
-      (println "[Receive-Watcher] Stopped"))))
+      (println "[Receive-Watcher] Stopped watcher for connection:" connection-id))))
+
+(defn stop-all-receive-watchers!
+  "Stop all receive watchers for all connections"
+  []
+  (let [connection-ids (keys @receive-watcher-state)]
+    (doseq [connection-id connection-ids]
+      (stop-receive-watcher! connection-id))
+    (binding [*out* *err*]
+      (println "[Receive-Watcher] Stopped all receive watchers"))))
 
 ;; =============================================================================
 ;; Combined Watcher Management
 ;; =============================================================================
 
+(defn start-connection-watchers!
+  "Start watchers for a specific connection (typically called after successful connection)"
+  [connection-id]
+  (start-receive-watcher! connection-id)
+  (binding [*out* *err*]
+    (println "[Watcher] Started watchers for connection:" connection-id)))
+
+(defn stop-connection-watchers!
+  "Stop watchers for a specific connection (typically called before disconnection)"
+  [connection-id]
+  (stop-receive-watcher! connection-id)
+  (binding [*out* *err*]
+    (println "[Watcher] Stopped watchers for connection:" connection-id)))
+
 (defn start-all-watchers!
-  "Start all message processing watchers.
+  "Start all global message processing watchers.
    Note: Only starts send-queue-watcher immediately.
-   receive-watcher is started when connection is established."
+   Per-connection receive-watchers are started when connections are established."
   []
   (start-send-queue-watcher!)
-  ;; receive-watcher is started in nrepl-connection tool after successful connection
-  )
+  (binding [*out* *err*]
+    (println "[Watcher] Started global send queue watcher")))
 
 (defn stop-all-watchers!
   "Stop all message processing watchers"
   []
   (stop-send-queue-watcher!)
-  (stop-receive-watcher!))
+  (stop-all-receive-watchers!)
+  (binding [*out* *err*]
+    (println "[Watcher] Stopped all watchers")))

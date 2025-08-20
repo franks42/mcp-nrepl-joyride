@@ -10,7 +10,7 @@
 ;; =============================================================================
 
 (defn handle
-  "Send an nREPL message synchronously.
+  "Send an nREPL message synchronously with connection selection.
    Combines send-message-async + get-result-async with configurable timeout.
    
    nrepl-operations-map:
@@ -42,103 +42,121 @@
    
    Optional parameters for most ops: \"session\", \"ns\", \"id\"
    See: https://nrepl.org/nrepl/1.1/ops.html"
-  [{:keys [message timeout-ms]
+  [{:keys [message timeout-ms connection]
     :or {timeout-ms 30000}}] ; Default 30 second timeout
 
-  (cond
-    ;; Validation: message is required
-    (empty? message)
-    {:content [{:type "text"
-                :text (json/generate-string
-                       {:status "error"
-                        :operation "nrepl-send-message"
-                        :error "No message provided"}
-                       {:pretty true})}]
-     :isError true}
+  ;; Step 1: Resolve connection (Phase 1: returns single connection regardless)
+  (try
+    (let [connection-id (conn/resolve-connection-id connection)]
+      ;; Step 2: Use existing logic (unchanged in Phase 1)
+      (cond
+        ;; Validation: message is required
+        (empty? message)
+        {:content [{:type "text"
+                    :text (json/generate-string
+                           {:status "error"
+                            :operation "nrepl-send-message"
+                            :error "No message provided"}
+                           {:pretty true})}]
+         :isError true}
 
-    ;; Check if we have an active nREPL connection
-    (not (conn/connected?))
-    {:content [{:type "text"
-                :text (json/generate-string
-                       {:status "error"
-                        :operation "nrepl-send-message"
-                        :error "No nREPL connection available"
-                        :hint "Connect to an nREPL server first using the nrepl-connection tool"
-                        :example "Use: nrepl-connection with {\"op\": \"connect\", \"connection\": \"localhost:7890\"}"}
-                       {:pretty true})}]
-     :isError true}
+        ;; Check if we have an active nREPL connection
+        (not (conn/connected?))
+        {:content [{:type "text"
+                    :text (json/generate-string
+                           {:status "error"
+                            :operation "nrepl-send-message"
+                            :error "No nREPL connection available"
+                            :hint "Connect to an nREPL server first using the nrepl-connection tool"
+                            :example "Use: nrepl-connection with {\"op\": \"connect\", \"connection\": \"localhost:7890\"}"}
+                           {:pretty true})}]
+         :isError true}
 
     ;; Process the message
-    :else
-    ;; Step 1: Send message asynchronously using native function
-    (if-let [message-id (msg-state/enqueue-message! message)]
+        :else
+    ;; Step 1: Send message asynchronously for the specific connection
+        (if-let [message-id (msg-state/enqueue-message! connection-id message)]
       ;; Step 2: Wait for result using native function
-      (let [result (results/get-result message-id timeout-ms)]
-        (case (:status result)
-          :success
-          (do
+          (let [result (results/get-result message-id timeout-ms)]
+            (case (:status result)
+              :success
+              (do
             ;; Clean up the pending message
-            (msg-state/remove-pending-message! message-id)
-            {:content [{:type "text"
-                        :text (json/generate-string
-                               {:status "success"
-                                :operation "nrepl-send-message"
-                                :message-id message-id
-                                :timeout-ms timeout-ms
-                                :result (:result result)}
-                               {:pretty true})}]})
+                (msg-state/remove-pending-message! message-id)
+                {:content [{:type "text"
+                            :text (json/generate-string
+                                   {:status "success"
+                                    :operation "nrepl-send-message"
+                                    :message-id message-id
+                                    :timeout-ms timeout-ms
+                                    :result (:result result)}
+                                   {:pretty true})}]})
 
-          :timeout
-          {:content [{:type "text"
-                      :text (json/generate-string
-                             {:status "timeout"
-                              :operation "nrepl-send-message"
-                              :message-id message-id
-                              :timeout-ms timeout-ms
-                              :error "Result not available within timeout"}
-                             {:pretty true})}]
-           :isError true}
+              :timeout
+              {:content [{:type "text"
+                          :text (json/generate-string
+                                 {:status "timeout"
+                                  :operation "nrepl-send-message"
+                                  :message-id message-id
+                                  :timeout-ms timeout-ms
+                                  :error "Result not available within timeout"}
+                                 {:pretty true})}]
+               :isError true}
 
-          :error
-          (do
+              :error
+              (do
             ;; Clean up the pending message on error
-            (msg-state/remove-pending-message! message-id)
-            {:content [{:type "text"
-                        :text (json/generate-string
-                               {:status "error"
-                                :operation "nrepl-send-message"
-                                :message-id message-id
-                                :error (:error result)}
-                               {:pretty true})}]
-             :isError true})
+                (msg-state/remove-pending-message! message-id)
+                {:content [{:type "text"
+                            :text (json/generate-string
+                                   {:status "error"
+                                    :operation "nrepl-send-message"
+                                    :message-id message-id
+                                    :error (:error result)}
+                                   {:pretty true})}]
+                 :isError true})
 
           ;; Unexpected status
+              {:content [{:type "text"
+                          :text (json/generate-string
+                                 {:status "error"
+                                  :operation "nrepl-send-message"
+                                  :message-id message-id
+                                  :error (str "Unexpected result status: " (:status result))}
+                                 {:pretty true})}]
+               :isError true}))
+
+        ;; Failed to queue message
           {:content [{:type "text"
                       :text (json/generate-string
                              {:status "error"
                               :operation "nrepl-send-message"
-                              :message-id message-id
-                              :error (str "Unexpected result status: " (:status result))}
+                              :error "Failed to queue message - no connection or formatting error"}
                              {:pretty true})}]
-           :isError true}))
+           :isError true})))
 
-      ;; Failed to queue message
-      {:content [{:type "text"
-                  :text (json/generate-string
-                         {:status "error"
-                          :operation "nrepl-send-message"
-                          :error "Failed to queue message - no connection or formatting error"}
-                         {:pretty true})}]
-       :isError true})))
+    ;; Step 3: Handle connection resolution errors
+    (catch Exception e
+      (let [error-data (ex-data e)]
+        {:content [{:type "text"
+                    :text (json/generate-string
+                           {:status "error"
+                            :operation "nrepl-send-message"
+                            :error (.getMessage e)
+                            :error-type (or (:status error-data) :connection-error)}
+                           {:pretty true})}]
+         :isError true}))))
 
 (def tool-name "nrepl-send-message")
 
 (def metadata
-  {:description "Send any nREPL operation synchronously. Supports eval, info, completions, sessions, etc. See docstring for nrepl-operations-map with examples."
+  {:description "Send any nREPL operation synchronously with connection selection. Supports eval, info, completions, sessions, etc. See docstring for nrepl-operations-map with examples."
    :inputSchema {:type "object"
                  :properties {:message {:type "object"
                                         :description "nREPL message map. Examples: {\"op\":\"eval\",\"code\":\"(+ 1 2 3)\"}, {\"op\":\"info\",\"symbol\":\"map\"}, {\"op\":\"completions\",\"prefix\":\"ma\"}"
                                         :additionalProperties true}
+                              :connection {:type "string"
+                                           :description "Connection identifier (nickname, connection-id, or host:port). Optional - uses single connection if not specified."}
                               :timeout-ms {:type "integer"
                                            :description "Timeout in milliseconds (default: 30000)"
                                            :minimum 1000

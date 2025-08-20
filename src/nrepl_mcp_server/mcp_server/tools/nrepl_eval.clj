@@ -2,6 +2,7 @@
   "Simple nREPL eval tool using async message queue - Phase 2b.6"
   (:require [nrepl-mcp-server.mcp-server.tools.nrepl-send-message :as smgr]
             [nrepl-mcp-server.mcp-server.tools.nrepl-get-result-async :as gra]
+            [nrepl-mcp-server.state.connection :as conn]
             [cheshire.core :as json]))
 
 ;; =============================================================================
@@ -58,74 +59,92 @@
 
 (defn handle
   "Evaluate Clojure code via nREPL using the async message queue.
-   Supports timeout recovery via message-id."
-  [{:keys [code message-id timeout] :or {timeout 30000}}]
+   Supports timeout recovery via message-id and connection selection."
+  [{:keys [code message-id timeout connection] :or {timeout 30000}}]
 
-  (cond
-    ;; Validation: code is required
-    (empty? code)
-    {:content [{:type "text"
-                :text (json/generate-string
-                       {:status "error"
-                        :operation "nrepl-eval"
-                        :error "No code provided"}
-                       {:pretty true})}]
-     :isError true}
+  ;; Step 1: Resolve connection (Phase 1: returns single connection regardless)
+  (try
+    (let [_connection-id (conn/resolve-connection-id connection)]
+      ;; Step 2: Use existing logic (unchanged in Phase 1)
+      (cond
+        ;; Validation: code is required
+        (empty? code)
+        {:content [{:type "text"
+                    :text (json/generate-string
+                           {:status "error"
+                            :operation "nrepl-eval"
+                            :error "No code provided"}
+                           {:pretty true})}]
+         :isError true}
 
-    ;; Recovery path: check existing message for delayed result
-    message-id
-    (let [result (gra/handle {:message-id message-id :timeout timeout})]
-      (if (:isError result)
-        ;; Still timeout or error - return with same recovery info
-        (let [response-text (-> result :content first :text)
-              response-data (json/parse-string response-text true)]
-          (if (= "timeout" (:status response-data))
-            (format-timeout-response code message-id timeout)
-            ;; Other error - pass through but fix operation name
-            {:content [{:type "text"
-                        :text (json/generate-string
-                               (assoc response-data :operation "nrepl-eval")
-                               {:pretty true})}]
-             :isError true}))
-        ;; Success - format as nrepl-eval response
-        (format-nrepl-response result code)))
+        ;; Recovery path: check existing message for delayed result
+        message-id
+        (let [result (gra/handle {:message-id message-id :timeout timeout})]
+          (if (:isError result)
+            ;; Still timeout or error - return with same recovery info
+            (let [response-text (-> result :content first :text)
+                  response-data (json/parse-string response-text true)]
+              (if (= "timeout" (:status response-data))
+                (format-timeout-response code message-id timeout)
+                ;; Other error - pass through but fix operation name
+                {:content [{:type "text"
+                            :text (json/generate-string
+                                   (assoc response-data :operation "nrepl-eval")
+                                   {:pretty true})}]
+                 :isError true}))
+            ;; Success - format as nrepl-eval response
+            (format-nrepl-response result code)))
 
-    ;; Normal path: send new message and wait for result
-    :else
-    (let [message {:op "eval" :code code}
-          result (smgr/handle {:message message :timeout-ms timeout})]
+        ;; Normal path: send new message and wait for result
+        :else
+        (let [message {:op "eval" :code code}
+              result (smgr/handle {:message message :timeout-ms timeout})]
 
-      (if (:isError result)
-        ;; Check if this is a timeout - if so, provide recovery info
-        (let [response-text (-> result :content first :text)
-              response-data (json/parse-string response-text true)]
-          (if (= "timeout" (:status response-data))
-            ;; Extract message-id for recovery
-            (if-let [msg-id (:message-id response-data)]
-              (format-timeout-response code msg-id timeout)
-              ;; Fallback if no message-id available
-              {:content [{:type "text"
-                          :text (json/generate-string
-                                 (assoc response-data :operation "nrepl-eval")
-                                 {:pretty true})}]
-               :isError true})
-            ;; Other error - pass through but fix operation name
-            {:content [{:type "text"
-                        :text (json/generate-string
-                               (assoc response-data :operation "nrepl-eval")
-                               {:pretty true})}]
-             :isError true}))
+          (if (:isError result)
+            ;; Check if this is a timeout - if so, provide recovery info
+            (let [response-text (-> result :content first :text)
+                  response-data (json/parse-string response-text true)]
+              (if (= "timeout" (:status response-data))
+                ;; Extract message-id for recovery
+                (if-let [msg-id (:message-id response-data)]
+                  (format-timeout-response code msg-id timeout)
+                  ;; Fallback if no message-id available
+                  {:content [{:type "text"
+                              :text (json/generate-string
+                                     (assoc response-data :operation "nrepl-eval")
+                                     {:pretty true})}]
+                   :isError true})
+                ;; Other error - pass through but fix operation name
+                {:content [{:type "text"
+                            :text (json/generate-string
+                                   (assoc response-data :operation "nrepl-eval")
+                                   {:pretty true})}]
+                 :isError true}))
 
-        ;; Success - format as nrepl-eval response
-        (format-nrepl-response result code)))))
+            ;; Success - format as nrepl-eval response
+            (format-nrepl-response result code)))))
+
+    ;; Step 3: Handle connection resolution errors
+    (catch Exception e
+      (let [error-data (ex-data e)]
+        {:content [{:type "text"
+                    :text (json/generate-string
+                           {:status "error"
+                            :operation "nrepl-eval"
+                            :error (.getMessage e)
+                            :error-type (or (:status error-data) :connection-error)}
+                           {:pretty true})}]
+         :isError true}))))
 
 (def tool-name "nrepl-eval")
 
 (def metadata
-  {:description "Evaluate Clojure code via nREPL using async message queue with timeout recovery"
+  {:description "Evaluate Clojure code via nREPL using async message queue with timeout recovery and connection selection"
    :inputSchema {:type "object"
                  :properties {:code {:type "string"
                                      :description "Clojure code to evaluate"}
+                              :connection {:type "string"
+                                           :description "Connection identifier (nickname, connection-id, or host:port). Optional - uses single connection if not specified."}
                               :timeout {:type "integer"
                                         :description "Timeout in milliseconds (default: 30000)"
                                         :minimum 1000

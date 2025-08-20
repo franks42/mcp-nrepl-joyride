@@ -32,9 +32,11 @@
                    :created-at 1641234567,      ; Creation timestamp
                    :closed-at nil,              ; Close timestamp
                    :error nil}}                 ; Error information
+    :nicknames {}                              ; NEW: nickname -> connection-id mapping
     :connection-counter 0}                      ; Counter for unique connection IDs"
   (atom {:active-connection nil
          :connections {}
+         :nicknames {}
          :connection-counter 0}))
 
 ;; =============================================================================
@@ -88,11 +90,13 @@
     (= :connected (:status active-conn))))
 
 (defn can-connect?
-  "Check if a new connection attempt is allowed (no active connection or failed)"
+  "Check if a new connection attempt is allowed.
+   Phase 7: Multi-connection enabled - always returns true."
   []
-  (let [active-conn (get-active-connection)]
-    (or (nil? active-conn)
-        (#{:closed :failed} (:status active-conn)))))
+  true ;; Multi-connection support enabled
+  #_(let [active-conn (get-active-connection)]
+      (or (nil? active-conn)
+          (#{:closed :failed} (:status active-conn)))))
 
 (defn get-connection-status
   "Get current connection status - backward compatibility"
@@ -219,6 +223,77 @@
   (remove-watch connection-state key))
 
 ;; =============================================================================
+;; Connection Resolution for Multi-Connection Interface
+;; =============================================================================
+
+(defn resolve-connection-id
+  "Resolve connection parameter to connection-id. Phase 2: Nickname support with single connection.
+   
+   Phase 2 Implementation:
+   - Returns active connection ID if no identifier provided
+   - Supports nickname lookup (nickname -> connection-id)
+   - Supports direct connection-id lookup
+   - Fallback to active connection for compatibility
+   - Throws actionable errors for no connections
+   
+   Future Phase 4 Implementation will handle:
+   - Multiple active connections
+   - Endpoint resolution (host:port)"
+  [user-identifier]
+  (let [state @connection-state
+        active-conn-id (:active-connection state)]
+    (cond
+      ;; No identifier provided - use single connection rule
+      (nil? user-identifier)
+      (if active-conn-id
+        active-conn-id
+        (throw (ex-info "No nREPL connections available. Connect first using nrepl-connection tool."
+                        {:status :no-connections})))
+
+      ;; Try nickname lookup first
+      (get (:nicknames state) user-identifier)
+      (get (:nicknames state) user-identifier)
+
+      ;; Try connection-id directly
+      (get (:connections state) user-identifier)
+      user-identifier
+
+      ;; Not found - fallback to active connection if available (Phase 2 compatibility)
+      :else
+      (if active-conn-id
+        active-conn-id
+        (throw (ex-info "Connection not found. No active nREPL connection available."
+                        {:status :connection-not-found
+                         :identifier user-identifier}))))))
+
+;; =============================================================================
+;; Nickname Management
+;; =============================================================================
+
+(defn register-nickname!
+  "Register a nickname for a connection-id. Overwrites existing nickname if present."
+  [nickname connection-id]
+  (swap! connection-state assoc-in [:nicknames nickname] connection-id)
+  (binding [*out* *err*]
+    (println "[Connection] Registered nickname" (pr-str nickname) "for connection" connection-id)))
+
+(defn unregister-nickname!
+  "Remove a nickname mapping"
+  [nickname]
+  (swap! connection-state update :nicknames dissoc nickname)
+  (binding [*out* *err*]
+    (println "[Connection] Unregistered nickname" (pr-str nickname))))
+
+(defn get-nickname-for-connection
+  "Get nickname for a connection-id if one exists"
+  [connection-id]
+  (let [nicknames (:nicknames @connection-state)]
+    (->> nicknames
+         (filter (fn [[_nick conn-id]] (= conn-id connection-id)))
+         first
+         first))) ; Returns nickname or nil
+
+;; =============================================================================
 ;; Debug Support
 ;; =============================================================================
 
@@ -230,6 +305,8 @@
      :connection-count (count (:connections state))
      :connection-counter (:connection-counter state)
      :connection-ids (keys (:connections state))
+     :nicknames (:nicknames state)
+     :nickname-count (count (:nicknames state))
      :watchers (keys (.getWatches connection-state))}))
 
 (defn list-all-connections

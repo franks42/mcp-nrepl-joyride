@@ -166,6 +166,11 @@ Examples:
   # Check nREPL connection status
   %(prog)s --tool nrepl-connection --args '{"op": "status"}'
   
+  # 🔗 NEW: Use specific connection for nREPL tools
+  %(prog)s --tool nrepl-eval --code "(+ 1 2 3)" --connection "localhost:7890"
+  %(prog)s --tool nrepl-eval --code "(+ 1 2 3)" --connection "conn-123"
+  %(prog)s --tool nrepl-send-message --args '{"message": {"op": "eval", "code": "(+ 1 2)"}}' --connection "my-repl"
+  
   # Quiet mode: just the data, no headers
   %(prog)s --tool local-eval --args '{"code": "42"}' --quiet
         """,
@@ -178,6 +183,10 @@ Examples:
     )
     parser.add_argument("--tool", help="Tool name to call")
     parser.add_argument("--args", help="Tool arguments as JSON string", default="{}")
+    parser.add_argument(
+        "--connection",
+        help="Connection identifier for multi-connection nREPL tools (nickname, connection-id, or host:port)",
+    )
     parser.add_argument(
         "--code",
         help="Clojure code to pass as 'code' parameter (auto-escaped for any tool)",
@@ -267,6 +276,10 @@ Examples:
             except json.JSONDecodeError as e:
                 print(f"Error parsing arguments JSON: {e}", file=sys.stderr)
                 return 1
+
+            # If --connection is specified, add it to the arguments
+            if args.connection:
+                tool_args["connection"] = args.connection
 
             # If --code is specified, add it to the arguments (overriding any existing 'code')
             if args.code:

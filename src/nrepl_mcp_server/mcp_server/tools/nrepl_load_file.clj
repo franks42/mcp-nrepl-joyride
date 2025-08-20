@@ -18,7 +18,7 @@
    NOT the nREPL protocol's :op \"load-file\" operation.
    
    Recommendation: Use absolute file paths as nREPL working directory may vary."
-  [{:keys [file-path timeout] :or {timeout 30000}}]
+  [{:keys [file-path timeout connection] :or {timeout 30000}}]
 
   (cond
     ;; Validation: file-path is required
@@ -37,7 +37,7 @@
     :else
     (let [escaped-path (escape-file-path file-path)
           code (str "(load-file \"" escaped-path "\")")
-          result (nrepl-eval/handle {:code code :timeout timeout})]
+          result (nrepl-eval/handle {:code code :timeout timeout :connection connection})]
 
       ;; Transform nrepl-eval response to nrepl-load-file format
       (if (:isError result)
@@ -65,10 +65,12 @@
 (def tool-name "nrepl-load-file")
 
 (def metadata
-  {:description "Execute Clojure's load-file function within nREPL runtime. Use absolute file paths as nREPL working directory may vary. (Not nREPL protocol operation)"
+  {:description "Execute Clojure's load-file function within nREPL runtime with connection selection. Use absolute file paths as nREPL working directory may vary. (Not nREPL protocol operation)"
    :inputSchema {:type "object"
                  :properties {:file-path {:type "string"
                                           :description "Path to Clojure file to load (recommend absolute paths)"}
+                              :connection {:type "string"
+                                           :description "Connection identifier (nickname, connection-id, or host:port). Optional - uses single connection if not specified."}
                               :timeout {:type "integer"
                                         :description "Timeout in milliseconds (default: 30000)"
                                         :minimum 1000

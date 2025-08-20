@@ -11,8 +11,8 @@
 ;; =============================================================================
 
 (defn handle-connect
-  "Handle nREPL connect operation"
-  [{:keys [connection]}]
+  "Handle nREPL connect operation with optional nickname support"
+  [{:keys [connection nickname]}]
   (if (empty? connection)
     {:content [{:type "text"
                 :text (json/generate-string
@@ -40,20 +40,27 @@
               (case (:status result)
                 :success
                 (do
-                  ;; Ensure any old watchers are stopped before starting new ones
-                  (watchers/stop-all-watchers!)
-                  ;; Start fresh watchers now that we have an active connection
+                  ;; Multi-connection mode: Only start watchers for this specific connection
+                  ;; Don't stop existing watchers for other connections!
+                  (watchers/start-connection-watchers! (:connection-id result))
+                  ;; Ensure global send-queue-watcher is running (idempotent)
                   (watchers/start-all-watchers!)
-                  (watchers/start-receive-watcher!)
+                  ;; Handle nickname registration if provided
+                  (when (and nickname (seq nickname))
+                    (state/register-nickname! nickname (:connection-id result)))
                   {:content [{:type "text"
                               :text (json/generate-string
-                                     {:status "success"
-                                      :operation "connect"
-                                      :hostname hostname
-                                      :port port
-                                      :connection-id (:connection-id result)
-                                      :message (str "Connected to nREPL server at "
-                                                    hostname ":" port)}
+                                     (cond-> {:status "success"
+                                              :operation "connect"
+                                              :hostname hostname
+                                              :port port
+                                              :connection-id (:connection-id result)
+                                              :message (str "Connected to nREPL server at "
+                                                            hostname ":" port)}
+                                       nickname (assoc :nickname nickname
+                                                       :message (str "Connected to nREPL server at "
+                                                                     hostname ":" port
+                                                                     " with nickname '" nickname "'")))
                                      {:pretty true})}]})
 
                 :failed
@@ -88,39 +95,59 @@
              :isError true}))))))
 
 (defn handle-disconnect
-  "Handle nREPL disconnect operation"
-  [_args]
-  (if (state/connected?)
-    ;; Disconnect from active connection
-    (let [result (conn/close-connection!)]
-      (case (:status result)
-        :success
-        {:content [{:type "text"
-                    :text (json/generate-string
-                           {:status "success"
-                            :operation "disconnect"
-                            :connection-id (:connection-id result)
-                            :message "Disconnected from nREPL server"}
-                           {:pretty true})}]}
+  "Handle nREPL disconnect operation with connection parameter support"
+  [{:keys [connection] :as _args}]
+  (try
+    ;; Resolve connection ID - this will handle nicknames, connection-ids, or default to active
+    (let [connection-id (state/resolve-connection-id connection)
+          conn-details (state/get-connection-by-id connection-id)]
 
-        ;; Unexpected status
+      (if conn-details
+        ;; Connection exists - close it
+        (let [result (conn/close-specific-connection! connection-id)]
+          (case (:status result)
+            :success
+            {:content [{:type "text"
+                        :text (json/generate-string
+                               {:status "success"
+                                :operation "disconnect"
+                                :connection-id connection-id
+                                :hostname (:hostname conn-details)
+                                :port (:port conn-details)
+                                :message (str "Disconnected from nREPL server "
+                                              (:hostname conn-details) ":" (:port conn-details)
+                                              (when connection (str " (connection: " connection ")")))}
+                               {:pretty true})}]}
+
+            ;; Unexpected status
+            {:content [{:type "text"
+                        :text (json/generate-string
+                               {:status "error"
+                                :operation "disconnect"
+                                :connection-id connection-id
+                                :error (str "Unexpected disconnect result: " result)}
+                               {:pretty true})}]
+             :isError true}))
+
+        ;; Connection not found (shouldn't happen due to resolve-connection-id throwing)
         {:content [{:type "text"
                     :text (json/generate-string
                            {:status "error"
                             :operation "disconnect"
-                            :error (str "Unexpected disconnect result: " result)}
+                            :error "Connection not found"}
                            {:pretty true})}]
          :isError true}))
 
-    ;; Not connected
-    {:content [{:type "text"
-                :text (json/generate-string
-                       {:status "error"
-                        :operation "disconnect"
-                        :error (str "Not connected - current status: "
-                                    (state/get-connection-status))}
-                       {:pretty true})}]
-     :isError true}))
+    ;; Handle connection resolution errors (no connections, connection not found)
+    (catch Exception e
+      {:content [{:type "text"
+                  :text (json/generate-string
+                         {:status "error"
+                          :operation "disconnect"
+                          :error (.getMessage e)
+                          :connection connection}
+                         {:pretty true})}]
+       :isError true})))
 
 (defn handle-status
   "Handle nREPL status operation"
@@ -142,6 +169,70 @@
                         :error (when active-conn (:error active-conn))}
                        {:pretty true})}]}))
 
+(defn handle-list
+  "Handle nREPL list connections operation - shows ALL connections in multi-connection mode"
+  [_args]
+  (let [all-connections (state/list-all-connections)
+        summary (state/get-connection-summary)
+        active-conn-id (:active-connection summary)]
+    {:content [{:type "text"
+                :text (json/generate-string
+                       {:status "success"
+                        :operation "list"
+                        :connection-count (:connection-count summary)
+                        :active-connection active-conn-id
+                        :connections (vec (map (fn [[conn-id conn-details]]
+                                                 (let [nickname (state/get-nickname-for-connection conn-id)]
+                                                   {:connection-id conn-id
+                                                    :hostname (:hostname conn-details)
+                                                    :port (:port conn-details)
+                                                    :resolved-ip (:resolved-ip conn-details)
+                                                    :status (:status conn-details)
+                                                    :nickname nickname
+                                                    :created-at (:created-at conn-details)
+                                                    :closed-at (:closed-at conn-details)
+                                                    :is-active (= conn-id active-conn-id)
+                                                    :connection (str (:hostname conn-details) ":" (:port conn-details))}))
+                                               all-connections))
+                        :nicknames (:nicknames summary)}
+                       {:pretty true})}]}))
+
+(defn handle-disconnect-all
+  "Handle nREPL disconnect-all operation (disconnects the single connection)"
+  [_args]
+  (if (state/connected?)
+    ;; Disconnect from active connection
+    (let [result (conn/close-connection!)]
+      (case (:status result)
+        :success
+        {:content [{:type "text"
+                    :text (json/generate-string
+                           {:status "success"
+                            :operation "disconnect-all"
+                            :connection-id (:connection-id result)
+                            :disconnected-count 1
+                            :message "Disconnected from nREPL server"}
+                           {:pretty true})}]}
+
+        ;; Unexpected status
+        {:content [{:type "text"
+                    :text (json/generate-string
+                           {:status "error"
+                            :operation "disconnect-all"
+                            :error (str "Unexpected disconnect result: " result)}
+                           {:pretty true})}]
+         :isError true}))
+
+    ;; Not connected
+    {:content [{:type "text"
+                :text (json/generate-string
+                       {:status "success"
+                        :operation "disconnect-all"
+                        :connection-id nil
+                        :disconnected-count 0
+                        :message "No connections to disconnect"}
+                       {:pretty true})}]}))
+
 ;; =============================================================================
 ;; Main Handler
 ;; =============================================================================
@@ -153,6 +244,8 @@
     "connect" (handle-connect args)
     "disconnect" (handle-disconnect args)
     "status" (handle-status args)
+    "list" (handle-list args)
+    "disconnect-all" (handle-disconnect-all args)
 
     ;; Unknown operation
     {:content [{:type "text"
@@ -160,20 +253,22 @@
                        {:status "error"
                         :operation op
                         :error (str "Unknown operation: " op
-                                    ". Use 'connect', 'disconnect', or 'status'")}
+                                    ". Use 'connect', 'disconnect', 'status', 'list', or 'disconnect-all'")}
                        {:pretty true})}]
      :isError true}))
 
 (def tool-name "nrepl-connection")
 
 (def metadata
-  {:description "nREPL connection operations: connect, disconnect, status"
+  {:description "nREPL connection operations: connect, disconnect, status, list, disconnect-all"
    :inputSchema {:type "object"
                  :properties {:op {:type "string"
-                                   :description "Operation: 'connect', 'disconnect', or 'status'"
-                                   :enum ["connect" "disconnect" "status"]}
+                                   :description "Operation: 'connect', 'disconnect', 'status', 'list', or 'disconnect-all'"
+                                   :enum ["connect" "disconnect" "status" "list" "disconnect-all"]}
                               :connection {:type "string"
-                                           :description "Connection info for connect: host:port, port, or file path"}
+                                           :description "Connection identifier - for connect: host:port, port, or file path; for disconnect: nickname, connection-id, or host:port (optional - defaults to active connection)"}
+                              :nickname {:type "string"
+                                         :description "Optional nickname for connection (for connect operation)"}
                               :timeout {:type "integer"
                                         :description "Timeout in milliseconds (default 5000)"}}
                  :required ["op"]}})

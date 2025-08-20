@@ -91,21 +91,21 @@
           (println "[Connection] Connection failed:" error-msg))
         {:status :failed :error error-msg}))))
 
-(defn close-connection!
-  "Close the active connection using unified state management"
-  []
-  (if-let [active-conn (state/get-active-connection)]
-    (let [{:keys [socket connection-id]} active-conn]
-      ;; Stop all watchers first to prevent processing stale messages
+(defn close-specific-connection!
+  "Close a specific connection by connection-id"
+  [connection-id]
+  (if-let [conn-details (state/get-connection-by-id connection-id)]
+    (let [{:keys [socket]} conn-details]
+      ;; Stop connection-specific watchers first to prevent processing stale messages
       (binding [*out* *err*]
-        (println "[Connection] Stopping watchers for disconnect..."))
-      (watchers/stop-all-watchers!)
+        (println "[Connection] Stopping watchers for connection:" connection-id))
+      (watchers/stop-connection-watchers! connection-id)
 
-      ;; Clear all message and result queues to prevent stale state
+      ;; Clear message and result queues for this specific connection
       (binding [*out* *err*]
-        (println "[Connection] Clearing message and result queues..."))
-      (messages/clear-all-messages!)
-      (results/clear-all-results!)
+        (println "[Connection] Clearing message and result queues for connection:" connection-id))
+      (messages/cleanup-connection-queue! connection-id)
+      (results/cleanup-connection-result-queue! connection-id)
 
       ;; Close the socket
       (when socket
@@ -126,6 +126,18 @@
       (binding [*out* *err*]
         (println "[Connection] Connection cleanup completed for:" connection-id))
       {:status :success :connection-id connection-id})
+
+    ;; Connection not found
+    (do
+      (binding [*out* *err*]
+        (println "[Connection] Connection not found:" connection-id))
+      {:status :error :error (str "Connection not found: " connection-id)})))
+
+(defn close-connection!
+  "Close the active connection using unified state management (legacy compatibility)"
+  []
+  (if-let [active-conn (state/get-active-connection)]
+    (close-specific-connection! (:connection-id active-conn))
     (do
       (binding [*out* *err*]
         (println "[Connection] No active connection to close"))
