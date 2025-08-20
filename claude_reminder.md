@@ -1,12 +1,12 @@
 🚨 **CRITICAL REMINDER FOR CLAUDE**
 
-📋 **USE TODO.md FOR ALL TODO MANAGEMENT**
-- Edit TODO.md directly for all todo changes
-- Mark completed items with [x] in TODO.md
-- Update progress/status in TODO.md
-- Check TODO.md at start of new tasks
+📋 **USE MEMORY FOR PROJECT STATE TRACKING**
+- Query memory at session start: `mcp__memory__recall_memory "mcp-nrepl project status"`
+- Store project progress in memory with tags: ["mcp-nrepl", "project-status", "current-work"]
+- Update memory with completed work and discoveries
+- Use TodoWrite tool only for internal session tracking (not persistent todos)
 
-❌ **DO NOT USE: TodoWrite tool or Context memory for todos**
+❌ **DO NOT USE: TODO.md files (archived as TODO-old-mess.md due to formatting chaos)**
 
 **IMPORTANT**: Always leverage tree-sitter tools for semantic code analysis before making changes!
 
