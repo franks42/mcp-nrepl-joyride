@@ -61,7 +61,7 @@
 (def tool-name "nrepl-send-message-async")
 
 (def metadata
-  {:description "Queue an nREPL message for async sending with connection selection"
+  {:description "⚠️ INTERNAL TOOL: Low-level async message sending used internally by other tools. DO NOT USE DIRECTLY - use nrepl-eval for code evaluation or nrepl-send-message for other nREPL operations. This tool is part of the async infrastructure and requires manual result retrieval."
    :inputSchema {:type "object"
                  :properties {:message {:type "object"
                                         :description "nREPL message to send (e.g. {:op \"eval\" :code \"...\"})"

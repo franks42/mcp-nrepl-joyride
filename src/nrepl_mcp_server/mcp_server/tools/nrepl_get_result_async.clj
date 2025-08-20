@@ -73,7 +73,7 @@
 (def tool-name "nrepl-get-result-async")
 
 (def metadata
-  {:description "Retrieve the result of an async nREPL message"
+  {:description "⚠️ INTERNAL TOOL: Low-level async result retrieval used internally by other tools. DO NOT USE DIRECTLY - this is part of the async infrastructure. Use nrepl-eval for automatic result handling or nrepl-send-message for synchronous operations."
    :inputSchema {:type "object"
                  :properties {:message-id {:type "string"
                                            :description "Message ID returned from send-message-async"}

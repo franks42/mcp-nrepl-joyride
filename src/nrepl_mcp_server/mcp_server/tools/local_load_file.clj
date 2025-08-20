@@ -66,7 +66,7 @@
 (def tool-name "local-load-file")
 
 (def metadata
-  {:description "Load and evaluate a Clojure file in the MCP server runtime"
+  {:description "📂 DEBUG FILE LOADER: Load Clojure files into MCP server runtime (SCI environment). Use for loading debug scripts and development toolkits. For production code loading into nREPL servers, use nrepl-load-file instead."
    :inputSchema {:type "object"
                  :properties {:file-path {:type "string"
                                           :description "Path to Clojure file to load"}}

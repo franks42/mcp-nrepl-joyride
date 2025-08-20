@@ -77,7 +77,7 @@
 (def tool-name "nrepl-send-message")
 
 (def metadata
-  {:description "Send any nREPL operation synchronously with connection selection and timeout recovery. Supports eval, info, completions, sessions, etc. Use message-id parameter to recover delayed results after timeout. See docstring for nrepl-operations-map with examples."
+  {:description "⚠️ LOW-LEVEL nREPL: Raw nREPL protocol access for advanced users only. Most users should use nrepl-eval for code evaluation instead. This tool provides direct protocol operations (info, completions, sessions) but requires nREPL protocol knowledge. Use nrepl-eval for all code execution tasks."
    :inputSchema {:type "object"
                  :properties {:message {:type "object"
                                         :description "nREPL message map. Examples: {\"op\":\"eval\",\"code\":\"(+ 1 2 3)\"}, {\"op\":\"info\",\"symbol\":\"map\"}, {\"op\":\"completions\",\"prefix\":\"ma\"}"

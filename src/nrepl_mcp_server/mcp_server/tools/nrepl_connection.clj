@@ -260,7 +260,7 @@
 (def tool-name "nrepl-connection")
 
 (def metadata
-  {:description "nREPL connection operations: connect, disconnect, status, list, disconnect-all"
+  {:description "🔗 CONNECTION MANAGER: Essential tool for nREPL server connections. REQUIRED FIRST STEP before code evaluation. Operations: connect (establish link), disconnect (clean shutdown), status (check health), list (show all), disconnect-all (cleanup). Supports multiple connections with nicknames for easy switching."
    :inputSchema {:type "object"
                  :properties {:op {:type "string"
                                    :description "Operation: 'connect', 'disconnect', 'status', 'list', or 'disconnect-all'"

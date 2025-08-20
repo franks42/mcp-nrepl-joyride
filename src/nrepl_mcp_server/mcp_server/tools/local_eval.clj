@@ -112,7 +112,7 @@
 (def tool-name "local-eval")
 
 (def metadata
-  {:description "Execute Clojure code within the MCP server runtime with base64 support. NEW: input-base64 flag eliminates quote escaping for AI agents and complex code."
+  {:description "🔧 DEBUG TOOL: Execute code within MCP server runtime for introspection and debugging. Uses SCI interpreter (Clojure subset) - ideal for server state inspection, debugging, and simple calculations. Limitations: No VS Code API access, limited stderr capture. Use nrepl-eval for full Clojure capabilities."
    :inputSchema {:type "object"
                  :properties {:code {:type "string"
                                      :description "Clojure code to evaluate"}

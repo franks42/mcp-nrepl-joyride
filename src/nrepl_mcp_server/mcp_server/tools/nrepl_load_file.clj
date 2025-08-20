@@ -65,7 +65,7 @@
 (def tool-name "nrepl-load-file")
 
 (def metadata
-  {:description "Execute Clojure's load-file function within nREPL runtime with connection selection. Use absolute file paths as nREPL working directory may vary. (Not nREPL protocol operation)"
+  {:description "📁 PRODUCTION FILE LOADER: Load Clojure files into connected nREPL server using Clojure's load-file function. RECOMMENDED for loading application code, namespaces, and project files. Use absolute paths for reliability. Executes in full nREPL environment with complete Clojure capabilities."
    :inputSchema {:type "object"
                  :properties {:file-path {:type "string"
                                           :description "Path to Clojure file to load (recommend absolute paths)"}

@@ -161,7 +161,7 @@
 (def tool-name "nrepl-eval")
 
 (def metadata
-  {:description "Evaluate Clojure code via nREPL with clean delegation, timeout recovery, connection selection, EDN-to-JSON conversion, and input base64 decoding. NEW: input-base64 flag eliminates quote escaping for AI agents and complex code. Returns both string representation (value) and parsed structure (value-parsed) for programmatic access."
+  {:description "🚀 PRIMARY TOOL: Execute Clojure code in connected nREPL server with full language support and VS Code API access. RECOMMENDED for most AI agent tasks including code evaluation, file operations, and VS Code automation. Features: timeout protection (1-300s), base64 encoding for complex code, multi-stream output (stdout/stderr/result), connection management, and EDN-to-JSON conversion for structured data."
    :inputSchema {:type "object"
                  :properties {:code {:type "string"
                                      :description "Clojure code to evaluate"}
