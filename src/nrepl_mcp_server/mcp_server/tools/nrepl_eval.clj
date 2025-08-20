@@ -125,31 +125,26 @@
 
 (defn handle
   "Evaluate Clojure code via nREPL using delegation to nrepl-send-message.
-   Supports timeout recovery, connection selection, EDN-to-JSON conversion, and base64 encoding.
-   NEW: Base64 support eliminates quote escaping for AI agents and complex code."
-  [{:keys [code code-base64 output-base64 message-id timeout connection] :or {timeout 30000}}]
+   Supports timeout recovery, connection selection, EDN-to-JSON conversion, and input base64 decoding.
+   NEW: input-base64 flag eliminates quote escaping for AI agents and complex code."
+  [{:keys [code input-base64 output-base64 message-id timeout connection] :or {timeout 30000}}]
 
   (cond
-    ;; Validation: Prevent ambiguity between code and code-base64
-    (and code code-base64)
-    (format-error-response "Cannot specify both 'code' and 'code-base64' parameters - use one or the other")
-
-    ;; Validation: code or code-base64 is required for normal evaluation
-    (and (empty? code) (empty? code-base64) (not message-id))
-    (format-error-response "No code provided - specify either 'code' or 'code-base64' parameter")
+    ;; Validation: code is required for normal evaluation
+    (and (empty? code) (not message-id))
+    (format-error-response "No code provided - specify 'code' parameter")
 
     ;; Delegate to nrepl-send-message sync wrapper
     :else
     (let [;; Determine actual code to execute
-          actual-code (cond
-                        code code
-                        code-base64 (try
-                                      (decode-base64 code-base64)
-                                      (catch Exception e
-                                        (throw (ex-info "Failed to decode base64 code"
-                                                        {:error (.getMessage e)
-                                                         :code-base64 code-base64}))))
-                        :else nil)
+          actual-code (if input-base64
+                        (try
+                          (decode-base64 code)
+                          (catch Exception e
+                            (throw (ex-info "Failed to decode base64 code"
+                                            {:error (.getMessage e)
+                                             :code code}))))
+                        code)
           nrepl-message (when actual-code {:op "eval" :code actual-code})
           result (delegate/call-async-tool "nrepl-send-message"
                                            (cond-> {:timeout-ms timeout}
@@ -166,12 +161,12 @@
 (def tool-name "nrepl-eval")
 
 (def metadata
-  {:description "Evaluate Clojure code via nREPL with clean delegation, timeout recovery, connection selection, EDN-to-JSON conversion, and base64 encoding. NEW: Base64 support eliminates quote escaping for AI agents and complex code. Returns both string representation (value) and parsed structure (value-parsed) for programmatic access."
+  {:description "Evaluate Clojure code via nREPL with clean delegation, timeout recovery, connection selection, EDN-to-JSON conversion, and input base64 decoding. NEW: input-base64 flag eliminates quote escaping for AI agents and complex code. Returns both string representation (value) and parsed structure (value-parsed) for programmatic access."
    :inputSchema {:type "object"
                  :properties {:code {:type "string"
-                                     :description "Clojure code to evaluate (mutually exclusive with code-base64)"}
-                              :code-base64 {:type "string"
-                                            :description "Clojure code as base64 string - eliminates quote escaping (mutually exclusive with code)"}
+                                     :description "Clojure code to evaluate"}
+                              :input-base64 {:type "boolean"
+                                             :description "Interpret 'code' parameter as base64-encoded string (default: false)"}
                               :output-base64 {:type "boolean"
                                               :description "Return result fields (value, out, err) as base64 encoded strings (default: false)"}
                               :connection {:type "string"
@@ -183,5 +178,4 @@
                               :message-id {:type "string"
                                            :description "Message ID for timeout recovery - call with same code and this ID to check for delayed result"}}
                  :anyOf [{:required ["code"]}
-                         {:required ["code-base64"]}
                          {:required ["message-id"]}]}})

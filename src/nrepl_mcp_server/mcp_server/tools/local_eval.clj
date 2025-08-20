@@ -19,38 +19,28 @@
 (defn handle
   "Evaluate Clojure code within the MCP server runtime with base64 support.
    NEW: Base64 support eliminates quote escaping for AI agents and complex code."
-  [{:keys [code code-base64 output-base64]}]
+  [{:keys [code input-base64 output-base64]}]
   (cond
-    ;; Validation: Prevent ambiguity between code and code-base64
-    (and code code-base64)
+    ;; Validation: code is required
+    (empty? code)
     {:content [{:type "text"
                 :text (json/generate-string
                        {:status "error"
-                        :error "Cannot specify both 'code' and 'code-base64' parameters - use one or the other"}
-                       {:pretty true})}]
-     :isError true}
-
-    ;; Validation: code or code-base64 is required
-    (and (empty? code) (empty? code-base64))
-    {:content [{:type "text"
-                :text (json/generate-string
-                       {:status "error"
-                        :error "No code provided - specify either 'code' or 'code-base64' parameter"}
+                        :error "No code provided - specify 'code' parameter"}
                        {:pretty true})}]
      :isError true}
 
     ;; Process the code
     :else
     (let [;; Determine actual code to execute
-          actual-code (cond
-                        code code
-                        code-base64 (try
-                                      (decode-base64 code-base64)
-                                      (catch Exception e
-                                        (throw (ex-info "Failed to decode base64 code"
-                                                        {:error (.getMessage e)
-                                                         :code-base64 code-base64}))))
-                        :else nil)]
+          actual-code (if input-base64
+                        (try
+                          (decode-base64 code)
+                          (catch Exception e
+                            (throw (ex-info "Failed to decode base64 code"
+                                            {:error (.getMessage e)
+                                             :code code}))))
+                        code)]
       (if (empty? actual-code)
         {:content [{:type "text"
                     :text (json/generate-string
@@ -81,7 +71,7 @@
                                       (instance? clojure.lang.Atom result)
                                       (str "#atom " (pr-str @result))
                                       :else (str "#" (.getName (class result)) " " result))
-                ;; Create base response
+                ;; Build base response
                 base-response {:status "success"
                                :code actual-code
                                :result serializable-result
@@ -92,7 +82,9 @@
                 final-response (if output-base64
                                  (cond-> base-response
                                    serializable-result (assoc :result-base64 (encode-base64 (str serializable-result)))
-                                   (not-empty stdout-capture) (assoc :stdout-base64 (encode-base64 stdout-capture)))
+                                   (not-empty stdout-capture) (assoc :stdout-base64 (encode-base64 stdout-capture))
+                                   ;; stderr would go here if we had it
+                                   )
                                  base-response)]
             {:content [{:type "text"
                         :text (json/generate-string final-response {:pretty true})}]})
@@ -103,23 +95,23 @@
                                   :stdout ""
                                   :stderr ""
                                   :stacktrace (mapv str (.getStackTrace e))}
-                  final-error-response (if output-base64
-                                         (assoc error-response :error-base64 (encode-base64 (.getMessage e)))
-                                         error-response)]
+                  ;; Add base64 encoding for error if requested
+                  final-error (if output-base64
+                                (assoc error-response :error-base64 (encode-base64 (.getMessage e)))
+                                error-response)]
               {:content [{:type "text"
-                          :text (json/generate-string final-error-response {:pretty true})}]
+                          :text (json/generate-string final-error {:pretty true})}]
                :isError true})))))))
 
 (def tool-name "local-eval")
 
 (def metadata
-  {:description "Execute Clojure code within the MCP server runtime with base64 encoding support. NEW: Base64 support eliminates quote escaping for AI agents and complex code."
+  {:description "Execute Clojure code within the MCP server runtime with base64 support. NEW: input-base64 flag eliminates quote escaping for AI agents and complex code."
    :inputSchema {:type "object"
                  :properties {:code {:type "string"
-                                     :description "Clojure code to evaluate (mutually exclusive with code-base64)"}
-                              :code-base64 {:type "string"
-                                            :description "Clojure code as base64 string - eliminates quote escaping (mutually exclusive with code)"}
+                                     :description "Clojure code to evaluate"}
+                              :input-base64 {:type "boolean"
+                                             :description "Interpret 'code' parameter as base64-encoded string (default: false)"}
                               :output-base64 {:type "boolean"
-                                              :description "Return result fields (result, stdout, stderr, error) as base64 encoded strings (default: false)"}}
-                 :anyOf [{:required ["code"]}
-                         {:required ["code-base64"]}]}})
+                                              :description "Return result fields as base64 encoded strings (default: false)"}}
+                 :required ["code"]}})

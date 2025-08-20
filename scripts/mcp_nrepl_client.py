@@ -214,18 +214,15 @@ Examples:
   # Quiet mode: just the data, no headers
   %(prog)s --tool local-eval --args '{"code": "42"}' --quiet
   
-  # 🚀 NEW: Zero-escaping code submission (works with any tool!)
-  %(prog)s --tool nrepl-eval --encode-code "(println \"Hello 'quoted' world!\")"
-  %(prog)s --tool local-eval --encode-code "{:data [\"item1\" \"item2\"]}"
-  
-  # 🔧 Pre-encoded approach
-  %(prog)s --tool nrepl-eval --code-base64 "KHByaW50bG4gIkhlbGxvIHdvcmxkISIp"
+  # 🚀 NEW: Base64 input flag (works with any code input method!)
+  %(prog)s --tool nrepl-eval --code "KHByaW50bG4gIkhlbGxvIHdvcmxkISIp" --input-base64
+  echo "KHByaW50bG4gIkhlbGxvIHdvcmxkISIp" | %(prog)s --tool nrepl-eval --code-stdin --input-base64
   
   # 🔄 Round-trip base64 (input and output)
-  %(prog)s --tool local-eval --encode-code "(+ 1 2)" --output-base64 --decode-output
+  %(prog)s --tool local-eval --code "KCsgMSAyKQ==" --input-base64 --output-base64 --decode-output
   
-  # 🤖 AI-friendly: Complex quotes work perfectly
-  %(prog)s --tool nrepl-eval --encode-code "(defn greet [name] (str \"Hello '\" name \"'!\"))"
+  # 🤖 AI-friendly: Encode offline, submit cleanly
+  # echo '(println "Hello 'quoted' world!")' | base64 | xargs -I {} ./script --tool nrepl-eval --code {} --input-base64"
         """,
     )
 
@@ -254,10 +251,10 @@ Examples:
         help="Load code from file path (no escaping, handles any file size)",
     )
     parser.add_argument(
-        "--encode-code",
-        help="Auto-encode this Clojure code to base64 (easiest for humans)",
+        "--input-base64",
+        action="store_true",
+        help="Interpret input code as base64-encoded (works with --code, --code-stdin, --load-code-file)",
     )
-    parser.add_argument("--code-base64", help="Pre-encoded base64 Clojure code string")
     parser.add_argument(
         "--output-base64",
         action="store_true",
@@ -290,30 +287,28 @@ Examples:
         parser.error("Must specify --list-tools, --tool, or --eval")
 
     # Code parameters require --tool
-    if (
-        args.code
-        or args.code_stdin
-        or args.load_code_file
-        or args.encode_code
-        or args.code_base64
-    ) and not args.tool:
+    if (args.code or args.code_stdin or args.load_code_file) and not args.tool:
         parser.error(
-            "--code/--code-stdin/--load-code-file/--encode-code/--code-base64 requires --tool to be specified"
+            "--code/--code-stdin/--load-code-file requires --tool to be specified"
         )
 
-    # Code parameters are mutually exclusive
+    # Code parameters are mutually exclusive (now only 3)
     code_params = sum(
         [
             bool(args.code),
             bool(args.code_stdin),
             bool(args.load_code_file),
-            bool(args.encode_code),
-            bool(args.code_base64),
         ]
     )
     if code_params > 1:
         parser.error(
-            "Code parameters are mutually exclusive: --code, --code-stdin, --load-code-file, --encode-code, --code-base64"
+            "Code parameters are mutually exclusive: --code, --code-stdin, --load-code-file"
+        )
+
+    # --input-base64 requires a code input method
+    if args.input_base64 and code_params == 0:
+        parser.error(
+            "--input-base64 requires one of: --code, --code-stdin, --load-code-file"
         )
 
     try:
@@ -361,20 +356,17 @@ Examples:
             if args.connection:
                 tool_args["connection"] = args.connection
 
-            # Process base64 parameters first
-            if args.encode_code:
-                tool_args["code-base64"] = encode_code_to_base64(args.encode_code)
-            elif args.code_base64:
-                tool_args["code-base64"] = args.code_base64
-            elif args.code:
-                tool_args["code"] = args.code
+            # Get code content from various sources
+            code_content = None
+            if args.code:
+                code_content = args.code
             elif args.code_stdin:
                 # Read code from stdin
                 code_from_stdin = sys.stdin.read().strip()
                 if not code_from_stdin:
                     print("Error: No code provided on stdin", file=sys.stderr)
                     return 1
-                tool_args["code"] = code_from_stdin
+                code_content = code_from_stdin
             elif args.load_code_file:
                 # Read code from file
                 try:
@@ -386,7 +378,7 @@ Examples:
                             file=sys.stderr,
                         )
                         return 1
-                    tool_args["code"] = code_from_file
+                    code_content = code_from_file
                 except FileNotFoundError:
                     print(
                         f"Error: File {args.load_code_file} not found", file=sys.stderr
@@ -398,6 +390,16 @@ Examples:
                         file=sys.stderr,
                     )
                     return 1
+
+            # Apply input format flag to determine MCP tool parameter
+            if code_content:
+                if args.input_base64:
+                    # Route to input-base64 parameter (new interface)
+                    tool_args["code"] = code_content
+                    tool_args["input-base64"] = True
+                else:
+                    # Standard code parameter
+                    tool_args["code"] = code_content
 
             # Add output-base64 parameter if requested
             if args.output_base64:
