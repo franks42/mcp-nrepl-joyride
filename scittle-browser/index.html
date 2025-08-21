@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Scittle nREPL Browser Environment</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 20px;
+        }
+        .header {
+            background-color: #2e3440;
+            color: #d8dee9;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .info {
+            background-color: #5e81ac;
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .console {
+            background-color: #3b4252;
+            color: #d8dee9;
+            padding: 20px;
+            border-radius: 8px;
+            min-height: 200px;
+            font-size: 14px;
+        }
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">🌐 Scittle nREPL Browser Environment</div>
+        <p>ClojureScript evaluation in the browser via nREPL</p>
+    </div>
+
+    <div class="info">
+        <h3>📡 Connection Info</h3>
+        <ul>
+            <li><strong>nREPL Port:</strong> 1339</li>
+            <li><strong>WebSocket Port:</strong> 1340</li>
+            <li><strong>HTTP Server:</strong> <span id="current-url"></span></li>
+        </ul>
+        
+        <h3>🔧 Editor Setup</h3>
+        <p>Connect your editor's nREPL client to <code>localhost:1339</code></p>
+        <ul>
+            <li><strong>VS Code + Calva:</strong> Ctrl+Shift+P → "Calva: Connect to a Running REPL Server"</li>
+            <li><strong>Emacs + CIDER:</strong> <code>M-x cider-connect</code></li>
+            <li><strong>Vim + Conjure:</strong> <code>:ConjureConnect</code></li>
+        </ul>
+    </div>
+
+    <div class="console">
+        <h3>🖥️ Browser Console Output</h3>
+        <div id="output">
+            <p>Scittle environment initialized. Evaluate ClojureScript from your editor!</p>
+        </div>
+    </div>
+
+    <!-- Scittle Configuration -->
+    <script>
+        // Set WebSocket port for nREPL communication
+        var SCITTLE_NREPL_WEBSOCKET_PORT = 1340;
+        
+        // Display current URL
+        document.getElementById('current-url').textContent = window.location.href;
+        
+        // Add some interactive functionality
+        console.log("🌐 Scittle nREPL environment ready!");
+        console.log("📡 nREPL server: localhost:1339");
+        console.log("🔌 WebSocket: localhost:1340");
+    </script>
+
+    <!-- Load Scittle -->
+    <script src="https://cdn.jsdelivr.net/npm/scittle@0.7.26/dist/scittle.js"></script>
+    
+    <!-- Load Scittle nREPL extension -->
+    <script src="https://cdn.jsdelivr.net/npm/scittle@0.7.26/dist/scittle.nrepl.js"></script>
+
+    <!-- Load playground ClojureScript -->
+    <script type="application/x-scittle" src="playground.cljs"></script>
+</body>
+</html>
