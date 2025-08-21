@@ -56,7 +56,7 @@
   {:command "./start-scittle-env.sh"
    :description "Starts Babashka nREPL, browser servers, and HTTP server"
    :ports scittle-config
-   :next-steps ["Connect to Babashka nREPL" 
+   :next-steps ["Connect to Babashka nREPL"
                 "Load integration functions"
                 "Deploy bidirectional components"]})
 
@@ -241,7 +241,7 @@
   []
   (println "🧪 Testing bidirectional connection...")
   {:tests ["(eval-on-babashka \"(+ 1 2 3)\")"
-           "(read-server-file \"/etc/hostname\")"  
+           "(read-server-file \"/etc/hostname\")"
            "(run-shell-command \"pwd\")"
            "(server-status)"]
    :expected-results ["6" "hostname content" "current directory" "system properties"]
@@ -259,8 +259,8 @@
   {:status :loaded
    :config scittle-config
    :next-steps ["Deploy browser client" "Deploy bridge extension" "Test connection"]
-   :functions ["deploy-browser-nrepl-client!" 
-               "deploy-bridge-extension!" 
+   :functions ["deploy-browser-nrepl-client!"
+               "deploy-bridge-extension!"
                "test-bidirectional-connection!"]})
 
 (defn scittle-integration-status
@@ -279,45 +279,44 @@
    [{:name "File Operations"
      :browser-code "(read-server-file \"README.md\")"
      :description "Browser reads server file"}
-    
-    {:name "Shell Commands"  
+
+    {:name "Shell Commands"
      :browser-code "(run-shell-command \"git\" \"status\")"
      :description "Browser executes git status on server"}
-    
+
     {:name "Data Processing"
-     :browser-code "(eval-on-babashka \"(reduce + (range 1000))\")" 
+     :browser-code "(eval-on-babashka \"(reduce + (range 1000))\")"
      :description "Browser triggers server computation"}
-    
+
     {:name "Live Monitoring"
      :browser-code "(server-status)"
      :description "Browser monitors server health"}]
-   
+
    :architecture-benefits
    ["Hot-loadable deployment"
-    "Zero infrastructure changes"  
+    "Zero infrastructure changes"
     "Bidirectional communication"
     "Rich development capabilities"
     "Browser-controlled server operations"]})
 
 (comment
   ;; Usage examples:
-  
+
   ;; 1. Start environment
   (start-scittle-environment!)
-  
+
   ;; 2. Load integration
   (load-scittle-integration!)
-  
+
   ;; 3. Deploy components  
   (deploy-browser-nrepl-client!)
   (deploy-bridge-extension!)
-  
+
   ;; 4. Test functionality
   (test-bidirectional-connection!)
-  
+
   ;; 5. Check status
   (scittle-integration-status)
-  
+
   ;; 6. See demos
-  (demo-browser-server-integration)
-  )
+  (demo-browser-server-integration))

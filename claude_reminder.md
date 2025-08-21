@@ -19,11 +19,7 @@
 
 **mcp-nrepl-server project: mcp server to manage/introspect/code live applications through NREPL**
 
-Test: **mcp-client** => steamableHTTP => **persistent-bridge** => stdio => **mcp-nrepl-server** => socket => **nrepl-server**
-bridge + mcp-nrepl-server are started in background (&): scripts/start-http-bridge.sh
-nrepl-server start/stop/status: scripts/nrepl_test_server.py
-mcp-client for testing: scripts/mcp_nrepl_client.py
-do NOT pass env var to script but use cmdline parameter, like: uv run python scripts/mcp_nrepl_client.py --base-url http://localhost:3000/mcp
-Note: you have to restart the bridge to test new code... a running bridge will run the code when it was started!!!
+Do NOT start/stop the bridge + mcp-nrepl-server, because you have the nrepl-mcp-server running!!!
+Do not use the mnrepl-mcp-client because you have the nrepl-mcp tools!!!
 
 "Memory tags = ARRAY not string!"
