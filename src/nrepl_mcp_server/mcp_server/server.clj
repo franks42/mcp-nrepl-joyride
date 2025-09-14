@@ -48,18 +48,40 @@
 ;; MCP Request Handling
 ;; =============================================================================
 
+(defn validate-request
+  "Validate basic JSON-RPC request structure"
+  [request]
+  (cond
+    (not (map? request))
+    {:error {:code -32600 :message "Invalid Request - not a map"}}
+    
+    (not (contains? request :method))
+    {:error {:code -32600 :message "Invalid Request - missing method"}}
+    
+    (not (string? (:method request)))
+    {:error {:code -32600 :message "Invalid Request - method must be string"}}
+    
+    :else nil))
+
 (defn handle-request
   "Handle incoming MCP requests"
   [request]
   (try
-    (let [{:keys [method params]} request]
-      (case method
-        "initialize" (handle-initialize params)
-        "tools/list" (handle-list-tools)
-        "tools/call" (let [{:keys [name arguments]} params]
-                       (dispatch/call-tool name arguments))
-        {:error {:code -32601
-                 :message (str "Method not found: " method)}}))
+    ;; First validate the request structure
+    (if-let [validation-error (validate-request request)]
+      validation-error
+      (let [{:keys [method params]} request]
+        (case method
+          "initialize" (handle-initialize params)
+          "tools/list" (handle-list-tools)
+          "tools/call" (let [{:keys [name arguments]} params]
+                         ;; Validate tool call parameters
+                         (if (and name (string? name))
+                           (dispatch/call-tool name arguments)
+                           {:error {:code -32602
+                                    :message "Invalid params - tool name required and must be string"}}))
+          {:error {:code -32601
+                   :message (str "Method not found: " method)}})))
     (catch Exception e
       {:error {:code -32603
                :message "Internal error"
@@ -88,15 +110,17 @@
   (loop []
     (when-let [request (read-request)]
       (let [response (handle-request request)
+            ;; Ensure ID is always a string or number, never null
+            request-id (or (:id request) "unknown")
             json-response (cond
                             ;; If response has :error, format as error response
                             (:error response)
-                            (assoc response :jsonrpc "2.0" :id (:id request))
+                            (assoc response :jsonrpc "2.0" :id request-id)
 
                             ;; Otherwise wrap in :result for success response
                             :else
                             {:jsonrpc "2.0"
-                             :id (:id request)
+                             :id request-id
                              :result response})]
         (send-response json-response))
       (recur))))
