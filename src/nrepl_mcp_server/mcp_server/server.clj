@@ -54,13 +54,13 @@
   (cond
     (not (map? request))
     {:error {:code -32600 :message "Invalid Request - not a map"}}
-    
+
     (not (contains? request :method))
     {:error {:code -32600 :message "Invalid Request - missing method"}}
-    
+
     (not (string? (:method request)))
     {:error {:code -32600 :message "Invalid Request - method must be string"}}
-    
+
     :else nil))
 
 (defn handle-request

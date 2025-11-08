@@ -100,11 +100,14 @@
         {:content [{:type "text"
                     :text (json/generate-string final-response {:pretty true})}]}))
 
-    ;; Error - update operation name and pass through
-    (let [error-response (delegate/extract-result-data sync-result :error)]
+    ;; Error - extract error details and format properly
+    (let [text-content (get-in sync-result [:content 0 :text])
+          parsed-error (if (string? text-content)
+                         (json/parse-string text-content true)
+                         text-content)]
       {:content [{:type "text"
                   :text (json/generate-string
-                         (assoc error-response :operation "nrepl-eval")
+                         (assoc parsed-error :operation "nrepl-eval")
                          {:pretty true})}]
        :isError true})))
 

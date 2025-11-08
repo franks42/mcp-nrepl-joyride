@@ -15,6 +15,7 @@
    [nrepl-mcp-server.mcp-server.tools.local-load-file]
    [nrepl-mcp-server.mcp-server.tools.nrepl-connection]
    [nrepl-mcp-server.mcp-server.tools.nrepl-eval]  ;; New simplified implementation
+   [nrepl-mcp-server.mcp-server.tools.nrepl-eval-local-file]
    [nrepl-mcp-server.mcp-server.tools.nrepl-send-message-async]
    [nrepl-mcp-server.mcp-server.tools.nrepl-get-result-async]
    [nrepl-mcp-server.mcp-server.tools.nrepl-send-message]
@@ -63,6 +64,10 @@
    nrepl-mcp-server.mcp-server.tools.nrepl-load-file/tool-name
    nrepl-mcp-server.mcp-server.tools.nrepl-load-file/handle
    nrepl-mcp-server.mcp-server.tools.nrepl-load-file/metadata)
+  (registry/register-tool!
+   nrepl-mcp-server.mcp-server.tools.nrepl-eval-local-file/tool-name
+   nrepl-mcp-server.mcp-server.tools.nrepl-eval-local-file/handle
+   nrepl-mcp-server.mcp-server.tools.nrepl-eval-local-file/metadata)
   (registry/register-tool!
    nrepl-mcp-server.mcp-server.tools.must-read-mcp-nrepl-context/tool-name
    nrepl-mcp-server.mcp-server.tools.must-read-mcp-nrepl-context/handle

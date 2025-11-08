@@ -2,6 +2,29 @@
 
 This file contains important information for Claude Code when working with the MCP-nREPL Joyride project.
 
+## 🧪 **TESTING FIRST!** Read This Before Testing
+
+**→ See [docs/TESTING-GUIDE.md](docs/TESTING-GUIDE.md) for comprehensive testing instructions**
+
+This guide covers:
+- How the test environment works (nREPL server + HTTP bridge + MCP server)
+- Which tools to use for testing (`mcp_nrepl_client.py` vs `unified_mcp_tester.py`)
+- Step-by-step workflows for common testing scenarios
+- Common pitfalls and how to avoid them
+
+**Quick Start:**
+```bash
+# 1. Start services
+python3 scripts/nrepl_test_server.py start
+bash scripts/start-http-bridge.sh
+
+# 2. Test a tool
+uv run python scripts/mcp_nrepl_client.py --tool TOOL_NAME --args '{...}'
+
+# 3. Clean up
+bash scripts/stop-http-bridge.sh
+```
+
 ## 🎯 Project Status: ✅ PHASE 2B.6 ASYNC ARCHITECTURE COMPLETED (August 2025)
 
 **Phase 1: Transport Layer Foundation** - **✅ COMPLETED (January 2025)**

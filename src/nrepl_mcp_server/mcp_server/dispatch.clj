@@ -29,15 +29,15 @@
     (not (map? response))
     {:content [{:type "text" :text "❌ Tool returned invalid response - not a map"}]
      :isError true}
-    
+
     (not (contains? response :content))
     {:content [{:type "text" :text "❌ Tool response missing required 'content' field"}]
      :isError true}
-    
+
     (not (vector? (:content response)))
     {:content [{:type "text" :text "❌ Tool response 'content' must be a vector"}]
      :isError true}
-    
+
     :else response))
 
 (defn call-tool

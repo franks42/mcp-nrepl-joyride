@@ -1,0 +1,59 @@
+{
+  "nrepl-eval-local-file-suite": [
+    {
+      "name": "connect_to_nrepl",
+      "tool": "nrepl-connection",
+      "args": {
+        "op": "connect",
+        "connection": "58340"
+      },
+      "expected": {
+        "status": "success"
+      },
+      "description": "Connect to test nREPL server"
+    },
+    {
+      "name": "eval_local_file_simple",
+      "tool": "nrepl-eval-local-file",
+      "args": {
+        "file-path": "/Users/franksiebenlist/Development/mcp-nrepl-joyride/test-eval-local-file.clj"
+      },
+      "expected": {
+        "status": "success"
+      },
+      "description": "Evaluate test file via nrepl-eval-local-file"
+    },
+    {
+      "name": "eval_local_file_with_namespace",
+      "tool": "nrepl-eval-local-file",
+      "args": {
+        "file-path": "/Users/franksiebenlist/Development/mcp-nrepl-joyride/test-eval-local-file.clj",
+        "ns": "user"
+      },
+      "expected": {
+        "status": "success"
+      },
+      "description": "Evaluate with explicit namespace option"
+    },
+    {
+      "name": "error_missing_file",
+      "tool": "nrepl-eval-local-file",
+      "args": {
+        "file-path": "/tmp/does-not-exist.clj"
+      },
+      "expected": {
+        "status": "error"
+      },
+      "description": "Test error handling for missing file"
+    },
+    {
+      "name": "error_missing_parameter",
+      "tool": "nrepl-eval-local-file",
+      "args": {},
+      "expected": {
+        "status": "error"
+      },
+      "description": "Test error handling for missing required parameter"
+    }
+  ]
+}
