@@ -45,11 +45,48 @@
    'sign #(Math/signum (double %))
    'trunc #(long (Math/floor (double %)))
 
-   ;; Constants
+   ;; Mathematical Constants
    'pi Math/PI
    'e Math/E
    'tau (* 2.0 Math/PI)
    'phi (/ (+ 1.0 (Math/sqrt 5.0)) 2.0)  ; golden ratio
+
+   ;; Crypto/Blockchain Decimals
+   'eth-decimals 18
+   'btc-decimals 8
+   'hash-decimals 9
+   'usdc-decimals 6
+   'usdt-decimals 6
+
+   ;; Crypto Unit Conversions
+   'wei-per-eth 1000000000000000000N
+   'gwei-per-eth 1000000000N
+   'sat-per-btc 100000000N
+
+   ;; Time/Date Constants
+   'year-seconds 31536000
+   'day-seconds 86400
+   'hour-seconds 3600
+   'minute-seconds 60
+   'week-seconds 604800
+   'year-days 365
+   'leap-year-days 366
+
+   ;; Blockchain Block Times (seconds)
+   'eth-block-time-seconds 12
+   'btc-block-time-seconds 600
+   'blocks-per-day-eth 7200
+   'blocks-per-day-btc 144
+
+   ;; Finance/Time Periods
+   'months-per-year 12
+   'weeks-per-year 52
+   'quarters-per-year 4
+   'days-per-week 7
+
+   ;; DeFi Common Values
+   'typical-slippage 0.005  ; 0.5%
+   'high-slippage 0.01      ; 1%
 
    ;; Comparisons
    '< <, '> >, '<= <=, '>= >=, '= =, 'not= not=
@@ -98,7 +135,29 @@
    'cross (fn [[a1 a2 a3] [b1 b2 b3]]
             [(- (* a2 b3) (* a3 b2))
              (- (* a3 b1) (* a1 b3))
-             (- (* a1 b2) (* a2 b1))])})
+             (- (* a1 b2) (* a2 b1))])
+
+   ;; Number Formatting Utilities
+   'with-commas (fn [num]
+                  (let [s (str num)
+                        dot-idx (or (first (keep-indexed #(when (= %2 \.) %1) s)) (count s))
+                        whole (subs s 0 dot-idx)
+                        decimal (when (< dot-idx (count s)) (subs s dot-idx))
+                        rev-whole (vec (reverse whole))
+                        grouped (partition-all 3 rev-whole)
+                        rev-grouped (map reverse grouped)
+                        formatted (apply str (reverse (interpose "," (map #(apply str %) rev-grouped))))]
+                    (str formatted (or decimal ""))))
+
+   'round-to (fn [num decimals]
+               (let [factor (Math/pow 10 decimals)]
+                 (/ (Math/round (* (double num) factor)) factor)))
+
+   'scientific (fn [num]
+                 (format "%.2e" (double num)))
+
+   'to-decimal (fn [num]
+                 (double num))})
 
 ;; SCI context for safe evaluation
 ;; Note: No :allow list - we want to allow our math-fns bindings
