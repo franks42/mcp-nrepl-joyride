@@ -525,15 +525,40 @@
 ;; Phase 3B: Type-Safe Token Conversion System
 ;;=============================================================================
 
+;; Unit Normalization
+
+(defn normalize-unit
+  "Convert string or keyword to keyword for consistent unit handling.
+   Accepts both for flexibility:
+   - Keywords: easier typing, no escaping (e.g., :usd, :hash, :btc)
+   - Strings: compatibility with external data (e.g., \"usd\", \"hash\", \"btc\")
+
+   Examples:
+     (normalize-unit :usd)   => :usd
+     (normalize-unit \"usd\") => :usd"
+  [unit]
+  (cond
+    (keyword? unit) unit
+    (string? unit) (keyword unit)
+    :else (throw (ex-info "Unit must be string or keyword"
+                          {:unit unit
+                           :type (type unit)}))))
+
 ;; Token Amount Support Functions
 
 (defn token-amount?
-  "Check if value is a valid token amount tuple: [amount 'unit']"
+  "Check if value is a valid token amount tuple: [amount unit]
+   Unit can be keyword or string.
+
+   Examples:
+     (token-amount? [1000 :hash])    => true
+     (token-amount? [0.032 \"usd\"])  => true
+     (token-amount? [1.5 :btc])      => true"
   [x]
   (and (vector? x)
        (= 2 (count x))
        (number? (first x))
-       (string? (second x))))
+       (or (keyword? (second x)) (string? (second x)))))
 
 (defn get-amount
   "Extract amount from token tuple"
@@ -541,14 +566,19 @@
   amt)
 
 (defn get-unit
-  "Extract unit from token tuple"
+  "Extract unit from token tuple as normalized keyword"
   [[_ unit]]
-  unit)
+  (normalize-unit unit))
 
 (defn token-amount
-  "Construct a token amount tuple"
+  "Construct a token amount tuple with normalized unit.
+   Unit can be provided as keyword or string.
+
+   Examples:
+     (token-amount 1000 :hash)    => [1000 :hash]
+     (token-amount 0.032 \"usd\")  => [0.032 :usd]"
   [amt unit]
-  [amt unit])
+  [amt (normalize-unit unit)])
 
 ;; Rate Validation
 
@@ -622,30 +652,34 @@
      (when-not (:valid validation)
        (throw (ex-info "Invalid rate" validation))))
 
-   ;; Extract components
+   ;; Extract and normalize all components
    (let [[amount from-unit] amount-tuple
-         [_ [num-amt num-unit] [denom-amt denom-unit]] rate]
+         from-unit-norm (normalize-unit from-unit)
+         [_ [num-amt num-unit] [denom-amt denom-unit]] rate
+         num-unit-norm (normalize-unit num-unit)
+         denom-unit-norm (normalize-unit denom-unit)
+         to-unit-norm (normalize-unit to-unit)]
 
-     ;; Validate target matches rate
-     (when-not (or (= to-unit num-unit) (= to-unit denom-unit))
+     ;; Validate target matches rate (using normalized units)
+     (when-not (or (= to-unit-norm num-unit-norm) (= to-unit-norm denom-unit-norm))
        (throw (ex-info "Target unit doesn't match rate units"
-                       {:target to-unit
-                        :rate-units [num-unit denom-unit]})))
+                       {:target to-unit-norm
+                        :rate-units [num-unit-norm denom-unit-norm]})))
 
-     ;; Perform conversion
+     ;; Perform conversion (using normalized units for comparison and output)
      (cond
        ;; FROM denominator TO numerator: multiply by (num/denom)
-       (and (= from-unit denom-unit) (= to-unit num-unit))
-       [(*' amount (/ num-amt denom-amt)) num-unit]
+       (and (= from-unit-norm denom-unit-norm) (= to-unit-norm num-unit-norm))
+       [(*' amount (/ num-amt denom-amt)) num-unit-norm]
 
        ;; FROM numerator TO denominator: divide by (num/denom)
-       (and (= from-unit num-unit) (= to-unit denom-unit))
-       [(*' amount (/ denom-amt num-amt)) denom-unit]
+       (and (= from-unit-norm num-unit-norm) (= to-unit-norm denom-unit-norm))
+       [(*' amount (/ denom-amt num-amt)) denom-unit-norm]
 
        :else
        (throw (ex-info "Units don't match rate"
-                       {:from from-unit
-                        :to to-unit
+                       {:from from-unit-norm
+                        :to to-unit-norm
                         :rate rate}))))))
 
 ;; Rate Utility Functions
@@ -693,6 +727,7 @@
    'invert-rate invert-rate
    'compose-rates compose-rates
    'normalize-rate normalize-rate
+   'normalize-unit normalize-unit
    'token-amount token-amount
    'token-amount? token-amount?
    'get-amount get-amount
