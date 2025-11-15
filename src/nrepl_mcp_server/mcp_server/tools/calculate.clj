@@ -32,9 +32,18 @@
 (def tool-name "calculate")
 
 (def metadata
-  {:description "Evaluate mathematical expressions using Clojure prefix notation.
+  {:description "Calculate mathematical expressions, statistics, geometry, finance, and physics formulas.
 
-Pre-loaded functions (no require needed):
+**USE THIS TOOL WHEN:**
+- User asks for calculations, math problems, or numerical analysis
+- Computing averages, percentages, statistics, or data analysis
+- Solving geometry problems (areas, volumes, distances, angles)
+- Financial calculations (interest, percentages, payments)
+- Physics/engineering formulas (forces, velocities, trajectories)
+- Vector operations (dot products, cross products, magnitudes)
+- Converting units or temperatures
+
+**Pre-loaded functions (50+ functions, no imports needed):**
 
 **Arithmetic:** + - * / mod quot rem inc dec
 **Powers:** pow sqrt cbrt exp
