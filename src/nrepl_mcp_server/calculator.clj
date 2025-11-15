@@ -359,7 +359,167 @@
                         days-remaining (long (/ (- lock-end-timestamp (.getEpochSecond now)) 86400))]
                     {:unlock-date (str (.toLocalDate dt))
                      :unlocked unlocked
-                     :days-remaining (if unlocked 0 days-remaining)}))})
+                     :days-remaining (if unlocked 0 days-remaining)}))
+
+   ;; Blockchain/Crypto Unit Conversions (High Precision)
+   'to-smallest-unit (fn [amount decimals]
+                       (let [factor (Math/pow 10 decimals)
+                             smallest-unit (long (* amount factor))]
+                         {:amount amount
+                          :smallest-unit smallest-unit
+                          :decimals decimals
+                          :formatted (str smallest-unit)}))
+
+   'from-smallest-unit (fn [units decimals]
+                         (let [factor (Math/pow 10 decimals)
+                               amount (/ units factor)]
+                           {:smallest-unit units
+                            :amount amount
+                            :decimals decimals
+                            :formatted (str amount)}))
+
+   'wei->ether (fn [wei]
+                 (let [ether (/ wei 1000000000000000000.0)
+                       gwei (/ wei 1000000000.0)]
+                   {:wei wei
+                    :ether ether
+                    :gwei gwei
+                    :formatted (str ether " ETH")}))
+
+   'ether->wei (fn [eth]
+                 (let [wei (long (* eth 1000000000000000000))
+                       gwei (long (* eth 1000000000))]
+                   {:ether eth
+                    :wei wei
+                    :gwei gwei
+                    :formatted (str wei " wei")}))
+
+   'sats->btc (fn [sats]
+                (let [btc (/ sats 100000000.0)]
+                  {:satoshis sats
+                   :btc btc
+                   :formatted (str btc " BTC")}))
+
+   'btc->sats (fn [btc]
+                (let [sats (long (* btc 100000000))]
+                  {:btc btc
+                   :satoshis sats
+                   :formatted (str sats " sats")}))
+
+   ;; Market & Portfolio Calculations
+   'market-cap (fn [price circulation]
+                 (let [mcap (* price circulation)
+                       billions (/ mcap 1000000000.0)]
+                   {:price price
+                    :circulation circulation
+                    :market-cap mcap
+                    :billions billions
+                    :formatted (str "$" mcap)}))
+
+   ;; DeFi Calculations
+   'impermanent-loss (fn [initial-price current-price]
+                       (let [price-ratio (/ current-price initial-price)
+                             il-multiplier (/ (* 2 (Math/sqrt price-ratio)) (+ 1 price-ratio))
+                             il-percent (* (- 1 il-multiplier) 100.0)
+                             hodl-value (* 0.5 (+ initial-price current-price))
+                             pool-value (* initial-price il-multiplier)
+                             vs-hodl-percent (* (/ (- pool-value hodl-value) hodl-value) 100.0)]
+                         {:initial-price initial-price
+                          :current-price current-price
+                          :price-change-percent (* (- price-ratio 1) 100.0)
+                          :impermanent-loss-percent il-percent
+                          :vs-hodl-percent vs-hodl-percent
+                          :formatted (str il-percent "% IL")}))
+
+   'liquidity-pool-share (fn [token-a-amount token-b-amount pool-token-a pool-token-b]
+                           (let [pool-share-percent (* (/ token-a-amount pool-token-a) 100.0)]
+                             {:your-token-a token-a-amount
+                              :your-token-b token-b-amount
+                              :pool-token-a pool-token-a
+                              :pool-token-b pool-token-b
+                              :pool-share-percent pool-share-percent
+                              :formatted (str pool-share-percent "% of pool")}))
+
+   'apy-to-apr (fn [apy compounds-per-year]
+                 (let [apr (* (- (Math/pow (+ 1 (/ apy 100.0)) (/ 1.0 compounds-per-year)) 1) compounds-per-year 100.0)
+                       daily-rate (/ apr 365.0)]
+                   {:apy apy
+                    :apr apr
+                    :compounds compounds-per-year
+                    :daily-rate daily-rate}))
+
+   'apr-to-apy (fn [apr compounds-per-year]
+                 (let [apy (* (- (Math/pow (+ 1 (/ apr compounds-per-year 100.0)) compounds-per-year) 1) 100.0)
+                       daily-rate (/ apr 365.0)]
+                   {:apr apr
+                    :apy apy
+                    :compounds compounds-per-year
+                    :daily-rate daily-rate}))
+
+   'staking-rewards (fn [amount apy duration-days]
+                      (let [daily-rate (/ apy 365.0 100.0)
+                            rewards (* amount daily-rate duration-days)
+                            total (+ amount rewards)
+                            daily-rewards (/ rewards duration-days)]
+                        {:principal amount
+                         :apy apy
+                         :days duration-days
+                         :rewards rewards
+                         :total total
+                         :daily-rewards daily-rewards
+                         :formatted (str "$" rewards " rewards")}))
+
+   'slippage-impact (fn [amount-in reserve-in reserve-out]
+                      (let [amount-in-with-fee (* amount-in 0.997)  ; 0.3% fee
+                            amount-out (/ (* amount-in-with-fee reserve-out)
+                                          (+ reserve-in amount-in-with-fee))
+                            price-before (/ reserve-out reserve-in)
+                            price-after (/ (- reserve-out amount-out) (+ reserve-in amount-in))
+                            price-impact-percent (* (/ (- price-after price-before) price-before) 100.0)]
+                        {:amount-in amount-in
+                         :reserve-in reserve-in
+                         :reserve-out reserve-out
+                         :amount-out amount-out
+                         :price-impact-percent (Math/abs price-impact-percent)
+                         :slippage (Math/abs price-impact-percent)
+                         :effective-price (/ amount-in amount-out)
+                         :formatted (str (Math/abs price-impact-percent) "% slippage")}))
+
+   ;; Leverage & Liquidation
+   'liquidation-price (fn [collateral-value borrowed-value liquidation-threshold]
+                        (let [liq-price (* borrowed-value (/ 1.0 liquidation-threshold))
+                              health-factor (/ (* collateral-value liquidation-threshold) borrowed-value)
+                              safe (>= health-factor 1.0)]
+                          {:collateral collateral-value
+                           :borrowed borrowed-value
+                           :threshold liquidation-threshold
+                           :liquidation-price liq-price
+                           :health-factor health-factor
+                           :safe safe
+                           :formatted (str "$" liq-price " liquidation")}))
+
+   'leverage-ratio (fn [collateral borrowed]
+                     (let [equity (- collateral borrowed)
+                           leverage (/ collateral equity)
+                           ltv (/ borrowed collateral)]
+                       {:collateral collateral
+                        :borrowed borrowed
+                        :leverage leverage
+                        :equity equity
+                        :ltv ltv
+                        :formatted (str leverage "x leverage")}))
+
+   ;; Gas & Fee Calculations
+   'gas-cost (fn [gas-used gwei-price eth-price]
+               (let [gas-cost-gwei (* gas-used gwei-price)
+                     gas-cost-eth (/ gas-cost-gwei 1000000000.0)
+                     gas-cost-usd (* gas-cost-eth eth-price)]
+                 {:gas-used gas-used
+                  :gwei-price gwei-price
+                  :gas-cost-eth gas-cost-eth
+                  :gas-cost-usd gas-cost-usd
+                  :eth-price eth-price
+                  :formatted (str "$" gas-cost-usd)}))})
 
 ;; SCI context for safe evaluation
 ;; Note: No :allow list - we want to allow our math-fns bindings
