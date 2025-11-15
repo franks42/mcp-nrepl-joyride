@@ -1390,3 +1390,500 @@ The calculator tool implementation is **complete and successful**. All phases fi
 - Error logging providing valuable data
 
 **Status**: ✅ **PRODUCTION READY - DEPLOYED - VALIDATED**
+
+---
+
+## Phase 3B: Type-Safe Token Conversion System (v3.1.0 - PLANNED)
+
+### Overview
+
+**Goal**: Implement tuple-based token amounts with division notation for exchange rates to eliminate catastrophic unit confusion errors.
+
+**Motivation**: Real-world feedback from Claude Desktop highlighted the need for type-safe token conversions.
+
+**Estimated Time**: 8-12 hours
+**Status**: 📋 **PLANNED** - Design complete, ready for implementation
+**Related Documents**: `docs/calculator-mcp-tool-design.md` Phase 3B section
+
+### Task 3B.1: Core Token Amount Support
+
+**File**: `src/nrepl_mcp_server/calculator.clj`
+
+**Subtasks**:
+- [ ] Add tuple validation: `(token-amount? x)` → true if `[number string]`
+- [ ] Add unit extraction: `(get-unit [amt unit])` → `unit`
+- [ ] Add amount extraction: `(get-amount [amt unit])` → `amt`
+- [ ] Add tuple constructor: `(token-amount amt unit)` → `[amt unit]`
+
+**Implementation**:
+```clojure
+(defn token-amount?
+  "Check if value is a valid token amount tuple"
+  [x]
+  (and (vector? x)
+       (= 2 (count x))
+       (number? (first x))
+       (string? (second x))))
+
+(defn get-amount [[amt _]] amt)
+(defn get-unit [[_ unit]] unit)
+(defn token-amount [amt unit] [amt unit])
+```
+
+**Acceptance Criteria**:
+- [ ] Validates token amount tuples correctly
+- [ ] Handles edge cases (nil, empty vectors, wrong types)
+- [ ] Unit tests passing
+
+### Task 3B.2: Rate Validation
+
+**File**: `src/nrepl_mcp_server/calculator.clj`
+
+**Subtasks**:
+- [ ] Implement `valid-rate?` function
+- [ ] Check for `/` operator
+- [ ] Validate non-zero amounts
+- [ ] Validate positive amounts
+- [ ] **Reject same-unit rates** (critical requirement)
+- [ ] Return structured error maps
+
+**Implementation**:
+```clojure
+(defn valid-rate?
+  "Validate exchange rate structure and values.
+   Returns {:valid true} or {:valid false :error msg}"
+  [[op [num-amt num-unit] [denom-amt denom-unit]]]
+  (cond
+    (not= op '/)
+    {:valid false :error "Must use / operator for rates"}
+
+    (or (zero? num-amt) (zero? denom-amt))
+    {:valid false :error "Rate amounts cannot be zero"}
+
+    (or (neg? num-amt) (neg? denom-amt))
+    {:valid false :error "Rate amounts must be positive"}
+
+    (= num-unit denom-unit)
+    {:valid false :error "Same-unit rates are invalid - use plain numbers for multipliers"}
+
+    :else
+    {:valid true}))
+```
+
+**Acceptance Criteria**:
+- [ ] Rejects invalid operators
+- [ ] Rejects zero/negative amounts
+- [ ] **Rejects same-unit rates** (e.g., `[/ [2 "hash"] [1 "hash"]]`)
+- [ ] Accepts valid rates with different units
+- [ ] Unit tests for all validation cases
+
+### Task 3B.3: Token Conversion Function
+
+**File**: `src/nrepl_mcp_server/calculator.clj`
+
+**Subtasks**:
+- [ ] Implement 3-arity signature (full validation)
+- [ ] Implement 2-arity signature (inferred target)
+- [ ] Implement 1-arity signature (registry lookup) - defer to Phase 3B.6
+- [ ] Add conversion logic (from denominator vs from numerator)
+- [ ] Add comprehensive error messages
+
+**Implementation**:
+```clojure
+(defn token-convert
+  "Convert token amounts using exchange rates.
+
+  Three signatures:
+    (token-convert [amt from] to rate)     ; Full validation
+    (token-convert [amt from] rate)        ; Infer target from rate
+    (token-convert [amt from] to)          ; Use registry (Phase 3B.6)"
+
+  ;; Full validation signature
+  ([[amount from-unit] to-unit [/ [num-amt num-unit] [denom-amt denom-unit] :as rate]]
+   ;; 1. Validate rate structure
+   (let [validation (valid-rate? rate)]
+     (when-not (:valid validation)
+       (throw (ex-info "Invalid rate" validation))))
+
+   ;; 2. Validate target matches rate
+   (when-not (or (= to-unit num-unit) (= to-unit denom-unit))
+     (throw (ex-info "Target doesn't match rate units"
+                     {:target to-unit
+                      :rate-units [num-unit denom-unit]})))
+
+   ;; 3. Perform conversion
+   (cond
+     ;; FROM denominator TO numerator: multiply by (num/denom)
+     (and (= from-unit denom-unit) (= to-unit num-unit))
+     [(*' amount (/ num-amt denom-amt)) num-unit]
+
+     ;; FROM numerator TO denominator: divide by (num/denom)
+     (and (= from-unit num-unit) (= to-unit denom-unit))
+     [(*' amount (/ denom-amt num-amt)) denom-unit]
+
+     :else
+     (throw (ex-info "Units don't match rate"
+                     {:from from-unit :to to-unit
+                      :rate rate}))))
+
+  ;; Inferred target signature
+  ([[amount from-unit] [/ [num-amt num-unit] [denom-amt denom-unit] :as rate]]
+   ;; Determine target from rate
+   (let [to-unit (if (= from-unit denom-unit) num-unit denom-unit)]
+     (token-convert [amount from-unit] to-unit rate))))
+```
+
+**Acceptance Criteria**:
+- [ ] 3-arity validation works correctly
+- [ ] 2-arity inference works correctly
+- [ ] FROM denominator → multiply by rate
+- [ ] FROM numerator → divide by rate
+- [ ] Error messages are clear and actionable
+- [ ] Uses `*'` for auto-promotion to BigInt if needed
+- [ ] Unit tests for all conversion paths
+
+### Task 3B.4: Rate Utility Functions
+
+**File**: `src/nrepl_mcp_server/calculator.clj`
+
+**Subtasks**:
+- [ ] Implement `invert-rate`
+- [ ] Implement `compose-rates`
+- [ ] Implement `normalize-rate`
+
+**Implementation**:
+```clojure
+(defn invert-rate
+  "Invert an exchange rate (swap numerator and denominator)"
+  [[/ [num-amt num-unit] [denom-amt denom-unit]]]
+  ['/ [denom-amt denom-unit] [num-amt num-unit]])
+
+(defn compose-rates
+  "Compose two rates for multi-hop conversion.
+   Example: hash→usd + usd→btc = hash→btc"
+  [[/ [num1 unit1] [denom1 unit1-denom]]
+   [/ [num2 unit2] [denom2 unit2-denom]]]
+  (when-not (= unit1 unit2-denom)
+    (throw (ex-info "Cannot compose rates - units don't chain"
+                    {:rate1-numerator unit1
+                     :rate2-denominator unit2-denom})))
+  ['/ [(*' num1 num2) unit2] [(*' denom1 denom2) unit1-denom]])
+
+(defn normalize-rate
+  "Normalize rate to have denominator = 1"
+  [[/ [num-amt num-unit] [denom-amt denom-unit]]]
+  (if (= 1 denom-amt)
+    ['/ [num-amt num-unit] [denom-amt denom-unit]]
+    ['/ [(/ num-amt denom-amt) num-unit] [1 denom-unit]]))
+```
+
+**Acceptance Criteria**:
+- [ ] `invert-rate` swaps correctly
+- [ ] `compose-rates` chains correctly
+- [ ] `compose-rates` validates unit compatibility
+- [ ] `normalize-rate` prefers denominator = 1
+- [ ] Unit tests for all utilities
+
+### Task 3B.5: Auto-Promotion in Arithmetic
+
+**File**: `src/nrepl_mcp_server/calculator.clj`
+
+**Subtasks**:
+- [ ] Wrap `+` to handle token amounts
+- [ ] Wrap `-` to handle token amounts
+- [ ] Wrap `*` to handle token amounts (scalar multiplication only)
+- [ ] Wrap `/` to handle token amounts (scalar division only)
+- [ ] Implement compatibility checking
+- [ ] Implement auto-conversion for compatible units (defer to Phase 3B.6)
+
+**Implementation Strategy**:
+```clojure
+;; Wrap arithmetic operators
+(def original-+ +)
+
+(defn +
+  "Enhanced + that handles token amounts"
+  [& args]
+  (if (some token-amount? args)
+    ;; At least one token amount
+    (let [units (distinct (keep #(when (token-amount? %) (get-unit %)) args))]
+      (cond
+        ;; All same unit or plain numbers - safe to add
+        (<= (count units) 1)
+        (let [unit (first units)
+              amounts (map #(if (token-amount? %) (get-amount %) %) args)
+              sum (apply original-+ amounts)]
+          (if unit [sum unit] sum))
+
+        ;; Multiple incompatible units
+        :else
+        (throw (ex-info "Cannot add incompatible units"
+                        {:units units}))))
+    ;; All plain numbers - use original +
+    (apply original-+ args)))
+```
+
+**Acceptance Criteria**:
+- [ ] Plain number arithmetic unchanged (backward compatible)
+- [ ] Token + number auto-promotes number
+- [ ] Token + same-unit-token works
+- [ ] Token + incompatible-token throws error
+- [ ] Error messages guide user to `token-convert`
+- [ ] Unit tests for all promotion scenarios
+
+### Task 3B.6: Token Registry (Optional - Phase 3B Extension)
+
+**File**: `src/nrepl_mcp_server/token_registry.clj` (new file)
+
+**Subtasks**:
+- [ ] Define registry atom structure
+- [ ] Implement `register-token!`
+- [ ] Implement `register-rate!`
+- [ ] Implement `get-rate`
+- [ ] Implement `compatible-units?`
+- [ ] Pre-populate with common tokens (hash, btc, eth, usd, etc.)
+
+**Implementation**:
+```clojure
+(ns nrepl-mcp-server.token-registry
+  "Centralized token metadata and exchange rate registry")
+
+(def token-registry
+  (atom
+    {:tokens {"hash"  {:name "Provenance Hash" :decimals 9}
+              "nhash" {:name "Nano Hash" :decimals 0}
+              "btc"   {:name "Bitcoin" :decimals 8}
+              "eth"   {:name "Ethereum" :decimals 18}
+              "usd"   {:name "US Dollar" :decimals 2}}
+
+     :rates {"hash->nhash" ['/ [1000000000 "nhash"] [1 "hash"]]}
+
+     :compatibility {"hash" #{:hash :nhash}}}))
+
+(defn get-rate [from to]
+  (or (get-in @token-registry [:rates (str from "->" to)])
+      (when-let [inv (get-in @token-registry [:rates (str to "->" from)])]
+        (invert-rate inv))))
+
+(defn register-token! [unit metadata]
+  (swap! token-registry assoc-in [:tokens unit] metadata))
+
+(defn register-rate! [from to rate]
+  (swap! token-registry assoc-in [:rates (str from "->" to)] rate))
+```
+
+**Acceptance Criteria**:
+- [ ] Registry structure is extensible
+- [ ] Can add new tokens dynamically
+- [ ] Can add new rates dynamically
+- [ ] `get-rate` handles bidirectional lookup
+- [ ] Pre-populated with 5+ common tokens
+- [ ] Unit tests for registry operations
+
+**Note**: This task can be deferred if time-constrained. Focus on core conversion logic first.
+
+### Task 3B.7: Comprehensive Testing
+
+**File**: `test/nrepl_mcp_server/token_conversion_test.clj` (new file)
+
+**Test Categories**:
+
+1. **Token Amount Validation**:
+   - [ ] Valid tuples pass
+   - [ ] Invalid structures rejected
+   - [ ] Edge cases handled
+
+2. **Rate Validation**:
+   - [ ] Valid rates pass
+   - [ ] Invalid operators rejected
+   - [ ] Zero/negative rejected
+   - [ ] **Same-unit rates rejected**
+   - [ ] Different-unit rates accepted
+
+3. **Token Conversion**:
+   - [ ] FROM denominator conversion correct
+   - [ ] FROM numerator conversion correct
+   - [ ] Target inference works
+   - [ ] Validation errors clear
+   - [ ] Large number handling (BigInt)
+
+4. **Rate Utilities**:
+   - [ ] Inversion correct
+   - [ ] Composition correct
+   - [ ] Normalization correct
+
+5. **Auto-Promotion**:
+   - [ ] Number + token works
+   - [ ] Token + token (same unit) works
+   - [ ] Token + token (incompatible) errors
+   - [ ] Backward compatibility maintained
+
+**Test Template**:
+```clojure
+(ns nrepl-mcp-server.token-conversion-test
+  (:require [clojure.test :refer :all]
+            [nrepl-mcp-server.calculator :as calc]))
+
+(deftest rate-validation-same-unit-rejection
+  (testing "Same-unit rates are rejected"
+    (let [result (calc/valid-rate? ['/ [2 "hash"] [1 "hash"]])]
+      (is (false? (:valid result)))
+      (is (= "Same-unit rates are invalid - use plain numbers for multipliers"
+             (:error result))))))
+
+(deftest token-conversion-from-denominator
+  (testing "Convert FROM denominator TO numerator"
+    (is (= [32.0 "usd"]
+           (calc/token-convert [1000 "hash"] "usd" ['/ [0.032 "usd"] [1 "hash"]])))))
+
+(deftest token-conversion-from-numerator
+  (testing "Convert FROM numerator TO denominator"
+    (is (= [312.5 "hash"]
+           (calc/token-convert [10 "usd"] "hash" ['/ [0.032 "usd"] [1 "hash"]])))))
+
+(deftest auto-promotion-incompatible-units
+  (testing "Incompatible units throw error"
+    (is (thrown-with-msg? clojure.lang.ExceptionInfo
+                          #"Cannot add incompatible units"
+                          (calc/+ [100 "hash"] [50 "btc"])))))
+```
+
+**Acceptance Criteria**:
+- [ ] All test categories covered
+- [ ] >90% code coverage for new code
+- [ ] All tests passing
+- [ ] Edge cases tested
+
+### Task 3B.8: Documentation Updates
+
+**Files to Update**:
+- [ ] `src/nrepl_mcp_server/mcp_server/tools/calculate.clj` - Add token-convert to function list
+- [ ] `docs/calculator-ai-test-scenarios.md` - Add token conversion scenarios
+- [ ] `README.md` - Mention type-safe token conversion
+
+**New Scenarios to Add** (calculator-ai-test-scenarios.md):
+```markdown
+### Scenario 67: Token Conversion - Hash to USD
+**Description**: Convert 1000 hash tokens to USD at current rate
+**Expected AI Behavior**:
+1. Use calculate tool
+2. Call: (token-convert [1000 "hash"] "usd" [/ [0.032 "usd"] [1 "hash"]])
+3. Verify result: [32.0 "usd"]
+
+**Expected Result**: [32.0 "usd"]
+**Pass Criteria**: Result is tuple with amount 32.0 and unit "usd"
+
+### Scenario 68: Token Conversion - USD to Hash (Inverse)
+**Description**: Convert 10 USD to hash tokens
+**Expected AI Behavior**:
+1. Use calculate tool
+2. Call: (token-convert [10 "usd"] "hash" [/ [0.032 "usd"] [1 "hash"]])
+3. Verify result: [312.5 "hash"]
+
+**Expected Result**: [312.5 "hash"]
+**Pass Criteria**: Result is tuple with amount 312.5 and unit "hash"
+
+### Scenario 69: Auto-Promotion - Token + Number
+**Description**: Add 1000 hash + 500 (plain number)
+**Expected AI Behavior**:
+1. Use calculate tool
+2. Call: (+ [1000 "hash"] 500)
+3. Verify result: [1500 "hash"]
+
+**Expected Result**: [1500 "hash"]
+**Pass Criteria**: Plain number auto-promoted to same unit
+
+### Scenario 70: Error - Incompatible Units
+**Description**: Attempt to add hash and btc without conversion
+**Expected AI Behavior**:
+1. Use calculate tool
+2. Call: (+ [100 "hash"] [0.5 "btc"])
+3. Expect error about incompatible units
+
+**Expected Result**: Error
+**Pass Criteria**: Error message mentions incompatible units and suggests token-convert
+```
+
+**Acceptance Criteria**:
+- [ ] Tool description includes token-convert
+- [ ] At least 4 new AI test scenarios added
+- [ ] README updated with token conversion examples
+- [ ] All documentation consistent
+
+### Implementation Timeline
+
+| Task | Estimated Time | Dependencies |
+|------|----------------|--------------|
+| 3B.1: Core token amount support | 1h | None |
+| 3B.2: Rate validation | 1h | 3B.1 |
+| 3B.3: Token conversion function | 2h | 3B.1, 3B.2 |
+| 3B.4: Rate utilities | 1h | 3B.2 |
+| 3B.5: Auto-promotion | 2h | 3B.1 |
+| 3B.6: Token registry (optional) | 2h | 3B.3 |
+| 3B.7: Comprehensive testing | 2h | All above |
+| 3B.8: Documentation | 1h | All above |
+| **Total** | **12h** | |
+
+**Estimated Calendar Time**: 1-2 days focused work
+
+### Success Criteria
+
+**Technical Requirements**:
+- [ ] All token conversion functions working
+- [ ] Rate validation enforced (especially same-unit rejection)
+- [ ] Auto-promotion working correctly
+- [ ] All unit tests passing
+- [ ] No backward compatibility breakage
+- [ ] Error messages are actionable
+
+**User Experience Requirements**:
+- [ ] Token amounts prevent unit confusion
+- [ ] Exchange rates are self-documenting
+- [ ] Conversion direction is unambiguous
+- [ ] Error messages guide correct usage
+- [ ] AI test scenarios pass (>90%)
+
+**Code Quality Requirements**:
+- [ ] Code formatted with cljfmt
+- [ ] clj-kondo shows no warnings
+- [ ] Comprehensive test coverage (>90%)
+- [ ] Documentation complete and accurate
+
+### Risk Mitigation
+
+**Risk**: Auto-promotion breaks existing code
+- **Mitigation**: Extensive backward compatibility testing
+- **Fallback**: Make auto-promotion opt-in via flag
+
+**Risk**: Same-unit validation too strict
+- **Mitigation**: Clear error messages explain why rejected
+- **Fallback**: Add explicit override flag (but discourage use)
+
+**Risk**: Performance degradation from validation
+- **Mitigation**: Benchmark before/after
+- **Fallback**: Add fast-path for plain numbers
+
+### Post-Implementation Validation
+
+**Week 1: Intensive Testing**:
+- [ ] Run all unit tests
+- [ ] Run all integration tests
+- [ ] Run AI test scenarios
+- [ ] Manual testing with Claude Desktop
+- [ ] Check analytics for adoption
+
+**Weeks 2-4: Production Monitoring**:
+- [ ] Monitor error rates
+- [ ] Track token-convert usage
+- [ ] Identify missing token types
+- [ ] Collect user feedback
+
+**Month 2: Enhancement Decision**:
+- Add reader macros if high adoption
+- Extend registry if many custom tokens
+- Consider Phase 3C features based on usage
+
+### Status
+
+**Current**: 📋 **DESIGN COMPLETE - READY FOR IMPLEMENTATION**
+**Next Step**: Begin Task 3B.1 (Core token amount support)

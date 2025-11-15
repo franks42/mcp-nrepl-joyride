@@ -815,3 +815,320 @@ Raw JSON: {"jsonrpc":"2.0","method":"tools/call","params":{"name":"calculate",..
 8. ✅ Production deployment
 
 The key insight: **The tool description IS the interface**. Make it clear, comprehensive, and example-rich so the AI (your cousin) naturally reaches for it when doing math.
+
+---
+
+## Phase 3B: Type-Safe Token Conversion System (v3.1.0 - PLANNED)
+
+### Overview
+
+**Goal**: Eliminate catastrophic unit confusion errors by implementing tuple-based token amounts with division notation for exchange rates.
+
+**Motivation**: Real-world feedback from Claude Desktop revealed the need for type-safe token conversions:
+- Token amounts should never be bare numbers that can be confused
+- Exchange rates need clear mathematical representation
+- Conversions should be bidirectional and explicit
+- System should prevent same-unit rate nonsense
+
+**Related Documents**:
+- `docs/calculator-implementation-plan.md` - Implementation tasks for Phase 3B
+
+### Core Concepts
+
+#### 1. Tuple-Based Token Amounts
+
+**Principle**: Token amounts are ALWAYS represented as `[amount "unit"]` tuples, never as bare numbers.
+
+```clojure
+;; ❌ BAD: Bare numbers - units unknown, catastrophic errors possible
+17500000        ; Is this hash? nhash? btc? sats? WHO KNOWS?!
+
+;; ✅ GOOD: Self-documenting tuples
+[17500000 "nhash"]
+[1000 "hash"]
+[1.5 "btc"]
+[0.032 "usd"]
+```
+
+**Benefits**:
+- **Type safety** - Units cannot be confused
+- **Self-documenting** - Code is readable without context
+- **Prevents errors** - Can't accidentally mix units
+- **Enables validation** - System can check unit compatibility
+
+**Real-World Precedents**:
+- **Stripe API** - Always pairs amounts with currency codes
+- **F# Units of Measure** - Type-checked dimensional analysis
+- **SQL Money types** - Amount + currency as atomic type
+
+#### 2. Division Notation for Exchange Rates
+
+**Principle**: Exchange rates are represented as explicit fractions using division notation.
+
+**Format**: `[/ [numerator-amount "num-unit"] [denominator-amount "denom-unit"]]`
+
+```clojure
+;; Exchange rate: "0.032 USD per 1 hash"
+[/ [0.032 "usd"] [1 "hash"]]
+
+;; Equivalent inverse: "31.25 hash per 1 USD"
+[/ [31.25 "hash"] [1 "usd"]]
+
+;; Unit conversion: "1,000,000,000 nhash per 1 hash"
+[/ [1000000000 "nhash"] [1 "hash"]]
+```
+
+**Why Division Notation is Brilliant**:
+- **Self-documenting** - Literally reads as "X per Y"
+- **Mathematically explicit** - Shows the fraction structure
+- **Symmetric** - Can express either direction
+- **Type-safe** - Units flow through math naturally
+- **Clear semantics** - No ambiguity about which direction
+
+#### 3. Auto-Promotion in Arithmetic
+
+**Principle**: Arithmetic operations automatically promote plain numbers to tuples when mixed with tuple-based amounts.
+
+**Auto-Promotion Hierarchy**:
+
+```clojure
+;; Level 1: Plain numbers (backward compatible)
+(+ 1000 2000)
+; → 3000
+
+;; Level 2: Tuple + number (auto-promote number to same unit)
+(+ [1000 "hash"] 2000)
+; → [3000 "hash"]
+
+;; Level 3: Tuple + compatible tuple (auto-convert if different but compatible units)
+(+ [1000 "hash"] [5000000000 "nhash"])
+; → [1005 "hash"]  ; 5B nhash = 5 hash
+
+;; Level 4: Tuple + incompatible (error - cannot convert without rate)
+(+ [1000 "hash"] [500 "btc"])
+; → Error: Cannot add incompatible units "hash" and "btc" without conversion rate
+```
+
+**Design Philosophy**:
+- Backward compatible - plain numbers still work
+- Ergonomic - don't force tuples everywhere
+- Safe - auto-promotion only when unambiguous
+- Explicit - incompatible operations require explicit conversion
+
+#### 4. Token Conversion Function
+
+**Primary Function**: `token-convert`
+
+**Three Signatures**:
+
+```clojure
+;; 1. Registry-based conversion (uses predefined rates)
+(token-convert [amount from-unit] to-unit)
+(token-convert [1000 "hash"] "usd")
+; → [32.0 "usd"]  ; Uses registry rate
+
+;; 2. Inferred target (rate determines destination)
+(token-convert [amount from-unit] rate)
+(token-convert [10 "usd"] [/ [31.25 "hash"] [1 "usd"]])
+; → [312.5 "hash"]  ; Target inferred from rate
+
+;; 3. Explicit validation (target must match rate)
+(token-convert [amount from-unit] to-unit rate)
+(token-convert [10 "usd"] "hash" [/ [31.25 "hash"] [1 "usd"]])
+; → [312.5 "hash"]  ; Validates target matches rate
+```
+
+**Conversion Logic**:
+
+```clojure
+;; Converting FROM denominator TO numerator: multiply by (num/denom)
+[amount "hash"] × [/ [0.032 "usd"] [1 "hash"]]
+; → [amount × 0.032 "usd"]
+
+;; Converting FROM numerator TO denominator: divide by (num/denom)
+[amount "usd"] ÷ [/ [0.032 "usd"] [1 "hash"]]
+; → [amount ÷ 0.032 "hash"]
+```
+
+### Rate Validation
+
+**Valid Rate Requirements**:
+1. Must use `/` operator
+2. Amounts must be non-zero
+3. Amounts must be positive
+4. **Units must be different** (same-unit rates are REJECTED)
+
+**Validation Function**:
+
+```clojure
+(defn valid-rate? [[op [num-amt num-unit] [denom-amt denom-unit]]]
+  (cond
+    (not= op /)
+    {:valid false :error "Must use / operator for rates"}
+
+    (or (zero? num-amt) (zero? denom-amt))
+    {:valid false :error "Rate amounts cannot be zero"}
+
+    (or (neg? num-amt) (neg? denom-amt))
+    {:valid false :error "Rate amounts must be positive"}
+
+    (= num-unit denom-unit)
+    {:valid false :error "Same-unit rates are invalid - use plain numbers for multipliers"}
+
+    :else
+    {:valid true}))
+```
+
+**Why Reject Same-Unit Rates**:
+- `[/ [2 "hash"] [1 "hash"]]` is semantically nonsensical
+- "2 hash per 1 hash" is just a dimensionless multiplier (2×)
+- If you need a multiplier, use plain numbers: `(* amount 2)`
+- Having units on both sides that cancel out defeats type safety
+
+**Token Migration Exception**:
+```clojure
+[/ [100 "new-token"] [1 "old-token"]]
+; ✅ Valid - DIFFERENT units (migration/swap rate)
+
+[/ [2 "hash"] [1 "hash"]]
+; ❌ Invalid - SAME unit (use plain multiplier)
+```
+
+### Rate Utilities
+
+**Rate Inversion**:
+
+```clojure
+(invert-rate [/ [0.032 "usd"] [1 "hash"]])
+; → [/ [31.25 "hash"] [1 "usd"]]
+```
+
+**Rate Composition** (multi-hop conversions):
+
+```clojure
+(compose-rates
+  [/ [0.032 "usd"] [1 "hash"]]
+  [/ [0.000001 "btc"] [1 "usd"]])
+; → [/ [0.000000032 "btc"] [1 "hash"]]
+; Enables hash → usd → btc chains
+```
+
+**Rate Normalization** (canonical form):
+
+```clojure
+(normalize-rate [/ [3.2 "usd"] [100 "hash"]])
+; → [/ [0.032 "usd"] [1 "hash"]]
+; Prefer denominator = 1 for clarity
+```
+
+### Token Registry
+
+**Purpose**: Centralized storage of token metadata and common exchange rates.
+
+**Registry Structure**:
+
+```clojure
+(def token-registry
+  {:tokens {"hash"    {:name "Provenance Hash" :decimals 9}
+            "nhash"   {:name "Nano Hash" :decimals 0}
+            "btc"     {:name "Bitcoin" :decimals 8}
+            "eth"     {:name "Ethereum" :decimals 18}
+            "usd"     {:name "US Dollar" :decimals 2}
+            "usdc"    {:name "USD Coin" :decimals 6}
+            "sol"     {:name "Solana" :decimals 9}
+            "ylds"    {:name "Yields" :decimals 9}}
+
+   :rates {"hash->nhash" [/ [1000000000 "nhash"] [1 "hash"]]
+           "hash->usd"   [/ [0.032 "usd"] [1 "hash"]]
+           "btc->usd"    [/ [95000 "usd"] [1 "btc"]]
+           "eth->usd"    [/ [2500 "usd"] [1 "eth"]]}
+
+   :compatibility {"hash" #{:hash :nhash}
+                   "btc"  #{:btc :sats}
+                   "eth"  #{:eth :wei :gwei}}})
+```
+
+**Registry Functions**:
+
+```clojure
+(get-rate from-unit to-unit)
+; → Looks up or composes rate from registry
+
+(register-token! unit metadata)
+; → Adds new token to registry
+
+(register-rate! from to rate)
+; → Adds new exchange rate
+
+(compatible-units? unit1 unit2)
+; → Checks if units can be auto-converted
+```
+
+### Error Handling
+
+**Type-Safe Error Messages**:
+
+```clojure
+;; Incompatible unit addition
+(+ [100 "hash"] [50 "btc"])
+; → Error: "Cannot add incompatible units 'hash' and 'btc' without conversion rate.
+;           Use (token-convert [50 'btc'] 'hash' rate) first."
+
+;; Invalid rate
+(token-convert [100 "hash"] "usd" [/ [2 "hash"] [1 "hash"]])
+; → Error: "Same-unit rates are invalid - use plain numbers for multipliers"
+
+;; Unknown unit
+(token-convert [100 "foo"] "bar")
+; → Error: "Unknown units: 'foo', 'bar'.
+;           Available: hash, nhash, btc, eth, usd, usdc, sol, ylds"
+
+;; Missing rate
+(token-convert [100 "hash"] "sol")
+; → Error: "No conversion rate available for hash → sol.
+;           Provide explicit rate or register in token-registry."
+```
+
+### Benefits
+
+**Type Safety**:
+- ✅ Units cannot be confused or mixed accidentally
+- ✅ Compiler-enforced dimensional analysis
+- ✅ Runtime validation of unit compatibility
+
+**Clarity**:
+- ✅ Code is self-documenting with explicit units
+- ✅ Exchange rates read naturally as "X per Y"
+- ✅ No ambiguity about conversion direction
+
+**Correctness**:
+- ✅ Prevents catastrophic unit confusion errors
+- ✅ Invalid operations rejected at runtime
+- ✅ Same-unit rate nonsense prevented
+
+**Ergonomics**:
+- ✅ Auto-promotion reduces boilerplate
+- ✅ Registry provides common conversions
+- ✅ Multiple signature convenience
+
+### Implementation Plan
+
+See `docs/calculator-implementation-plan.md` Phase 3B for detailed implementation tasks.
+
+**Estimated Effort**: 8-12 hours
+**Files Affected**:
+- `src/nrepl_mcp_server/calculator.clj` - Core implementation
+- `src/nrepl_mcp_server/token_registry.clj` - Registry (new file)
+- `test/nrepl_mcp_server/token_conversion_test.clj` - Tests (new file)
+- `docs/calculator-ai-test-scenarios.md` - Add token conversion scenarios
+
+### Future Enhancements
+
+**Phase 3C (Optional)**:
+- Reader macros: `#hash 1000` → `[1000 "hash"]`
+- Smart error recovery: suggest similar units
+- Multi-currency portfolio calculations
+- Historical rate time-series
+- Automatic rate updates from oracles/APIs
+
+**Status**: 📋 **PLANNED** - Waiting for Phase 3A completion
