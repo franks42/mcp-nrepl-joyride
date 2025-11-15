@@ -1,13 +1,33 @@
 (ns nrepl-mcp-server.mcp-server.tools.calculate
-  "Mathematical expression evaluation tool with timeout protection"
+  "Mathematical expression evaluation tool with timeout protection and base64 support"
   (:require [nrepl-mcp-server.calculator :as calc]
             [nrepl-mcp-server.calculator-analytics :as analytics]
             [cheshire.core :as json]))
 
+;; =============================================================================
+;; Base64 Utilities
+;; =============================================================================
+
+(defn- decode-base64
+  "Decode base64 string to UTF-8 text"
+  [b64-str]
+  (String. (.decode (java.util.Base64/getDecoder) b64-str) "UTF-8"))
+
+(defn- encode-base64
+  "Encode UTF-8 text to base64 string"
+  [text]
+  (.encodeToString (java.util.Base64/getEncoder) (.getBytes text "UTF-8")))
+
+;; =============================================================================
+;; Main Handler
+;; =============================================================================
+
 (defn handle
   "Evaluate mathematical expressions using Clojure prefix notation.
-   Returns result in EDN format with type information."
-  [{:keys [expr]}]
+   Returns result in EDN format with type information.
+
+   Supports input-base64 flag to avoid JSON escaping issues with complex expressions."
+  [{:keys [expr input-base64 output-base64]}]
   (cond
     ;; Validation: expr is required
     (or (nil? expr) (empty? expr))
@@ -21,13 +41,38 @@
     ;; Evaluate expression
     :else
     (let [start-time (System/currentTimeMillis)
-          result (calc/calculate expr)
+          ;; Decode base64 if requested
+          actual-expr (if input-base64
+                        (try
+                          (decode-base64 expr)
+                          (catch Exception e
+                            (binding [*out* *err*]
+                              (println "[calculate] Base64 decode error:" (.getMessage e)))
+                            ;; Log decoding error
+                            (analytics/log-calculation
+                             expr
+                             {:error (str "Base64 decode failed: " (.getMessage e))
+                              :type "decode-error"}
+                             0)
+                            ;; Return error response
+                            (throw (ex-info "Failed to decode base64 expression"
+                                            {:error (.getMessage e)
+                                             :expr expr}))))
+                        expr)
+          result (calc/calculate actual-expr)
           duration (- (System/currentTimeMillis) start-time)]
-      ;; Log the calculation for analytics
-      (analytics/log-calculation expr result duration)
-      {:content [{:type "text"
-                  :text (json/generate-string result {:pretty true})}]
-       :isError (contains? result :error)})))
+      ;; Log the calculation for analytics (with actual expression)
+      (analytics/log-calculation actual-expr result duration)
+      ;; Format response with optional base64 encoding
+      (let [response-map (if output-base64
+                           (-> result
+                               (update :result #(if (string? %) (encode-base64 %) %))
+                               (cond->
+                                (:error result) (update :error encode-base64)))
+                           result)]
+        {:content [{:type "text"
+                    :text (json/generate-string response-map {:pretty true})}]
+         :isError (contains? result :error)}))))
 
 (def tool-name "calculate")
 
@@ -70,8 +115,17 @@
   (/ 10.0 3.0)                         => 3.333...
 
 **Returns:** JSON map with :result, :type, and :expr keys
-**Timeout:** 5 seconds (prevents hanging on infinite loops)"
+**Timeout:** 5 seconds (prevents hanging on infinite loops)
+
+**Optional Base64 Encoding:**
+- input-base64 (boolean): Interpret 'expr' as base64-encoded string (default: false)
+- output-base64 (boolean): Return result fields as base64 encoded strings (default: false)
+- Use base64 to avoid JSON escaping issues with complex expressions"
    :inputSchema {:type "object"
                  :properties {:expr {:type "string"
-                                     :description "Clojure mathematical expression in prefix notation"}}
+                                     :description "Clojure mathematical expression in prefix notation (or base64-encoded if input-base64=true)"}
+                              :input-base64 {:type "boolean"
+                                             :description "Interpret 'expr' parameter as base64-encoded string (default: false)"}
+                              :output-base64 {:type "boolean"
+                                              :description "Return result fields as base64 encoded strings (default: false)"}}
                  :required ["expr"]}})
