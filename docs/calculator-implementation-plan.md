@@ -893,31 +893,114 @@ To begin implementation:
 - [ ] Compatible with existing calculation flow
 - [ ] Unit tests for all formatting functions
 
-##### Task 3.3: Blockchain/Crypto Calculations (OPTIONAL)
-**File**: `src/nrepl_mcp_server/calculator_crypto.clj` (new namespace)
+##### Task 3.3: Blockchain/Crypto/DeFi Calculations (HIGH PRIORITY)
+**File**: `src/nrepl_mcp_server/calculator.clj` (add to main calculator, not separate namespace)
 
-**New Functions to Add**:
+**Rationale**: Blockchain and DeFi are important use case domains! These calculations are critical for crypto/DeFi users and should be first-class features.
+
+**New Functions to Add** (all return rich maps):
+
 ```clojure
-;; Unit conversions
-(to-smallest-unit amount decimals)     ; → 1.5 BTC -> 150000000 sats (decimals=8)
-(from-smallest-unit units decimals)    ; → reverse conversion
-(wei->ether wei)                       ; → wei to ETH (18 decimals)
-(ether->wei eth)                       ; → ETH to wei
-(sats->btc sats)                       ; → satoshis to BTC (8 decimals)
-(btc->sats btc)                        ; → BTC to satoshis
+;; === Unit Conversions (High Precision) ===
+(to-smallest-unit amount decimals)
+; → {:amount 1.5 :smallest-unit 1500000000 :decimals 9 :formatted "1,500,000,000"}
 
-;; Market calculations
-(market-cap price circulation)         ; → total market capitalization
-(token-value price holdings)           ; → portfolio value
+(from-smallest-unit units decimals)
+; → {:smallest-unit 1500000000 :amount 1.5 :decimals 9 :formatted "1.5"}
+
+(wei->ether wei)
+; → {:wei 1000000000000000000 :ether 1.0 :gwei 1000000000 :formatted "1.0 ETH"}
+
+(ether->wei eth)
+; → {:ether 1.5 :wei 1500000000000000000 :gwei 1500000000 :formatted "1,500,000,000,000,000,000 wei"}
+
+(sats->btc sats)
+; → {:satoshis 150000000 :btc 1.5 :formatted "1.5 BTC"}
+
+(btc->sats btc)
+; → {:btc 1.5 :satoshis 150000000 :formatted "150,000,000 sats"}
+
+;; === Market & Portfolio Calculations ===
+(market-cap price circulation)
+; → {:price 0.028 :circulation 51138179743 :market-cap 1431868634.004
+;    :formatted "$1,431,868,634.00" :billions 1.43}
+
+(token-value price holdings)
+; → {:price 0.028 :holdings 1000000 :total-value 28000.0
+;    :formatted "$28,000.00" :avg-cost 0.028}
+
+(portfolio-value holdings-map)  ; {:BTC [1.5 45000] :ETH [10 2500] :HASH [1000000 0.028]}
+; → {:total-value 95500.0 :positions {...} :formatted "$95,500.00"
+;    :largest-position "BTC" :diversification-score 0.71}
+
+;; === DeFi Calculations ===
+(impermanent-loss initial-price current-price initial-ratio)
+; → {:initial-price 100 :current-price 150 :price-change-percent 50.0
+;    :impermanent-loss-percent 2.02 :vs-hodl-percent -2.02
+;    :formatted "2.02% IL"}
+
+(liquidity-pool-share token-a-amount token-b-amount pool-token-a pool-token-b)
+; → {:your-token-a 100 :your-token-b 5000 :pool-token-a 10000 :pool-token-b 500000
+;    :pool-share-percent 1.0 :your-value-usd 5100 :formatted "1.00% of pool"}
+
+(apy-to-apr apy compounds-per-year)
+; → {:apy 100.0 :apr 69.31 :compounds 365 :daily-rate 0.19}
+
+(apr-to-apy apr compounds-per-year)
+; → {:apr 50.0 :apy 64.82 :compounds 365 :daily-rate 0.137}
+
+(staking-rewards amount apy duration-days)
+; → {:principal 10000 :apy 12.0 :days 365 :rewards 1200
+;    :total 11200 :daily-rewards 3.29 :formatted "$1,200.00 rewards"}
+
+(slippage-impact amount-in reserve-in reserve-out)
+; → {:amount-in 1000 :reserve-in 100000 :reserve-out 50000
+;    :amount-out 476.19 :price-impact-percent 4.76 :slippage 4.76
+;    :effective-price 2.1 :formatted "4.76% slippage"}
+
+;; === Leverage & Liquidation ===
+(liquidation-price collateral-value borrowed-value liquidation-threshold)
+; → {:collateral 10000 :borrowed 7000 :threshold 0.75
+;    :liquidation-price 8750 :health-factor 1.43 :safe true
+;    :formatted "$8,750 liquidation"}
+
+(leverage-ratio collateral borrowed)
+; → {:collateral 10000 :borrowed 7000 :leverage 1.7 :equity 3000
+;    :ltv 0.70 :formatted "1.7x leverage"}
+
+;; === Gas & Fee Calculations ===
+(gas-cost gas-used gwei-price eth-price)
+; → {:gas-used 150000 :gwei-price 50 :gas-cost-eth 0.0075
+;    :gas-cost-usd 18.75 :eth-price 2500 :formatted "$18.75"}
 ```
 
-**Rationale**: Domain-specific for crypto users. High value for that audience, low value for general use. Consider as optional namespace.
+**Common Constants** (Task 3.7):
+```clojure
+;; Decimals
+eth-decimals    ; → 18
+btc-decimals    ; → 8
+hash-decimals   ; → 9
+usdc-decimals   ; → 6
+usdt-decimals   ; → 6
+
+;; Conversions
+wei-per-eth     ; → 1000000000000000000
+gwei-per-eth    ; → 1000000000
+sat-per-btc     ; → 100000000
+
+;; DeFi common values
+typical-slippage ; → 0.005 (0.5%)
+high-slippage   ; → 0.01 (1%)
+```
 
 **Acceptance Criteria**:
-- [ ] Accurate decimal handling (critical for crypto)
-- [ ] Configurable decimal places
-- [ ] Common crypto units pre-configured (BTC, ETH, etc.)
-- [ ] Unit tests with real-world examples
+- [ ] **Critical**: Accurate decimal handling (use BigDecimal/ratios for precision)
+- [ ] All crypto-specific units pre-configured (BTC, ETH, HASH, stablecoins)
+- [ ] DeFi calculations match standard formulas (Uniswap, Aave, etc.)
+- [ ] Handle edge cases (zero liquidity, extreme price changes)
+- [ ] Rich output with multiple representations
+- [ ] Unit tests with real-world DeFi examples
+- [ ] Documentation shows common DeFi use cases
 
 ##### Task 3.4: Enhanced Error Messages (MEDIUM PRIORITY)
 **File**: `src/nrepl_mcp_server/calculator.clj`
@@ -1058,21 +1141,23 @@ weeks-per-year  ; → 52
 
 Based on user feedback and impact analysis:
 
-**Phase 3A (High Priority - Quick Wins)**:
-1. Financial & percentage functions (Task 3.1)
-2. Number formatting utilities (Task 3.2)
-3. Common constants (Task 3.7)
-4. Enhanced error messages (Task 3.4)
+**Phase 3A (High Priority - Core Enhancements)**:
+1. Financial & percentage functions (Task 3.1) - 2-3 hours
+2. Number formatting utilities (Task 3.2) - 1-2 hours
+3. **Blockchain/crypto/DeFi calculations (Task 3.3)** - 4-5 hours ⭐ **HIGH PRIORITY**
+4. Common constants (Task 3.7) - 1 hour
+5. Enhanced error messages (Task 3.4) - 2-3 hours
 
-**Phase 3B (Optional - Domain-Specific)**:
-5. Blockchain/crypto calculations (Task 3.3) - if demand exists
-6. Additional rich output functions (Task 3.5) - more helper functions
-7. Verbosity mode (Task 3.6) - debugging feature
+**Phase 3B (Optional - Advanced Features)**:
+6. Additional rich output functions (Task 3.5) - 3-4 hours
+7. Verbosity mode (Task 3.6) - 4-5 hours
 
 **Estimated Time**:
-- Phase 3A: 6-8 hours
-- Phase 3B: 8-10 hours
-- **Total**: 14-18 hours
+- Phase 3A: 10-14 hours (blockchain/DeFi now included!)
+- Phase 3B: 7-9 hours
+- **Total**: 17-23 hours
+
+**Rationale for Priority Change**: Blockchain and DeFi are important use case domains! Crypto calculations moved from optional to high priority in Phase 3A.
 
 **Success Metrics**:
 - User satisfaction increases
