@@ -145,37 +145,40 @@
   token-amount token-amount? get-amount get-unit valid-rate?
 
 **Type-Safe Token Amounts:**
-  Represent amounts with explicit units: [amount \"unit\"]
-  - [1000 \"hash\"] - 1000 hash tokens
-  - [0.032 \"usd\"] - $0.032 USD
-  - [1.5 \"btc\"] - 1.5 Bitcoin
+  Represent amounts with explicit units: [amount :unit] or [amount \"unit\"]
+  - **Keywords preferred** (no JSON escaping!): [1000 :hash], [0.032 :usd], [1.5 :btc]
+  - Strings also supported for compatibility: [1000 \"hash\"], [0.032 \"usd\"]
+  - Output always normalized to keywords
 
 **Exchange Rates (Division Notation):**
-  Rates use explicit division: [/ [numerator \"unit1\"] [denominator \"unit2\"]]
-  - [/ [0.032 \"usd\"] [1 \"hash\"]] means \"0.032 USD per 1 hash\"
-  - [/ [31.25 \"hash\"] [1 \"usd\"]] means \"31.25 hash per 1 USD\"
+  Rates use explicit division: [/ [numerator :unit1] [denominator :unit2]]
+  - [/ [0.032 :usd] [1 :hash]] means \"0.032 USD per 1 hash\"
+  - [/ [31.25 :hash] [1 :usd]] means \"31.25 hash per 1 USD\"
+  - Can mix keywords and strings in input, output always keywords
 
-**Conversion Examples:**
+**Conversion Examples (keyword syntax - no escaping!):**
   ;; Convert 1000 hash to USD
-  (token-convert [1000 \"hash\"] \"usd\" [/ [0.032 \"usd\"] [1 \"hash\"]])
-  => [32.0 \"usd\"]
+  (token-convert [1000 :hash] :usd [/ [0.032 :usd] [1 :hash]])
+  => [32.0 :usd]
 
   ;; Convert 10 USD to hash (inferred target)
-  (token-convert [10 \"usd\"] [/ [0.032 \"usd\"] [1 \"hash\"]])
-  => [312.5 \"hash\"]
+  (token-convert [10 :usd] [/ [0.032 :usd] [1 :hash]])
+  => [312.5 :hash]
 
   ;; Multi-hop conversion (hash → usd → btc)
-  (compose-rates [/ [0.032 \"usd\"] [1 \"hash\"]] [/ [0.00001 \"btc\"] [1 \"usd\"]])
-  => [/ [0.00000032 \"btc\"] [1 \"hash\"]]
+  (compose-rates [/ [0.032 :usd] [1 :hash]] [/ [0.00001 :btc] [1 :usd]])
+  => [/ [0.00000032 :btc] [1 :hash]]
 
   ;; Invert rate
-  (invert-rate [/ [0.032 \"usd\"] [1 \"hash\"]])
-  => [/ [31.25 \"hash\"] [1 \"usd\"]]
+  (invert-rate [/ [0.032 :usd] [1 :hash]])
+  => [/ [31.25 :hash] [1 :usd]]
 
 **Benefits:**
-  - Prevents unit confusion errors (can't mix \"hash\" and \"btc\" without explicit conversion)
+  - **No JSON escaping** with keyword syntax (cleaner, easier to write)
+  - Prevents unit confusion errors (can't mix :hash and :btc without explicit conversion)
   - Self-documenting code with explicit units
   - Type-safe conversions with validation
+  - Consistent internal representation (all keywords)
 
 **Examples:**
   (+ 2 3)                                    => 5
