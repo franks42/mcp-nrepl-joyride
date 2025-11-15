@@ -19,8 +19,9 @@ This document details the step-by-step implementation plan for adding a `calcula
 - Phase 3 (Analytics): Completed 2025-01-14
 - Phase 4 (Documentation): Completed 2025-01-15
 - Phase 2.5 (Base64 + Error Logging): Completed 2025-11-15
+- **Phase 3 (UX Enhancements): Planned 2025-11-15** (Based on production feedback)
 
-**Current Version**: v2.5.0
+**Current Version**: v2.5.1 (production-ready with read-only fix)
 
 ---
 
@@ -823,6 +824,261 @@ To begin implementation:
 - ✅ Documentation created (`docs/json-parse-error-logging.md`)
 
 **Evidence**: 79 total test assertions passing (52 core + 27 tool), live testing successful
+
+#### 🎯 Phase 3: User Experience Enhancements (PLANNED)
+**Added**: 2025-11-15 (Based on Claude Desktop production feedback)
+**Status**: 📋 **PLANNED** - Enhancements from real-world usage
+
+**User Feedback Summary**: Calculator working well, requests for domain-specific convenience functions and better formatting utilities.
+
+##### Task 3.1: Financial & Percentage Functions (HIGH PRIORITY)
+**File**: `src/nrepl_mcp_server/calculator.clj`
+
+**New Functions to Add** (return rich maps with multiple representations):
+```clojure
+;; Percentage calculations (rich output)
+(percent-change old new)
+; → {:change 20 :percent 20.0 :direction :increase :formatted "+20.0%"}
+
+(percent-of part total)
+; → {:percentage 2.0 :decimal 0.02 :formatted "2.00%"}
+
+(percentage total percent)
+; → {:value 50.0 :of-total 200 :percent 25.0}
+
+;; Financial calculations (rich output)
+(roi initial final)
+; → {:profit 500 :roi-percent 50.0 :multiplier 1.5 :formatted "+50.0%"}
+
+(compound-interest principal rate periods)
+; → {:initial 1000 :final 1628.89 :total-interest 628.89 :rate 0.05 :periods 10}
+
+(simple-interest principal rate time)
+; → {:initial 1000 :final 1500 :interest 500 :rate 0.05 :time 10}
+
+;; Market/portfolio calculations (rich output)
+(market-share my-amount total)
+; → {:percentage 2.0 :decimal 0.02 :ratio "1:50" :formatted "2.00%"}
+
+(token-value price holdings)
+; → {:total-value 28.0 :price 0.028 :holdings 1000 :formatted "$28.00"}
+```
+
+**Rationale**: Most requested feature from production users. Functions return rich structured output for maximum usefulness without requiring separate template system.
+
+**Acceptance Criteria**:
+- [ ] All functions work with standard inputs
+- [ ] Each function returns rich map with multiple useful representations
+- [ ] Results match standard financial formulas
+- [ ] Handle edge cases (negative percentages, zero values, division by zero)
+- [ ] Unit tests for all new functions with rich output validation
+
+##### Task 3.2: Number Formatting Utilities (HIGH PRIORITY)
+**File**: `src/nrepl_mcp_server/calculator.clj`
+
+**New Functions to Add**:
+```clojure
+;; Formatting functions
+(with-commas num)              ; → "1,234,567"
+(round-to num decimals)        ; → 3.14159 -> 3.14 (decimals=2)
+(scientific num)               ; → "1.23e-7" for small numbers
+(to-decimal num)               ; → force ratio to floating-point
+```
+
+**Rationale**: Users want formatted output for readability. Ratios are precise but sometimes decimal display is preferred.
+
+**Acceptance Criteria**:
+- [ ] Formatting preserves numerical accuracy
+- [ ] Handle edge cases (very large/small numbers)
+- [ ] Compatible with existing calculation flow
+- [ ] Unit tests for all formatting functions
+
+##### Task 3.3: Blockchain/Crypto Calculations (OPTIONAL)
+**File**: `src/nrepl_mcp_server/calculator_crypto.clj` (new namespace)
+
+**New Functions to Add**:
+```clojure
+;; Unit conversions
+(to-smallest-unit amount decimals)     ; → 1.5 BTC -> 150000000 sats (decimals=8)
+(from-smallest-unit units decimals)    ; → reverse conversion
+(wei->ether wei)                       ; → wei to ETH (18 decimals)
+(ether->wei eth)                       ; → ETH to wei
+(sats->btc sats)                       ; → satoshis to BTC (8 decimals)
+(btc->sats btc)                        ; → BTC to satoshis
+
+;; Market calculations
+(market-cap price circulation)         ; → total market capitalization
+(token-value price holdings)           ; → portfolio value
+```
+
+**Rationale**: Domain-specific for crypto users. High value for that audience, low value for general use. Consider as optional namespace.
+
+**Acceptance Criteria**:
+- [ ] Accurate decimal handling (critical for crypto)
+- [ ] Configurable decimal places
+- [ ] Common crypto units pre-configured (BTC, ETH, etc.)
+- [ ] Unit tests with real-world examples
+
+##### Task 3.4: Enhanced Error Messages (MEDIUM PRIORITY)
+**File**: `src/nrepl_mcp_server/calculator.clj`
+
+**Current**: Stack traces and generic "Unknown symbol: foo"
+**Desired**: Contextual hints and suggestions
+
+```clojure
+;; Example error improvements
+;; Before: "Unknown symbol: square"
+;; After:  "Unknown symbol: 'square'. Did you mean 'sqrt' or 'pow'?"
+
+;; Before: "Divide by zero"
+;; After:  "Error: Division by zero in (/ 10 0). Consider checking divisor first with (when-not (zero? x) (/ a x))"
+```
+
+**Implementation Strategy**:
+- Analyze error message content
+- Build suggestion dictionary (common typos -> correct functions)
+- Add contextual hints based on expression structure
+- Keep error messages concise but helpful
+
+**Acceptance Criteria**:
+- [ ] Error messages more helpful than before
+- [ ] Suggestions are accurate (>80% helpful)
+- [ ] No false positives (don't suggest wrong functions)
+- [ ] Error message length reasonable (<200 chars)
+
+##### Task 3.5: Additional Rich Output Functions (OPTIONAL)
+**File**: `src/nrepl_mcp_server/calculator.clj`
+
+**Concept**: ~~Expression Templates~~ **SIMPLIFIED**: Just add more helper functions that return rich maps.
+
+**Design Decision**: Instead of creating a template system with registry and dispatcher, simply add predefined functions that return structured results. Simpler, more idiomatic, same benefits.
+
+**Additional Rich Output Functions** (beyond Task 3.1):
+```clojure
+;; Comparison helpers
+(compare-values a b)
+; → {:smaller 100 :larger 120 :difference 20 :ratio 1.2 :percent-diff 20.0}
+
+(percentage-diff a b)
+; → {:diff 20 :percent 20.0 :ratio 1.2 :direction :increase}
+
+;; Statistics summaries (already have mean/median/stdev, add rich version)
+(stats-summary values)
+; → {:count 5 :sum 15 :mean 3.0 :median 3.0 :stdev 1.41
+;    :min 1 :max 5 :range 4}
+
+;; Vector analysis (already have dot/norm/cross, add rich version)
+(vector-analysis v1 v2)
+; → {:dot-product 32 :magnitude-v1 5.0 :magnitude-v2 6.4
+;    :angle-radians 0.39 :angle-degrees 22.3}
+```
+
+**Benefits** (same as template approach, simpler implementation):
+- **Convenience** - Common patterns in one call
+- **Consistency** - All return rich maps
+- **Rich output** - Multiple representations
+- **Discoverability** - Listed in pre-loaded functions
+- **No complexity** - Just regular functions, no registry/dispatcher
+
+**Acceptance Criteria**:
+- [ ] At least 5 additional rich output functions implemented
+- [ ] All return structured maps with labeled fields
+- [ ] Documentation in tool description shows example outputs
+- [ ] Unit tests validate rich output structure
+- [ ] Functions are added to math-fns map in calculator.clj
+
+##### Task 3.6: Optional Verbosity Mode (ADVANCED FEATURE)
+**File**: `src/nrepl_mcp_server/calculator.clj`
+
+**Concept**: Show intermediate calculation steps for debugging and learning.
+
+```clojure
+;; Normal mode
+(calculate "(-> 100 sqrt (* 2) (+ 5))")
+; → {:result 25.0 :type "java.lang.Double"}
+
+;; Verbose mode
+(calculate "(-> 100 sqrt (* 2) (+ 5))" {:verbose true})
+; → {:result 25.0
+;     :type "java.lang.Double"
+;     :steps [{:expr "100" :result 100}
+;             {:expr "(sqrt 100)" :result 10.0}
+;             {:expr "(* 10.0 2)" :result 20.0}
+;             {:expr "(+ 20.0 5)" :result 25.0}]
+;     :step-count 4}
+```
+
+**Implementation Strategy**:
+- Wrap SCI evaluation with step tracking
+- Capture each sub-expression evaluation
+- Store intermediate results
+- Return structured step-by-step breakdown
+
+**Use Cases**:
+- **Debugging** - See where calculation goes wrong
+- **Learning** - Understand how threading macros work
+- **Verification** - Confirm intermediate values are correct
+
+**Acceptance Criteria**:
+- [ ] Steps are accurate and complete
+- [ ] Works with threading macros
+- [ ] Works with let bindings
+- [ ] Optional flag doesn't break existing usage
+- [ ] Performance impact is acceptable (<50% slowdown)
+
+##### Task 3.7: Common Constants (QUICK WIN)
+**File**: `src/nrepl_mcp_server/calculator.clj`
+
+**New Constants to Add**:
+```clojure
+;; Crypto/blockchain
+hash-decimals   ; → 9
+eth-decimals    ; → 18
+btc-decimals    ; → 8
+sat-per-btc     ; → 100000000
+
+;; Time
+year-seconds    ; → 31536000
+day-seconds     ; → 86400
+hour-seconds    ; → 3600
+
+;; Finance
+months-per-year ; → 12
+weeks-per-year  ; → 52
+```
+
+**Rationale**: Avoids magic numbers, makes expressions more readable.
+
+**Acceptance Criteria**:
+- [ ] Constants available in SCI context
+- [ ] Documented in tool description
+- [ ] No naming conflicts with existing functions
+
+### Implementation Priority
+
+Based on user feedback and impact analysis:
+
+**Phase 3A (High Priority - Quick Wins)**:
+1. Financial & percentage functions (Task 3.1)
+2. Number formatting utilities (Task 3.2)
+3. Common constants (Task 3.7)
+4. Enhanced error messages (Task 3.4)
+
+**Phase 3B (Optional - Domain-Specific)**:
+5. Blockchain/crypto calculations (Task 3.3) - if demand exists
+6. Additional rich output functions (Task 3.5) - more helper functions
+7. Verbosity mode (Task 3.6) - debugging feature
+
+**Estimated Time**:
+- Phase 3A: 6-8 hours
+- Phase 3B: 8-10 hours
+- **Total**: 14-18 hours
+
+**Success Metrics**:
+- User satisfaction increases
+- Reduced need for manual expression construction
+- Higher calculator tool usage
+- Positive feedback on formatting and error messages
 
 ### Production Metrics
 
