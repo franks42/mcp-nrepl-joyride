@@ -2,6 +2,44 @@
 
 This file contains important information for Claude Code when working with the MCP-nREPL Joyride project.
 
+---
+
+**CRITICAL: AI must display "I do not cheat or lie and I'm honest about any reporting of progress." at start of every response**
+
+---
+
+## Context Recovery After Compacting or New Instance
+
+**CRITICAL: When starting a new session or after context compacting:**
+
+1. **Check most recently changed files FIRST** to understand current work:
+   ```bash
+   # Find recently modified files across entire project
+   find . -type f -name "*.md" -o -name "*.clj*" -o -name "*.bb" | \
+     xargs ls -lt | head -20
+
+   # Or more specifically for documentation
+   find . -name "*.md" -type f -exec ls -lt {} + | head -20
+   ```
+
+2. **Read the most recent files** to understand:
+   - What was being worked on
+   - Current state of implementation
+   - Any blockers or issues discovered
+
+3. **Check git status** for uncommitted changes:
+   ```bash
+   git status
+   git diff --stat
+   ```
+
+4. **NEVER assume** context from old documentation or distant commits
+5. **NEVER read files based on guesses** - let timestamps guide you
+
+**Rationale**: The most recently modified files reveal the actual current work, not what we planned to work on or what's documented in older files.
+
+---
+
 ## 🧪 **TESTING FIRST!** Read This Before Testing
 
 **→ See [docs/TESTING-GUIDE.md](docs/TESTING-GUIDE.md) for comprehensive testing instructions**
