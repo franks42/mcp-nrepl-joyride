@@ -18,7 +18,25 @@
         (json/parse-string line true)
         (catch Exception e
           (binding [*out* *err*]
-            (println "Failed to parse JSON:" (.getMessage e)))
+            ;; Enhanced error logging for tracking AI agent escaping issues
+            (println "========================================")
+            (println "[JSON Parse Error]" (java.time.Instant/now))
+            (println "Exception:" (.getName (class e)) "-" (.getMessage e))
+            ;; Truncate long JSON to prevent massive logs
+            (let [truncated (if (> (count line) 500)
+                              (str (subs line 0 500) "... [truncated " (- (count line) 500) " chars]")
+                              line)]
+              (println "Raw JSON:" truncated))
+            ;; Try to detect common escaping issues
+            (when (re-find #"[^\\]\"" line)
+              (println "⚠️  Possible Issue: Unescaped quotes detected"))
+            (when (re-find #"\\\\" line)
+              (println "ℹ️  Note: Contains escaped backslashes"))
+            (when (and (str/includes? line "calculate")
+                       (str/includes? line "expr"))
+              (println "💡 Hint: Consider using base64 encoding (input-base64=true) for complex expressions"))
+            (println "========================================")
+            (flush))  ; Ensure error is logged before server exits
           nil)))))
 
 (defn send-response
