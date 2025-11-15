@@ -1,6 +1,7 @@
 (ns nrepl-mcp-server.mcp-server.tools.calculate
   "Mathematical expression evaluation tool with timeout protection"
   (:require [nrepl-mcp-server.calculator :as calc]
+            [nrepl-mcp-server.calculator-analytics :as analytics]
             [cheshire.core :as json]))
 
 (defn handle
@@ -19,7 +20,11 @@
 
     ;; Evaluate expression
     :else
-    (let [result (calc/calculate expr)]
+    (let [start-time (System/currentTimeMillis)
+          result (calc/calculate expr)
+          duration (- (System/currentTimeMillis) start-time)]
+      ;; Log the calculation for analytics
+      (analytics/log-calculation expr result duration)
       {:content [{:type "text"
                   :text (json/generate-string result {:pretty true})}]
        :isError (contains? result :error)})))
