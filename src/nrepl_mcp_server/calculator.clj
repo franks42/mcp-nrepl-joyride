@@ -157,7 +157,89 @@
                  (format "%.2e" (double num)))
 
    'to-decimal (fn [num]
-                 (double num))})
+                 (double num))
+
+   ;; Financial & Percentage Functions (return rich maps)
+   'percent-change (fn [old new]
+                     (let [change (- new old)
+                           percent (* (/ change old) 100.0)
+                           direction (cond
+                                       (pos? change) :increase
+                                       (neg? change) :decrease
+                                       :else :unchanged)
+                           formatted (str (if (pos? change) "+" "") percent "%")]
+                       {:change change
+                        :percent percent
+                        :direction direction
+                        :formatted formatted
+                        :old-value old
+                        :new-value new}))
+
+   'percent-of (fn [part total]
+                 (let [percentage (* (/ part total) 100.0)
+                       decimal (/ part total)]
+                   {:percentage percentage
+                    :decimal decimal
+                    :formatted (str percentage "%")
+                    :part part
+                    :total total}))
+
+   'percentage (fn [total percent]
+                 (let [value (* total (/ percent 100.0))]
+                   {:value value
+                    :of-total total
+                    :percent percent
+                    :formatted (str value " (" percent "% of " total ")")}))
+
+   'roi (fn [initial final]
+          (let [profit (- final initial)
+                percent (* (/ profit initial) 100.0)
+                multiplier (/ final initial)]
+            {:profit profit
+             :roi-percent percent
+             :multiplier multiplier
+             :formatted (str (if (pos? profit) "+" "") percent "%")
+             :initial initial
+             :final final}))
+
+   'compound-interest (fn [principal rate periods]
+                        (let [final (* principal (Math/pow (+ 1 rate) periods))
+                              total-interest (- final principal)]
+                          {:initial principal
+                           :final final
+                           :total-interest total-interest
+                           :rate rate
+                           :periods periods
+                           :formatted (str "$" final " (+" total-interest " interest)")}))
+
+   'simple-interest (fn [principal rate time]
+                      (let [interest (* principal rate time)
+                            final (+ principal interest)]
+                        {:initial principal
+                         :final final
+                         :interest interest
+                         :rate rate
+                         :time time
+                         :formatted (str "$" final " (+" interest " interest)")}))
+
+   'market-share (fn [my-amount total]
+                   (let [percentage (* (/ my-amount total) 100.0)
+                         decimal (/ my-amount total)
+                         ratio (str "1:" (long (/ total my-amount)))]
+                     {:percentage percentage
+                      :decimal decimal
+                      :ratio ratio
+                      :formatted (str percentage "%")
+                      :my-amount my-amount
+                      :total total}))
+
+   'token-value (fn [price holdings]
+                  (let [total-value (* price holdings)]
+                    {:total-value total-value
+                     :price price
+                     :holdings holdings
+                     :formatted (str "$" total-value)
+                     :per-token (str "$" price)}))})
 
 ;; SCI context for safe evaluation
 ;; Note: No :allow list - we want to allow our math-fns bindings
