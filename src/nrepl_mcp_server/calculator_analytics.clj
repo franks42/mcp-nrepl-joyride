@@ -28,21 +28,29 @@
             :else (recur (rest cs) depth max-depth)))))))
 
 (defn log-calculation
-  "Append calculation to analytics log"
+  "Append calculation to analytics log.
+   Gracefully handles write failures (e.g., read-only file systems in sandboxed environments)."
   [expr result duration-ms]
-  (let [entry {:timestamp (System/currentTimeMillis)
-               :expr expr
-               :result-type (:type result)
-               :success? (not (contains? result :error))
-               :error (get result :error nil)
-               :duration-ms duration-ms
-               ;; Extract patterns
-               :functions-used (extract-function-names expr)
-               :expr-depth (measure-nesting-depth expr)
-               :has-let? (str/includes? expr "let")
-               :has-threading? (or (str/includes? expr "->")
-                                   (str/includes? expr "->>"))}]
-    (spit log-file (str (pr-str entry) "\n") :append true)))
+  (try
+    (let [entry {:timestamp (System/currentTimeMillis)
+                 :expr expr
+                 :result-type (:type result)
+                 :success? (not (contains? result :error))
+                 :error (get result :error nil)
+                 :duration-ms duration-ms
+                 ;; Extract patterns
+                 :functions-used (extract-function-names expr)
+                 :expr-depth (measure-nesting-depth expr)
+                 :has-let? (str/includes? expr "let")
+                 :has-threading? (or (str/includes? expr "->")
+                                     (str/includes? expr "->>"))}]
+      (spit log-file (str (pr-str entry) "\n") :append true))
+    (catch Exception e
+      ;; Silently ignore logging failures - calculator should work even if logging fails
+      ;; This handles read-only file systems (Claude Desktop, sandboxed environments)
+      (binding [*out* *err*]
+        (println "[calculator-analytics] Warning: Failed to write analytics log:" (.getMessage e)))
+      nil)))
 
 (defn generate-usage-report
   "Analyze log file and generate summary statistics"
