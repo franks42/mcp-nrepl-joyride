@@ -88,6 +88,8 @@
 - Vector operations (dot products, cross products, magnitudes)
 - Converting units or temperatures
 
+**NOTE:** Supports optional base64 encoding (input-base64/output-base64 flags) to avoid JSON escaping issues with complex expressions.
+
 **Pre-loaded functions (50+ functions, no imports needed):**
 
 **Arithmetic:** + - * / mod quot rem inc dec
