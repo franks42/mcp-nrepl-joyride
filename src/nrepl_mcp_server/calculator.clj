@@ -521,12 +521,193 @@
                   :eth-price eth-price
                   :formatted (str "$" gas-cost-usd)}))})
 
+;;=============================================================================
+;; Phase 3B: Type-Safe Token Conversion System
+;;=============================================================================
+
+;; Token Amount Support Functions
+
+(defn token-amount?
+  "Check if value is a valid token amount tuple: [amount 'unit']"
+  [x]
+  (and (vector? x)
+       (= 2 (count x))
+       (number? (first x))
+       (string? (second x))))
+
+(defn get-amount
+  "Extract amount from token tuple"
+  [[amt _]]
+  amt)
+
+(defn get-unit
+  "Extract unit from token tuple"
+  [[_ unit]]
+  unit)
+
+(defn token-amount
+  "Construct a token amount tuple"
+  [amt unit]
+  [amt unit])
+
+;; Rate Validation
+
+(defn valid-rate?
+  "Validate exchange rate structure and values.
+   Returns {:valid true} or {:valid false :error msg}
+
+   CRITICAL: Rejects same-unit rates (e.g., [/ [2 'hash'] [1 'hash']])
+   as they are semantically nonsensical - use plain multipliers instead."
+  [rate]
+  (if-not (and (vector? rate)
+               (= 3 (count rate)))
+    {:valid false :error "Rate must be a 3-element vector"}
+    (let [[op num denom] rate]
+      (cond
+        (not= op '/)
+        {:valid false :error "Must use / operator for rates"}
+
+        (not (and (token-amount? num) (token-amount? denom)))
+        {:valid false :error "Rate numerator and denominator must be token amounts"}
+
+        :else
+        (let [num-amt (get-amount num)
+              denom-amt (get-amount denom)]
+          (cond
+            (or (zero? num-amt) (zero? denom-amt))
+            {:valid false :error "Rate amounts cannot be zero"}
+
+            (or (neg? num-amt) (neg? denom-amt))
+            {:valid false :error "Rate amounts must be positive"}
+
+            (= (get-unit num) (get-unit denom))
+            {:valid false :error "Same-unit rates are invalid - use plain numbers for multipliers"}
+
+            :else
+            {:valid true}))))))
+
+;; Token Conversion Function
+
+(defn token-convert
+  "Convert token amounts using exchange rates.
+
+  Signatures:
+    (token-convert [amt from] to-unit rate)  ; Full validation
+    (token-convert [amt from] rate)           ; Infer target from rate
+
+  Examples:
+    (token-convert [1000 'hash'] 'usd' [/ [0.032 'usd'] [1 'hash']])
+    => [32.0 'usd']
+
+    (token-convert [10 'usd'] [/ [0.032 'usd'] [1 'hash']])
+    => [312.5 'hash']"
+
+  ;; Two-arity: infer target from rate
+  ([amount-tuple rate]
+   (let [[_ num denom] rate
+         from-unit (get-unit amount-tuple)
+         to-unit (if (= from-unit (get-unit denom))
+                   (get-unit num)
+                   (get-unit denom))]
+     (token-convert amount-tuple to-unit rate)))
+
+  ;; Three-arity: explicit validation
+  ([amount-tuple to-unit rate]
+   (when-not (token-amount? amount-tuple)
+     (throw (ex-info "First argument must be a token amount tuple [amount unit]"
+                     {:provided amount-tuple})))
+
+   ;; Validate rate
+   (let [validation (valid-rate? rate)]
+     (when-not (:valid validation)
+       (throw (ex-info "Invalid rate" validation))))
+
+   ;; Extract components
+   (let [[amount from-unit] amount-tuple
+         [_ [num-amt num-unit] [denom-amt denom-unit]] rate]
+
+     ;; Validate target matches rate
+     (when-not (or (= to-unit num-unit) (= to-unit denom-unit))
+       (throw (ex-info "Target unit doesn't match rate units"
+                       {:target to-unit
+                        :rate-units [num-unit denom-unit]})))
+
+     ;; Perform conversion
+     (cond
+       ;; FROM denominator TO numerator: multiply by (num/denom)
+       (and (= from-unit denom-unit) (= to-unit num-unit))
+       [(*' amount (/ num-amt denom-amt)) num-unit]
+
+       ;; FROM numerator TO denominator: divide by (num/denom)
+       (and (= from-unit num-unit) (= to-unit denom-unit))
+       [(*' amount (/ denom-amt num-amt)) denom-unit]
+
+       :else
+       (throw (ex-info "Units don't match rate"
+                       {:from from-unit
+                        :to to-unit
+                        :rate rate}))))))
+
+;; Rate Utility Functions
+
+(defn invert-rate
+  "Invert an exchange rate (swap numerator and denominator)
+
+   Example:
+     (invert-rate [/ [0.032 'usd'] [1 'hash']])
+     => [/ [31.25 'hash'] [1 'usd']]"
+  [[_ num denom]]
+  ['/ denom num])
+
+(defn compose-rates
+  "Compose two rates for multi-hop conversion.
+
+   Example: hash→usd + usd→btc = hash→btc
+     (compose-rates
+       [/ [0.032 'usd'] [1 'hash']]
+       [/ [0.00001 'btc'] [1 'usd']])
+     => [/ [0.00000032 'btc'] [1 'hash']]"
+  [[_ [num1 unit1] [denom1 unit1-denom]]
+   [_ [num2 unit2] [denom2 unit2-denom]]]
+  (when-not (= unit1 unit2-denom)
+    (throw (ex-info "Cannot compose rates - units don't chain"
+                    {:rate1-numerator unit1
+                     :rate2-denominator unit2-denom})))
+  ['/ [(*' num1 num2) unit2] [(*' denom1 denom2) unit1-denom]])
+
+(defn normalize-rate
+  "Normalize rate to have denominator = 1
+
+   Example:
+     (normalize-rate [/ [3.2 'usd'] [100 'hash']])
+     => [/ [0.032 'usd'] [1 'hash']]"
+  [[_ [num-amt num-unit] [denom-amt denom-unit]]]
+  (if (= 1 denom-amt)
+    ['/ [num-amt num-unit] [denom-amt denom-unit]]
+    ['/ [(/ num-amt denom-amt) num-unit] [1 denom-unit]]))
+
+;; Add token conversion functions to math-fns for use in expressions
+(def token-conversion-fns
+  {'token-convert token-convert
+   'valid-rate? valid-rate?
+   'invert-rate invert-rate
+   'compose-rates compose-rates
+   'normalize-rate normalize-rate
+   'token-amount token-amount
+   'token-amount? token-amount?
+   'get-amount get-amount
+   'get-unit get-unit})
+
+;; Merge all functions for SCI context
+(def all-math-fns
+  (merge math-fns token-conversion-fns))
+
 ;; SCI context for safe evaluation
 ;; Note: No :allow list - we want to allow our math-fns bindings
 ;; No :deny list - security is non-issue (nrepl-eval already allows arbitrary code)
 (def sci-ctx
   (sci/init
-   {:bindings math-fns
+   {:bindings all-math-fns
     :realize-max 10000}))  ; prevent infinite sequences
 
 (defn- enhance-error-message
