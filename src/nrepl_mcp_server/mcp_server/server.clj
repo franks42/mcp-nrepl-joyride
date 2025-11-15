@@ -37,7 +37,8 @@
   {:protocolVersion "2024-11-05"
    :capabilities {:tools {}}
    :serverInfo {:name "nrepl-mcp-server"
-                :version "0.2.0"}})
+                :version "0.2.0"
+                :description "nREPL MCP Bridge - Execute Clojure code, manage connections, and perform mathematical calculations. Features: nREPL evaluation, connection management, file loading, mathematical calculator (50+ functions for statistics, geometry, finance, physics), and VS Code API access via Joyride."}})
 
 (defn handle-list-tools
   "List available MCP tools"
