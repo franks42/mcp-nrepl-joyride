@@ -21,7 +21,8 @@
    [nrepl-mcp-server.mcp-server.tools.nrepl-send-message]
    [nrepl-mcp-server.mcp-server.tools.local-nrepl-server]    ;; Babashka nREPL server lifecycle
    [nrepl-mcp-server.mcp-server.tools.nrepl-load-file]       ;; nREPL load-file tool
-   [nrepl-mcp-server.mcp-server.tools.must-read-mcp-nrepl-context]))  ;; AI agent onboarding context
+   [nrepl-mcp-server.mcp-server.tools.must-read-mcp-nrepl-context]  ;; AI agent onboarding context
+   [nrepl-mcp-server.mcp-server.tools.calculate]))           ;; Mathematical expression calculator
 
 ;; =============================================================================
 ;; Registration Orchestration  
@@ -71,7 +72,11 @@
   (registry/register-tool!
    nrepl-mcp-server.mcp-server.tools.must-read-mcp-nrepl-context/tool-name
    nrepl-mcp-server.mcp-server.tools.must-read-mcp-nrepl-context/handle
-   nrepl-mcp-server.mcp-server.tools.must-read-mcp-nrepl-context/metadata))
+   nrepl-mcp-server.mcp-server.tools.must-read-mcp-nrepl-context/metadata)
+  (registry/register-tool!
+   nrepl-mcp-server.mcp-server.tools.calculate/tool-name
+   nrepl-mcp-server.mcp-server.tools.calculate/handle
+   nrepl-mcp-server.mcp-server.tools.calculate/metadata))
 
 ;;
 
