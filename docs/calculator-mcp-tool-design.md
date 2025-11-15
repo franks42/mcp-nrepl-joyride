@@ -85,18 +85,26 @@ After evaluating options (Python, RPN/HP-42 style, custom DSL, infix), Clojure p
 
 ## Interface Specification
 
-### Tool Schema
+### Tool Schema (Current v2.5.0)
 
 ```json
 {
   "name": "calculate",
-  "description": "Evaluate mathematical expressions using Clojure prefix notation.\n\nPre-loaded functions (no require needed):\n\n**Arithmetic:** + - * / mod quot rem inc dec\n**Powers:** pow sqrt cbrt exp\n**Logarithms:** ln log10 log2 logb\n**Trigonometry (radians):** sin cos tan asin acos atan atan2 sinh cosh tanh\n**Trigonometry (degrees):** sind cosd tand\n**Rounding:** abs floor ceil round sign trunc\n**Constants:** pi e tau phi (golden ratio)\n**Comparisons:** < > <= >= = not=\n\n**Vector operations (on sequences):**\n  sum product vmin vmax count\n  mean median mode stdev variance\n  dot norm cross (3D only)\n\n**Examples:**\n  (+ 2 3)                              => 5\n  (sqrt (+ (pow 3 2) (pow 4 2)))       => 5.0\n  (sin (/ pi 2))                       => 1.0\n  (mean [1 2 3 4 5])                   => 3\n  (-> 100 sqrt (* 2) (+ 5))            => 25.0\n  (let [x 3 y 4] (sqrt (+ (* x x) (* y y)))) => 5.0\n  (/ 10 3)                             => 10/3 (ratio)\n  (/ 10.0 3.0)                         => 3.333...\n\n**Returns:** EDN map with :result, :type, and :expr keys",
+  "description": "Evaluate mathematical expressions using Clojure prefix notation.\n\n**USE THIS TOOL WHEN:**\n- User asks for calculations, math problems, or numerical analysis\n- Computing averages, percentages, statistics, or data analysis\n- Solving geometry problems (areas, volumes, distances, angles)\n- Financial calculations (interest, percentages, payments)\n- Physics/engineering formulas (forces, velocities, trajectories)\n- Vector operations (dot products, cross products, magnitudes)\n- Converting units or temperatures\n\n**NOTE:** Supports optional base64 encoding (input-base64/output-base64 flags) to avoid JSON escaping issues with complex expressions.\n\n**Pre-loaded functions (50+ functions, no imports needed):**\n\n**Arithmetic:** + - * / mod quot rem inc dec\n**Powers:** pow sqrt cbrt exp\n**Logarithms:** ln log10 log2 logb\n**Trigonometry (radians):** sin cos tan asin acos atan atan2 sinh cosh tanh\n**Trigonometry (degrees):** sind cosd tand\n**Rounding:** abs floor ceil round sign trunc\n**Constants:** pi e tau phi (golden ratio)\n**Comparisons:** < > <= >= = not=\n\n**Vector operations (on sequences):**\n  sum product vmin vmax count\n  mean median stdev variance\n  dot norm cross (3D only)\n\n**Examples:**\n  (+ 2 3)                              => 5\n  (sqrt (+ (pow 3 2) (pow 4 2)))       => 5.0\n  (sin (/ pi 2))                       => 1.0\n  (mean [1 2 3 4 5])                   => 3\n  (-> 100 sqrt (* 2) (+ 5))            => 25.0\n  (let [x 3 y 4] (sqrt (+ (* x x) (* y y)))) => 5.0\n  (/ 10 3)                             => 10/3 (ratio)\n  (/ 10.0 3.0)                         => 3.333...\n\n**Returns:** JSON map with :result, :type, and :expr keys\n**Timeout:** 5 seconds (prevents hanging on infinite loops)\n\n**Optional Base64 Encoding:**\n- input-base64 (boolean): Interpret 'expr' parameter as base64-encoded string (default: false)\n- output-base64 (boolean): Return result fields as base64 encoded strings (default: false)\n- Use base64 to avoid JSON escaping issues with complex expressions",
   "inputSchema": {
     "type": "object",
     "properties": {
       "expr": {
         "type": "string",
-        "description": "Clojure mathematical expression to evaluate"
+        "description": "Clojure mathematical expression in prefix notation (or base64-encoded if input-base64=true)"
+      },
+      "input-base64": {
+        "type": "boolean",
+        "description": "Interpret 'expr' parameter as base64-encoded string (default: false)"
+      },
+      "output-base64": {
+        "type": "boolean",
+        "description": "Return result fields as base64 encoded strings (default: false)"
       }
     },
     "required": ["expr"]
@@ -134,8 +142,10 @@ EDN map (returned as JSON for MCP):
 
 ### Core Calculator Namespace
 
+**Actual Implementation**: `src/nrepl_mcp_server/calculator.clj`
+
 ```clojure
-(ns mcp-nrepl-proxy.calculator
+(ns nrepl-mcp-server.calculator
   (:require [clojure.edn :as edn]
             [sci.core :as sci]))
 
@@ -263,10 +273,10 @@ EDN map (returned as JSON for MCP):
 
 ### MCP Tool Handler Integration
 
-Add to `src/mcp_nrepl_proxy/core.clj`:
+**Actual Implementation**: `src/nrepl_mcp_server/mcp_server/tools/calculate.clj`
 
 ```clojure
-(require '[mcp-nrepl-proxy.calculator :as calc])
+(require '[nrepl-mcp-server.calculator :as calc])
 
 ;; In tools list
 (def tools
@@ -296,10 +306,12 @@ Add to `src/mcp_nrepl_proxy/core.clj`:
 
 ### Logging and Analytics
 
+**Actual Implementation**: `src/nrepl_mcp_server/calculator_analytics.clj`
+
 Create a logging namespace to track usage patterns:
 
 ```clojure
-(ns mcp-nrepl-proxy.calc-analytics
+(ns nrepl-mcp-server.calculator-analytics
   (:require [clojure.java.io :as io]
             [clojure.edn :as edn]))
 
@@ -386,10 +398,12 @@ Add to `bb.edn` or equivalent:
 
 ### Unit Tests
 
+**Actual Implementation**: `test/nrepl_mcp_server/calculator_test.clj`
+
 ```clojure
-(ns mcp-nrepl-proxy.calculator-test
+(ns nrepl-mcp-server.calculator-test
   (:require [clojure.test :refer :all]
-            [mcp-nrepl-proxy.calculator :as calc]))
+            [nrepl-mcp-server.calculator :as calc]))
 
 (deftest basic-arithmetic
   (is (= 5 (:result (calc/calculate "(+ 2 3)"))))
@@ -601,12 +615,14 @@ Both work, but specialized tools reduce decision paralysis.
 
 **Synergy Opportunity**: Share SCI context configuration with `local-eval`:
 ```clojure
-(ns mcp-nrepl-proxy.sci-shared
+(ns nrepl-mcp-server.sci-shared
   "Shared SCI contexts for different use cases")
 
 (def debug-ctx ...)     ; For local-eval (unrestricted)
 (def math-ctx ...)      ; For calculate (math-focused)
 ```
+
+**Note**: Currently each tool has its own SCI context for isolation.
 
 ### Testing Strategy - DUAL APPROACH
 
@@ -694,15 +710,108 @@ This dual approach tests both **technical correctness** and **LLM usability**.
 
 ---
 
+---
+
+## Phase 2.5: Base64 Encoding & Error Logging (v2.5.0 - 2025-11-15)
+
+### Enhancement: Optional Base64 Encoding
+
+**Motivation**: AI agents sometimes struggle with JSON escaping when constructing complex Clojure expressions containing quotes, backslashes, or nested strings.
+
+**Implementation**:
+- Added `input-base64` flag to accept base64-encoded expressions
+- Added `output-base64` flag to return base64-encoded results (for strings)
+- Base64 decode errors are logged to analytics with type "decode-error"
+- Consistent with `nrepl-eval` tool's base64 pattern
+
+**Example Usage**:
+```json
+{
+  "tool": "calculate",
+  "arguments": {
+    "expr": "KGxldCBbeCAzIHkgNF0gKHNxcnQgKCsgKCogeCB4KSAoKiB5IHkpKSkp",
+    "input-base64": true
+  }
+}
+```
+
+Decodes to: `(let [x 3 y 4] (sqrt (+ (* x x) (* y y))))`
+
+**Benefits**:
+- ✅ Eliminates JSON escaping issues entirely
+- ✅ Supports arbitrarily complex expressions
+- ✅ Optional - only used when needed
+- ✅ Errors are tracked in analytics
+
+### Enhancement: JSON Parse Error Logging
+
+**Motivation**: Track when AI agents encounter JSON escaping issues to validate the need for base64 encoding and improve tool guidance.
+
+**Implementation**:
+- Enhanced `src/nrepl_mcp_server/mcp_server/server.clj` error logging
+- Logs all JSON parse failures to stderr with:
+  - Timestamp for analytics
+  - Exception type and message
+  - Raw JSON (truncated if >500 chars)
+  - Automatic issue detection (unescaped quotes, backslashes)
+  - Context-aware hints for calculate tool errors
+
+**Error Log Format**:
+```
+========================================
+[JSON Parse Error] 2025-11-15T19:56:11Z
+Exception: JsonEOFException - Unexpected end-of-input...
+Raw JSON: {"jsonrpc":"2.0","method":"tools/call","params":{"name":"calculate",...
+⚠️  Possible Issue: Unescaped quotes detected
+💡 Hint: Consider using base64 encoding (input-base64=true) for complex expressions
+========================================
+```
+
+**Analytics Value**:
+- Track frequency of JSON parse failures
+- Identify problematic expression patterns
+- Measure base64 encoding adoption by AI agents
+- Validate whether escaping issues are common or rare
+- Generate real-world examples for documentation
+
+**Documentation**: See `docs/json-parse-error-logging.md` for complete details.
+
+### Production Status
+
+**Current Version**: v2.5.0
+**Status**: ✅ **PRODUCTION READY**
+
+**Deployment Evidence**:
+- 79 passing test assertions (52 core + 27 tool handler)
+- 93% pass rate on 30 AI agent test scenarios
+- Live testing verified on production MCP server
+- Analytics logging active and tracking all calculations
+- Base64 encoding tested and working
+- JSON error logging implemented and verified
+
+**Files**:
+- Core: `src/nrepl_mcp_server/calculator.clj`
+- Analytics: `src/nrepl_mcp_server/calculator_analytics.clj`
+- Tool Handler: `src/nrepl_mcp_server/mcp_server/tools/calculate.clj`
+- Server Integration: `src/nrepl_mcp_server/mcp_server/server.clj`
+- Tests: `test/nrepl_mcp_server/calculator_test.clj`
+- Tool Tests: `test/nrepl_mcp_server/calculate_tool_test.clj`
+
+**Analytics Log**: `calculator-usage.edn` (tracks all calculations with metadata)
+
+---
+
 ## Getting Started (for Claude Code)
 
-1. Review this document and the existing mcp-nrepl-joyride codebase
-2. Create `src/mcp_nrepl_proxy/calculator.clj` with core implementation
-3. Add SCI dependency to `bb.edn` if not present
-4. Integrate `calculate` tool in `core.clj` tools registry
-5. Add logging infrastructure
-6. Write unit tests
-7. Test via `stdio_mcp_client.py`
-8. Deploy and monitor logs
+**Note**: This tool is already implemented and deployed. This section is for historical reference.
+
+1. ✅ Core calculator implementation (`src/nrepl_mcp_server/calculator.clj`)
+2. ✅ SCI dependency in `bb.edn`
+3. ✅ Tool integration in dispatch system
+4. ✅ Analytics logging infrastructure
+5. ✅ Comprehensive unit tests
+6. ✅ Base64 encoding support
+7. ✅ JSON error logging
+8. ✅ Production deployment
 
 The key insight: **The tool description IS the interface**. Make it clear, comprehensive, and example-rich so the AI (your cousin) naturally reaches for it when doing math.
