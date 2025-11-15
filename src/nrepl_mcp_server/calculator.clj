@@ -529,6 +529,72 @@
    {:bindings math-fns
     :realize-max 10000}))  ; prevent infinite sequences
 
+(defn- enhance-error-message
+  "Enhance error messages with contextual hints based on error patterns"
+  [error-msg expr]
+  (let [msg (.toLowerCase error-msg)]
+    (cond
+      ;; Division by zero
+      (or (re-find #"divide.*zero" msg)
+          (re-find #"infinity" msg))
+      {:error error-msg
+       :hint "Division by zero detected. Check denominator values."
+       :suggestion "Use conditional logic: (if (zero? x) 0 (/ y x))"}
+
+      ;; Undefined symbol
+      (re-find #"unable to resolve symbol" msg)
+      (let [symbol (second (re-find #"symbol: (\S+)" msg))]
+        {:error error-msg
+         :hint (str "Function '" symbol "' not found.")
+         :suggestion "Check available functions or use 'let' to define variables."
+         :available-help "Common functions: +, -, *, /, sqrt, pow, sin, cos, mean, etc."})
+
+      ;; Wrong number of arguments
+      (re-find #"wrong number of args" msg)
+      {:error error-msg
+       :hint "Function called with incorrect number of arguments."
+       :suggestion "Check function signature. Example: (pow base exponent) needs 2 args."}
+
+      ;; Type casting errors
+      (or (re-find #"cannot be cast" msg)
+          (re-find #"class.*cannot be cast" msg))
+      {:error error-msg
+       :hint "Type mismatch - trying to use incompatible types."
+       :suggestion "Ensure numeric values: use (double x) or check input types."}
+
+      ;; Invalid vector/sequence operations
+      (re-find #"don't know how to create" msg)
+      {:error error-msg
+       :hint "Invalid data structure syntax."
+       :suggestion "Use vectors [1 2 3] or sequences with functions: (mean [1 2 3])"}
+
+      ;; Date/time parsing errors
+      (re-find #"parse" msg)
+      {:error error-msg
+       :hint "Date/time parsing failed."
+       :suggestion "Use ISO format 'YYYY-MM-DD' or unix timestamps (number)."}
+
+      ;; Negative sqrt/log errors
+      (re-find #"nan" msg)
+      {:error error-msg
+       :hint "Mathematical operation resulted in NaN (Not a Number)."
+       :suggestion "Check for negative sqrt/log arguments or invalid operations."}
+
+      ;; DeFi specific errors
+      (and (re-find #"zero" msg)
+           (or (re-find #"pool" expr)
+               (re-find #"reserve" expr)
+               (re-find #"liquidity" expr)))
+      {:error error-msg
+       :hint "DeFi calculation error - likely zero pool reserves."
+       :suggestion "Ensure pool reserves and liquidity values are non-zero."}
+
+      ;; Generic fallback
+      :else
+      {:error error-msg
+       :hint "Expression evaluation failed."
+       :suggestion "Check syntax: use prefix notation like (+ 1 2) not (1 + 2)."})))
+
 (defn calculate
   "Evaluate mathematical expression with timeout protection.
    Returns {:result ... :type ... :expr ...} or {:error ... :type ... :expr ...}
@@ -545,11 +611,14 @@
                     :type (str (type result))
                     :expr expr-string}))
         (catch Exception e
-          (deliver result-promise
-                   {:error (.getMessage e)
-                    :expr expr-string
-                    :type "error"}))))
+          (let [enhanced (enhance-error-message (.getMessage e) expr-string)]
+            (deliver result-promise
+                     (merge {:expr expr-string
+                             :type "error"}
+                            enhanced))))))
     (deref result-promise timeout-ms
            {:error "Calculation timeout (>5s)"
             :type "timeout"
-            :expr expr-string})))
+            :expr expr-string
+            :hint "Expression took too long to evaluate (>5 seconds)."
+            :suggestion "Simplify expression or check for infinite loops."})))
