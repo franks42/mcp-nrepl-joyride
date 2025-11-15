@@ -1120,14 +1120,24 @@ eth-decimals    ; → 18
 btc-decimals    ; → 8
 sat-per-btc     ; → 100000000
 
-;; Time
+;; Time/Date
 year-seconds    ; → 31536000
 day-seconds     ; → 86400
 hour-seconds    ; → 3600
+week-seconds    ; → 604800
+year-days       ; → 365
+leap-year-days  ; → 366
+
+;; Blockchain (blocks/time)
+eth-block-time-seconds  ; → 12
+btc-block-time-seconds  ; → 600
+blocks-per-day-eth      ; → 7200
+blocks-per-day-btc      ; → 144
 
 ;; Finance
 months-per-year ; → 12
 weeks-per-year  ; → 52
+quarters-per-year ; → 4
 ```
 
 **Rationale**: Avoids magic numbers, makes expressions more readable.
@@ -1137,6 +1147,83 @@ weeks-per-year  ; → 52
 - [ ] Documented in tool description
 - [ ] No naming conflicts with existing functions
 
+##### Task 3.8: Date/Time/Duration Functions (HIGH PRIORITY)
+**File**: `src/nrepl_mcp_server/calculator.clj`
+
+**Rationale**:
+- Unix timestamp conversions are critical for blockchain/DeFi
+- Date calculations needed for financial time value calculations
+- Start simple with java.time wrappers, keep tick library in mind for future
+- Clean API to avoid java.time's complexity ("flaky java time interface")
+
+**New Functions to Add** (simple wrappers over java.time):
+
+```clojure
+;; === Unix Timestamp Conversions (HIGH PRIORITY) ===
+(unix-now)
+; → {:unix 1736899200 :iso "2025-01-15T00:00:00Z" :date "2025-01-15" :time "00:00:00"}
+
+(unix-to-date timestamp)
+; → {:unix 1736899200 :date "2025-01-15" :iso "2025-01-15T00:00:00Z"
+;    :human "January 15, 2025"}
+
+(date-to-unix date-string)  ; "2025-01-15" or "2025-01-15T10:30:00Z"
+; → {:date "2025-01-15" :unix 1736899200 :iso "2025-01-15T00:00:00Z"}
+
+(unix-to-human timestamp)
+; → "January 15, 2025 at 12:00 AM UTC"
+
+;; === Duration Calculations ===
+(days-between start end)  ; dates or unix timestamps
+; → {:start "2025-01-15" :end "2025-02-15" :days 31 :weeks 4 :hours 744}
+
+(seconds-between start end)
+; → {:seconds 2678400 :minutes 44640 :hours 744 :days 31}
+
+(add-days date days)  ; date string or unix timestamp
+; → {:original "2025-01-15" :added-days 90 :result "2025-04-15" :unix 1744675200}
+
+(add-seconds timestamp seconds)
+; → {:original 1736899200 :added-seconds 86400 :result 1736985600 :date "2025-01-16"}
+
+;; === Time-based DeFi/Finance ===
+(days-until date)  ; from now
+; → {:target-date "2025-12-31" :days-until 350 :weeks-until 50 :unlock-date true}
+
+(timestamp-in-days days)  ; timestamp for N days from now
+; → {:days-from-now 90 :target-date "2025-04-15" :unix 1744675200}
+
+(vesting-unlock-dates start-date cliff-months total-months)
+; → {:start "2025-01-15" :cliff-date "2025-07-15" :end-date "2027-01-15"
+;    :monthly-unlocks ["2025-07-15" "2025-08-15" ...]}
+
+;; === Staking/Lock Period Helpers ===
+(lock-period-end start-unix duration-days)
+; → {:locked-at "2025-01-15" :duration-days 365 :unlock-date "2026-01-15"
+;    :unlock-unix 1768435200 :days-remaining 350}
+
+(is-unlocked lock-end-timestamp)
+; → {:unlock-date "2026-01-15" :unlocked false :days-remaining 350}
+```
+
+**Implementation Notes**:
+- Use `java.time.Instant`, `java.time.LocalDate`, `java.time.Duration`
+- Wrap java.time complexity in simple, consistent API
+- Always return rich maps with multiple representations
+- Handle both ISO date strings and unix timestamps as inputs
+- Default to UTC to avoid timezone complexity
+- **Future**: Consider tick library for business days, complex intervals
+
+**Acceptance Criteria**:
+- [ ] Unix timestamp conversions work bidirectionally
+- [ ] Handle both seconds and milliseconds timestamps
+- [ ] Date string parsing supports common formats (ISO-8601)
+- [ ] All functions return rich maps with labels
+- [ ] No exceptions on invalid dates (return error maps)
+- [ ] UTC timezone for all calculations (document this clearly)
+- [ ] Unit tests with real unix timestamps
+- [ ] Documentation notes tick library as future enhancement
+
 ### Implementation Priority
 
 Based on user feedback and impact analysis:
@@ -1145,19 +1232,28 @@ Based on user feedback and impact analysis:
 1. Financial & percentage functions (Task 3.1) - 2-3 hours
 2. Number formatting utilities (Task 3.2) - 1-2 hours
 3. **Blockchain/crypto/DeFi calculations (Task 3.3)** - 4-5 hours ⭐ **HIGH PRIORITY**
-4. Common constants (Task 3.7) - 1 hour
-5. Enhanced error messages (Task 3.4) - 2-3 hours
+4. **Date/time/duration functions (Task 3.8)** - 2-3 hours ⭐ **Unix conversions critical**
+5. Common constants (Task 3.7) - 1 hour
+6. Enhanced error messages (Task 3.4) - 2-3 hours
 
 **Phase 3B (Optional - Advanced Features)**:
-6. Additional rich output functions (Task 3.5) - 3-4 hours
-7. Verbosity mode (Task 3.6) - 4-5 hours
+7. Additional rich output functions (Task 3.5) - 3-4 hours
+8. Verbosity mode (Task 3.6) - 4-5 hours
+
+**Phase 3C (Future - Advanced Time Features)**:
+9. Tick library integration - business days, time zones, complex intervals
+10. Recurring period calculations (monthly/quarterly vesting)
 
 **Estimated Time**:
-- Phase 3A: 10-14 hours (blockchain/DeFi now included!)
+- Phase 3A: 12-17 hours (includes date/time!)
 - Phase 3B: 7-9 hours
-- **Total**: 17-23 hours
+- Phase 3C: TBD (depends on tick adoption)
+- **Total**: 19-26 hours
 
-**Rationale for Priority Change**: Blockchain and DeFi are important use case domains! Crypto calculations moved from optional to high priority in Phase 3A.
+**Rationale for Priorities**:
+- Blockchain/DeFi are important use case domains
+- Unix timestamp conversions critical for blockchain integration
+- Start simple with java.time wrappers, keep tick for future enhancement
 
 **Success Metrics**:
 - User satisfaction increases
