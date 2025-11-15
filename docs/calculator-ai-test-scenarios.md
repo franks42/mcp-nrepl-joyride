@@ -486,6 +486,522 @@ AI should process each scenario individually and report results.
 
 ---
 
+## Number Formatting Scenarios
+
+### Scenario 31: Format Number with Commas
+**Description**: Format large numbers with thousand separators
+**User Request**: "Format the number 1234567.89 with commas"
+**Expected AI Behavior**:
+1. Select `calculate` tool
+2. Construct expression: `(with-commas 1234567.89)`
+3. Verify result has commas
+
+**Expected Result**: "1,234,567.89"
+**Pass Criteria**: Result equals "1,234,567.89" (string)
+**Notes**: Tests number formatting for readability
+
+---
+
+### Scenario 32: Round to Decimal Places
+**Description**: Round a number to specific decimal places
+**User Request**: "Round 3.14159 to 2 decimal places"
+**Expected AI Behavior**:
+1. Select `calculate` tool
+2. Construct expression: `(round-to 3.14159 2)`
+3. Verify result: 3.14
+
+**Expected Result**: 3.14
+**Pass Criteria**: Result equals 3.14 exactly
+**Notes**: Tests precision control
+
+---
+
+### Scenario 33: Scientific Notation
+**Description**: Convert large number to scientific notation
+**User Request**: "Express 123456789 in scientific notation"
+**Expected AI Behavior**:
+1. Select `calculate` tool
+2. Construct expression: `(scientific 123456789)`
+3. Verify result in scientific format
+
+**Expected Result**: "1.23e+08"
+**Pass Criteria**: Result matches scientific notation pattern
+**Notes**: Tests scientific notation formatting
+
+---
+
+### Scenario 34: Convert to Decimal
+**Description**: Convert ratio to decimal
+**User Request**: "Convert 22/7 to decimal"
+**Expected AI Behavior**:
+1. Select `calculate` tool
+2. Construct expression: `(to-decimal (/ 22 7))`
+3. Verify decimal result
+
+**Expected Result**: 3.142857142857143
+**Pass Criteria**: Result is between 3.14 and 3.15
+**Notes**: Tests ratio to decimal conversion
+
+---
+
+## Enhanced Financial Scenarios
+
+### Scenario 35: Percent Change
+**Description**: Calculate percentage change between two values
+**User Request**: "My investment went from $1000 to $1250. What's the percent change?"
+**Expected AI Behavior**:
+1. Select `calculate` tool
+2. Construct expression: `(percent-change 1000 1250)`
+3. Verify result contains change, percent, direction, formatted
+
+**Expected Result**: Map with :percent 25.0, :direction :increase
+**Pass Criteria**: Percent equals 25.0, direction is :increase
+**Notes**: Tests rich map output with multiple representations
+
+---
+
+### Scenario 36: Percent Of
+**Description**: Calculate what percentage one number is of another
+**User Request**: "What percentage is 45 of 180?"
+**Expected AI Behavior**:
+1. Select `calculate` tool
+2. Construct expression: `(percent-of 45 180)`
+3. Verify result: 25%
+
+**Expected Result**: Map with :percentage 25.0
+**Pass Criteria**: Percentage equals 25.0
+**Notes**: Tests percentage calculation
+
+---
+
+### Scenario 37: ROI Calculation
+**Description**: Calculate return on investment
+**User Request**: "I invested $5000 and got back $6500. What's my ROI?"
+**Expected AI Behavior**:
+1. Select `calculate` tool
+2. Construct expression: `(roi 5000 6500)`
+3. Verify profit, roi-percent, multiplier
+
+**Expected Result**: Map with :roi-percent 30.0, :profit 1500
+**Pass Criteria**: ROI equals 30%, profit equals 1500
+**Notes**: Tests investment return calculations
+
+---
+
+### Scenario 38: Simple Interest
+**Description**: Calculate simple interest on a loan
+**User Request**: "Calculate simple interest on $10,000 at 5% for 3 years"
+**Expected AI Behavior**:
+1. Select `calculate` tool
+2. Construct expression: `(simple-interest 10000 0.05 3)`
+3. Verify interest and total
+
+**Expected Result**: Map with :interest 1500.0, :total 11500.0
+**Pass Criteria**: Interest equals 1500, total equals 11500
+**Notes**: Tests simple interest formula
+
+---
+
+### Scenario 39: Market Share
+**Description**: Calculate company's market share
+**User Request**: "Company revenue is $50M, total market is $500M. What's their market share?"
+**Expected AI Behavior**:
+1. Select `calculate` tool
+2. Construct expression: `(market-share 50000000 500000000)`
+3. Verify percentage and decimal
+
+**Expected Result**: Map with :percentage 10.0
+**Pass Criteria**: Market share equals 10%
+**Notes**: Tests market share calculation
+
+---
+
+### Scenario 40: Token Portfolio Value
+**Description**: Calculate crypto token portfolio value
+**User Request**: "I have 100 tokens worth $25 each. What's the total value?"
+**Expected AI Behavior**:
+1. Select `calculate` tool
+2. Construct expression: `(token-value 100 25)`
+3. Verify total value
+
+**Expected Result**: Map with :total-value 2500
+**Pass Criteria**: Total value equals 2500
+**Notes**: Tests token value calculation
+
+---
+
+## Date and Time Scenarios
+
+### Scenario 41: Current Unix Timestamp
+**Description**: Get current time as unix timestamp
+**User Request**: "What's the current unix timestamp?"
+**Expected AI Behavior**:
+1. Select `calculate` tool
+2. Construct expression: `(unix-now)`
+3. Verify result contains unix, iso, date, time
+
+**Expected Result**: Map with current unix timestamp
+**Pass Criteria**: Unix timestamp is reasonable (> 1700000000 for 2025)
+**Notes**: Tests current time retrieval
+
+---
+
+### Scenario 42: Unix to Date Conversion
+**Description**: Convert unix timestamp to readable date
+**User Request**: "Convert unix timestamp 1609459200 to a date"
+**Expected AI Behavior**:
+1. Select `calculate` tool
+2. Construct expression: `(unix-to-date 1609459200)`
+3. Verify date components
+
+**Expected Result**: Map with :date "2021-01-01"
+**Pass Criteria**: Date equals 2021-01-01
+**Notes**: Tests unix to date conversion (New Year 2021)
+
+---
+
+### Scenario 43: Date to Unix Conversion
+**Description**: Convert date string to unix timestamp
+**User Request**: "Convert 2025-01-01 to unix timestamp"
+**Expected AI Behavior**:
+1. Select `calculate` tool
+2. Construct expression: `(date-to-unix "2025-01-01")`
+3. Verify unix timestamp
+
+**Expected Result**: 1735689600
+**Pass Criteria**: Timestamp equals 1735689600
+**Notes**: Tests date to unix conversion
+
+---
+
+### Scenario 44: Days Between Dates
+**Description**: Calculate days between two dates
+**User Request**: "How many days between 2025-01-01 and 2025-01-31?"
+**Expected AI Behavior**:
+1. Select `calculate` tool
+2. Construct expression: `(days-between "2025-01-01" "2025-01-31")`
+3. Verify days count
+
+**Expected Result**: Map with :days 30
+**Pass Criteria**: Days equals 30
+**Notes**: Tests date difference calculation
+
+---
+
+### Scenario 45: Add Days to Date
+**Description**: Add days to a date
+**User Request**: "What date is 30 days after 2025-01-01?"
+**Expected AI Behavior**:
+1. Select `calculate` tool
+2. Construct expression: `(add-days "2025-01-01" 30)`
+3. Verify new date
+
+**Expected Result**: Map with :new-date "2025-01-31"
+**Pass Criteria**: New date equals 2025-01-31
+**Notes**: Tests date arithmetic
+
+---
+
+### Scenario 46: Lock Period End Date
+**Description**: Calculate when a staking lock period ends
+**User Request**: "I locked tokens on Jan 1, 2025 (unix: 1735689600) for 365 days. When do they unlock?"
+**Expected AI Behavior**:
+1. Select `calculate` tool
+2. Construct expression: `(lock-period-end 1735689600 365)`
+3. Verify unlock date and remaining days
+
+**Expected Result**: Map with :unlock-date "2026-01-01"
+**Pass Criteria**: Unlock date equals 2026-01-01
+**Notes**: Tests DeFi lock period calculations
+
+---
+
+### Scenario 47: Check If Unlocked
+**Description**: Check if tokens are currently unlocked
+**User Request**: "Are tokens locked until Jan 1, 2026 (unix: 1767225600) unlocked yet?"
+**Expected AI Behavior**:
+1. Select `calculate` tool
+2. Construct expression: `(is-unlocked 1767225600)`
+3. Verify unlocked status
+
+**Expected Result**: Map with :unlocked false (assuming current date < 2026)
+**Pass Criteria**: Unlocked status reflects current time vs unlock time
+**Notes**: Tests time-based unlock checking
+
+---
+
+## Cryptocurrency Conversion Scenarios
+
+### Scenario 48: Wei to Ether Conversion
+**Description**: Convert wei (smallest Ethereum unit) to ether
+**User Request**: "Convert 1000000000000000000 wei to ether"
+**Expected AI Behavior**:
+1. Select `calculate` tool
+2. Construct expression: `(wei->ether 1000000000000000000)`
+3. Verify ether and gwei values
+
+**Expected Result**: Map with :ether 1.0
+**Pass Criteria**: Ether equals 1.0
+**Notes**: Tests Ethereum unit conversion (1 ETH = 10^18 wei)
+
+---
+
+### Scenario 49: Ether to Wei Conversion
+**Description**: Convert ether to wei
+**User Request**: "Convert 2.5 ether to wei"
+**Expected AI Behavior**:
+1. Select `calculate` tool
+2. Construct expression: `(ether->wei 2.5)`
+3. Verify wei value
+
+**Expected Result**: Map with :wei 2500000000000000000
+**Pass Criteria**: Wei equals 2.5 × 10^18
+**Notes**: Tests reverse Ethereum conversion
+
+---
+
+### Scenario 50: Satoshis to Bitcoin
+**Description**: Convert satoshis (smallest Bitcoin unit) to BTC
+**User Request**: "Convert 50000000 satoshis to bitcoin"
+**Expected AI Behavior**:
+1. Select `calculate` tool
+2. Construct expression: `(sats->btc 50000000)`
+3. Verify BTC value
+
+**Expected Result**: Map with :btc 0.5
+**Pass Criteria**: BTC equals 0.5
+**Notes**: Tests Bitcoin unit conversion (1 BTC = 10^8 sats)
+
+---
+
+### Scenario 51: Bitcoin to Satoshis
+**Description**: Convert bitcoin to satoshis
+**User Request**: "Convert 0.25 BTC to satoshis"
+**Expected AI Behavior**:
+1. Select `calculate` tool
+2. Construct expression: `(btc->sats 0.25)`
+3. Verify satoshi value
+
+**Expected Result**: Map with :satoshis 25000000
+**Pass Criteria**: Satoshis equal 25000000
+**Notes**: Tests reverse Bitcoin conversion
+
+---
+
+### Scenario 52: Generic Token to Smallest Unit
+**Description**: Convert token amount to smallest unit (with custom decimals)
+**User Request**: "Convert 100 USDC (6 decimals) to smallest unit"
+**Expected AI Behavior**:
+1. Select `calculate` tool
+2. Construct expression: `(to-smallest-unit 100 6)`
+3. Verify smallest unit value
+
+**Expected Result**: Map with :smallest-unit 100000000
+**Pass Criteria**: Smallest unit equals 100 × 10^6
+**Notes**: Tests generic token conversion with custom decimals
+
+---
+
+## DeFi Operations Scenarios
+
+### Scenario 53: Impermanent Loss
+**Description**: Calculate impermanent loss in AMM liquidity pool
+**User Request**: "I provided liquidity when token was $100, now it's $150. What's my impermanent loss?"
+**Expected AI Behavior**:
+1. Select `calculate` tool
+2. Construct expression: `(impermanent-loss 100 150)`
+3. Verify IL percentage and vs-hodl comparison
+
+**Expected Result**: Map with :impermanent-loss-percent ~2.02%
+**Pass Criteria**: IL is between 2.0% and 2.1%
+**Notes**: Tests AMM impermanent loss formula (critical DeFi metric)
+
+---
+
+### Scenario 54: Liquidity Pool Share
+**Description**: Calculate ownership percentage in liquidity pool
+**User Request**: "I have 1000 tokenA and 2000 tokenB. Pool has 100000 tokenA and 200000 tokenB. What's my share?"
+**Expected AI Behavior**:
+1. Select `calculate` tool
+2. Construct expression: `(liquidity-pool-share 1000 2000 100000 200000)`
+3. Verify pool share percentage
+
+**Expected Result**: Map with :pool-share-percent 1.0
+**Pass Criteria**: Pool share equals 1%
+**Notes**: Tests LP share calculation
+
+---
+
+### Scenario 55: Slippage Impact
+**Description**: Calculate slippage on Uniswap-style swap
+**User Request**: "Swapping 1000 tokens in a pool with 100000 reserves each. What's the slippage?"
+**Expected AI Behavior**:
+1. Select `calculate` tool
+2. Construct expression: `(slippage-impact 1000 100000 100000)`
+3. Verify price impact percentage
+
+**Expected Result**: Map with :slippage ~1.97%
+**Pass Criteria**: Slippage is between 1.9% and 2.0%
+**Notes**: Tests AMM slippage with 0.3% fee
+
+---
+
+### Scenario 56: APY to APR Conversion
+**Description**: Convert annual percentage yield to annual percentage rate
+**User Request**: "Convert 12.5% APY with daily compounding to APR"
+**Expected AI Behavior**:
+1. Select `calculate` tool
+2. Construct expression: `(apy-to-apr 12.5 365)`
+3. Verify APR value
+
+**Expected Result**: Map with :apr ~11.78
+**Pass Criteria**: APR is between 11.7 and 11.9
+**Notes**: Tests yield-to-rate conversion
+
+---
+
+### Scenario 57: APR to APY Conversion
+**Description**: Convert annual percentage rate to annual percentage yield
+**User Request**: "Convert 10% APR with daily compounding to APY"
+**Expected AI Behavior**:
+1. Select `calculate` tool
+2. Construct expression: `(apr-to-apy 10 365)`
+3. Verify APY value
+
+**Expected Result**: Map with :apy ~10.52
+**Pass Criteria**: APY is between 10.5 and 10.6
+**Notes**: Tests rate-to-yield conversion with compounding
+
+---
+
+### Scenario 58: Staking Rewards
+**Description**: Calculate staking rewards over time
+**User Request**: "I staked 10000 tokens at 5% APY for 365 days. What are my rewards?"
+**Expected AI Behavior**:
+1. Select `calculate` tool
+2. Construct expression: `(staking-rewards 10000 0.05 365)`
+3. Verify rewards and total
+
+**Expected Result**: Map with :rewards 5.0, :total 10005.0
+**Pass Criteria**: Rewards equal 5, total equals 10005 (note: this is simple interest, not compound)
+**Notes**: Tests staking reward calculation
+
+---
+
+### Scenario 59: Liquidation Price
+**Description**: Calculate liquidation price for leveraged position
+**User Request**: "I have $10000 collateral, borrowed $7000, liquidation threshold 75%. What's the liquidation price?"
+**Expected AI Behavior**:
+1. Select `calculate` tool
+2. Construct expression: `(liquidation-price 10000 7000 0.75)`
+3. Verify liquidation price and health factor
+
+**Expected Result**: Map with :liquidation-price ~9333.33, :health-factor ~1.07, :safe true
+**Pass Criteria**: Liquidation price ~9333, health factor > 1, safe = true
+**Notes**: Tests liquidation risk calculation (critical for DeFi lending)
+
+---
+
+### Scenario 60: Leverage Ratio
+**Description**: Calculate leverage ratio of a position
+**User Request**: "I have $10000 collateral and borrowed $7000. What's my leverage?"
+**Expected AI Behavior**:
+1. Select `calculate` tool
+2. Construct expression: `(leverage-ratio 10000 7000)`
+3. Verify leverage multiplier and LTV
+
+**Expected Result**: Map with :leverage ~3.33, :ltv 0.7
+**Pass Criteria**: Leverage ~3.33x, LTV = 0.7 (70%)
+**Notes**: Tests leverage calculation
+
+---
+
+### Scenario 61: Gas Cost Calculation
+**Description**: Calculate Ethereum transaction gas cost
+**User Request**: "Transaction uses 21000 gas at 50 gwei. ETH is $3000. What's the cost?"
+**Expected AI Behavior**:
+1. Select `calculate` tool
+2. Construct expression: `(gas-cost 21000 50 3000)`
+3. Verify cost in ETH and USD
+
+**Expected Result**: Map with :gas-cost-eth 0.00105, :gas-cost-usd 3.15
+**Pass Criteria**: ETH cost = 0.00105, USD cost = 3.15
+**Notes**: Tests Ethereum gas cost calculation
+
+---
+
+### Scenario 62: Market Capitalization
+**Description**: Calculate crypto market cap
+**User Request**: "Token price is $50, circulating supply is 21 million. What's the market cap?"
+**Expected AI Behavior**:
+1. Select `calculate` tool
+2. Construct expression: `(market-cap 50 21000000)`
+3. Verify market cap
+
+**Expected Result**: Map with :market-cap 1050000000, :billions 1.05
+**Pass Criteria**: Market cap equals $1.05 billion
+**Notes**: Tests market cap calculation
+
+---
+
+## Enhanced Error Message Scenarios
+
+### Scenario 63: Division by Zero with Hint
+**Description**: Test enhanced error message for division by zero
+**User Request**: "Divide 10 by 0"
+**Expected AI Behavior**:
+1. Select `calculate` tool
+2. Construct expression: `(/ 10 0)`
+3. Recognize enhanced error response
+
+**Expected Result**: Error map with :hint and :suggestion
+**Pass Criteria**: Error includes "Division by zero detected" hint and conditional logic suggestion
+**Notes**: Tests enhanced error messaging system
+
+---
+
+### Scenario 64: Undefined Symbol with Suggestions
+**Description**: Test enhanced error for undefined function
+**User Request**: "Use the foobar function on 5"
+**Expected AI Behavior**:
+1. Select `calculate` tool
+2. Construct expression: `(foobar 5)`
+3. Recognize enhanced error with function suggestions
+
+**Expected Result**: Error map with function name and available functions list
+**Pass Criteria**: Error includes "Function 'foobar' not found" and lists available functions
+**Notes**: Tests helpful error guidance for undefined symbols
+
+---
+
+### Scenario 65: Wrong Arity with Examples
+**Description**: Test enhanced error for incorrect argument count
+**User Request**: "Calculate pow of 2 (missing exponent)"
+**Expected AI Behavior**:
+1. Select `calculate` tool
+2. Construct expression: `(pow 2)`
+3. Recognize wrong arity error with example
+
+**Expected Result**: Error map with signature explanation
+**Pass Criteria**: Error includes "Wrong number of args" hint and example showing correct usage
+**Notes**: Tests argument count error guidance
+
+---
+
+### Scenario 66: DeFi-Specific Error Hint
+**Description**: Test DeFi-specific error detection
+**User Request**: "Calculate slippage with zero reserves"
+**Expected AI Behavior**:
+1. Select `calculate` tool
+2. Construct expression: `(slippage-impact 1000 0 100000)`
+3. Recognize DeFi context in error
+
+**Expected Result**: Error map with DeFi-specific hint
+**Pass Criteria**: Error mentions "pool reserves" or "liquidity values"
+**Notes**: Tests contextual error detection for DeFi operations
+
+---
+
 ## Test Execution Report Template
 
 After executing all scenarios, AI should provide a summary:
@@ -495,19 +1011,19 @@ CALCULATOR TOOL - AI TEST EXECUTION REPORT
 ==========================================
 Date: [YYYY-MM-DD]
 AI Model: [Model name/version]
-Total Scenarios: 30
+Total Scenarios: 66
 
 Results:
-- PASSED: XX/30 (XX%)
-- FAILED: XX/30 (XX%)
+- PASSED: XX/66 (XX%)
+- FAILED: XX/66 (XX%)
 
 Tool Selection:
-- Used 'calculate' tool: XX/30 (XX%)
-- Used other tool: XX/30 (XX%)
+- Used 'calculate' tool: XX/66 (XX%)
+- Used other tool: XX/66 (XX%)
 
 Performance:
 - Average response time: XXms
-- Timeouts: XX/30
+- Timeouts: XX/66
 
 Common Issues:
 1. [Issue description]
@@ -532,4 +1048,4 @@ As the calculator tool evolves:
 - Document any scenario-specific edge cases discovered
 - Use failure patterns to improve tool description
 
-**Last Updated**: 2025-01-14
+**Last Updated**: 2025-11-15 (Phase 3A: Added 36 scenarios for new functions - formatting, financial, date/time, crypto, DeFi, enhanced errors)
