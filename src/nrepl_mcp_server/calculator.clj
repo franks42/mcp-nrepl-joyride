@@ -736,6 +736,48 @@
     [:/ [num-amt num-unit] [denom-amt denom-unit]]
     [:/ [(/ num-amt denom-amt) num-unit] [1 denom-unit]]))
 
+(defn rate
+  "Convenient rate constructor with natural syntax.
+
+   Returns canonical vector rate structure: [:/ [num unit] [denom unit]]
+
+   Signatures:
+     (rate num-amt num-unit :per per-unit)           ; Implies denominator = 1
+     (rate num-amt num-unit :per [denom-amt denom-unit])  ; Explicit denominator
+
+   Examples:
+     (rate 0.032 :usd :per :hash)
+     => [:/ [0.032 :usd] [1 :hash]]
+
+     (rate 31.25 :hash :per :usd)
+     => [:/ [31.25 :hash] [1 :usd]]
+
+     (rate 0.064 :usd :per [2 :hash])  ; Non-normalized
+     => [:/ [0.064 :usd] [2 :hash]]
+
+   Usage with token-convert:
+     (token-convert [1000 :hash] :usd (rate 0.032 :usd :per :hash))
+     => [32.0 :usd]
+
+   Usage with portfolio-value:
+     (portfolio-value
+       [[1000 :hash] [10 :usd]]
+       :usd
+       [(rate 0.032 :usd :per :hash)])
+     => [42.0 :usd]"
+  [num-amt num-unit per-kw per-unit-or-vec]
+  {:pre [(= per-kw :per)]}
+  (if (vector? per-unit-or-vec)
+    ;; Explicit denominator: [denom-amt denom-unit]
+    (let [[denom-amt denom-unit] per-unit-or-vec]
+      [:/ [num-amt num-unit] [denom-amt denom-unit]])
+    ;; Implied denominator = 1
+    (do
+      (when-not (or (keyword? per-unit-or-vec) (string? per-unit-or-vec))
+        (throw (ex-info "Per-unit must be a keyword, string, or [amount unit] vector"
+                        {:provided per-unit-or-vec})))
+      [:/ [num-amt num-unit] [1 per-unit-or-vec]])))
+
 ;; Compatible Units Registry
 ;; Defines which units can be converted between for same-token denominations
 (def compatible-units
@@ -857,6 +899,7 @@
 (def token-conversion-fns
   {'token-convert token-convert
    'portfolio-value portfolio-value
+   'rate rate
    'valid-rate? valid-rate?
    'invert-rate invert-rate
    'compose-rates compose-rates

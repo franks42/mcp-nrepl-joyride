@@ -141,7 +141,7 @@
   typical-slippage high-slippage
 
 **Token Conversion (v3.1.0+ - Type-Safe Unit Handling):**
-  token-convert portfolio-value invert-rate compose-rates normalize-rate
+  token-convert portfolio-value rate invert-rate compose-rates normalize-rate
   token-amount token-amount? get-amount get-unit valid-rate?
 
 **Type-Safe Token Amounts:**
@@ -201,6 +201,26 @@
   ;; Bidirectional matching (uses inverted rates automatically)
   (portfolio-value [[10 :usd]] :hash [[:/ [0.032 :usd] [1 :hash]]])
   => [312.5 :hash]
+
+**Rate Convenience Constructor (NEW in v3.3.0):**
+  ;; Natural syntax for creating rates
+  (rate 0.032 :usd :per :hash)
+  => [:/ [0.032 :usd] [1 :hash]]
+
+  ;; Non-normalized rates
+  (rate 0.064 :usd :per [2 :hash])
+  => [:/ [0.064 :usd] [2 :hash]]
+
+  ;; Use with token-convert
+  (token-convert [1000 :hash] :usd (rate 0.032 :usd :per :hash))
+  => [32.0 :usd]
+
+  ;; Use with portfolio-value
+  (portfolio-value
+    [[1000 :hash] [10 :usd]]
+    :usd
+    [(rate 0.032 :usd :per :hash)])
+  => [42.0 :usd]
 
 **Benefits:**
   - **No JSON escaping** with keyword syntax (cleaner, easier to write)
