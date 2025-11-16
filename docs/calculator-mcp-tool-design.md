@@ -1498,3 +1498,368 @@ To improve ergonomics while keeping mathematical correctness, add a `rate` helpe
 - Automatic rate updates from oracles/APIs
 
 **Status**: 📋 **DOCUMENTED** - Awaiting usage analytics
+
+---
+
+## Phase 3E: Token Formatting Utilities (v3.4.0)
+
+### Overview
+
+**Goal**: Format token tuples and calculation results for human-readable presentation with flexible output options.
+
+**Status**: 📋 **PLANNED** - Awaiting implementation
+
+**Motivation**: Real-world feedback from Claude Desktop revealed that calculation results need better formatting:
+
+> "The Input/Output I was referring to: When I converted nhash to hash:
+> `(token-convert [17500000000004030 :nhash] :hash [:/ [1 :hash] [1000000000 :nhash]])`
+> The Output was: `[1.750000000000403E7, "hash"]` ; Scientific notation
+>
+> What I was suggesting: A formatting function that takes this token tuple output and formats it nicely:
+> `(format-token [1.750000000000403E7 "hash"])` ; → "17,500,000 HASH""
+
+**Key Use Cases**:
+1. **Reports/UIs**: Display calculation results to end users
+2. **Logging**: Readable audit trails and transaction logs
+3. **Debugging**: Understand intermediate calculation steps
+4. **Charting/Tables**: Structured components for visualization
+
+### Core Function: format-token
+
+**Function Signature**:
+```clojure
+(format-token token-tuple)
+(format-token token-tuple options)
+```
+
+**Design Philosophy**:
+- **Human-readable by default** - No scientific notation, appropriate decimals
+- **Flexible output** - String OR component map for different use cases
+- **Smart defaults** - Auto-decimals based on amount size and unit type
+- **Configurable** - Options map controls all formatting aspects
+
+#### String Output (Default)
+
+**Basic Usage**:
+```clojure
+;; Scientific notation → thousands separators
+(format-token [1.750000000000403E7 "hash"])
+=> "17,500,000 HASH"
+
+;; Auto-decimals for currency
+(format-token [32.156789 :usd])
+=> "$32.16 USD"
+
+;; Tiny amounts - show more precision
+(format-token [0.00000123 :btc])
+=> "0.00000123 BTC"
+
+;; Large whole numbers - no unnecessary decimals
+(format-token [1000000 :hash])
+=> "1,000,000 HASH"
+```
+
+**Controlled Formatting**:
+```clojure
+;; Override decimal places
+(format-token [1234567.89 :usd] {:decimals 0})
+=> "$1,234,568 USD"
+
+(format-token [1234567.89 :usd] {:decimals 4})
+=> "$1,234,567.8900 USD"
+
+;; Disable currency symbol
+(format-token [1000000 :usd] {:symbol false})
+=> "1,000,000 USD"
+
+;; Lowercase unit symbol
+(format-token [1000000 :hash] {:uppercase false})
+=> "1,000,000 hash"
+
+;; Custom separators (European format)
+(format-token [1234.56 :eur] {:thousands-sep "." :decimal-sep ","})
+=> "€1.234,56 EUR"
+```
+
+#### Component Map Output (for Charts/Tables)
+
+**Use Case**: When you need to render components in different UI elements:
+
+```clojure
+;; Get structured components
+(format-token [123456789.12 :usd] {:components true})
+=> {:amt "123,456,789.12"
+    :token-symbol "USD"
+    :token-char "$"
+    :formatted "$123,456,789.12 USD"
+    :raw-amount 123456789.12}
+
+;; Use in table/chart rendering
+(let [{:keys [amt token-symbol token-char]}
+      (format-token [42.6 :usd] {:components true})]
+  {:label token-symbol
+   :value amt
+   :prefix token-char})
+=> {:label "USD" :value "42.60" :prefix "$"}
+```
+
+**Benefits**:
+- **Flexibility** - Components can be rearranged for UI needs
+- **Consistency** - All components use same formatting rules
+- **Reusability** - Components work in charts, tables, reports
+- **Customization** - Each component can be styled independently
+
+### Options Map
+
+```clojure
+{:decimals nil         ; nil = auto (smart), or 0-8 for explicit
+ :symbol true          ; Show currency symbol ($, €, etc.) if available
+ :uppercase true       ; Uppercase token symbol (USD vs usd)
+ :thousands-sep ","    ; Thousands separator character
+ :decimal-sep "."      ; Decimal separator character
+ :components false}    ; Return component map instead of string
+```
+
+### Auto-Decimals Logic (Smart Default)
+
+**Design Goal**: Automatically choose appropriate decimal places based on amount size and context:
+
+```clojure
+(defn- auto-decimals
+  "Smart decimal place selection based on amount size"
+  [amount unit]
+  (cond
+    ;; Tiny amounts (< 0.01) - show 8 decimals
+    ;; Example: 0.00000123 BTC
+    (< amount 0.01) 8
+
+    ;; Small amounts (< 1) - show 6 decimals
+    ;; Example: 0.156789 ETH
+    (< amount 1) 6
+
+    ;; Medium amounts (< 1000) - show 2 decimals (standard currency)
+    ;; Example: 32.16 USD
+    (< amount 1000) 2
+
+    ;; Large amounts (>= 1000) - show 0-2 decimals based on fractional part
+    ;; Example: 1,000,000 HASH (no decimals)
+    ;;          1,234.56 USD (2 decimals)
+    :else
+    (let [frac (- amount (long amount))]
+      (if (< frac 0.01) 0 2))))
+```
+
+**Rationale**:
+- **Tiny amounts need precision** - Cryptocurrency dust and fractional units
+- **Standard currency uses 2 decimals** - USD, EUR, etc.
+- **Large whole numbers don't need decimals** - 1,000,000.00 is cluttered
+- **Fractional large amounts use 2** - 1,234.56 is clear
+
+### Currency Symbol Support
+
+**Symbol Registry**:
+```clojure
+(def currency-symbols
+  {:usd "$"
+   :eur "€"
+   :gbp "£"
+   :jpy "¥"
+   :cny "¥"
+   :btc "₿"
+   :eth "Ξ"
+   ;; Add more as needed
+   })
+```
+
+**Behavior**:
+- If symbol exists and `:symbol true` → prefix amount with symbol
+- If symbol doesn't exist → no prefix, just unit name
+- Can be disabled with `:symbol false`
+
+### Helper Functions
+
+#### 1. format-portfolio-summary
+
+**Purpose**: Generate human-readable portfolio summary tables.
+
+**Example**:
+```clojure
+(format-portfolio-summary
+  [[1000 :hash] [5E7 :nhash] [10 :usd]]
+  :usd
+  [[:/ [0.032 :usd] [1 :hash]]])
+=>
+"Portfolio Summary
+================
+1,000 HASH       $32.00
+50,000,000 NHASH  $1.60
+10 USD           $10.00
+────────────────────────
+Total:           $43.60"
+```
+
+**Use Cases**:
+- Portfolio valuation reports
+- Transaction summaries
+- Balance snapshots
+- Audit trails
+
+#### 2. format-rate-comparison
+
+**Purpose**: Compare multiple exchange rates for the same currency pair.
+
+**Example**:
+```clojure
+(format-rate-comparison
+  [[:/ [0.032 :usd] [1 :hash]]
+   [:/ [0.0315 :usd] [1 :hash]]
+   [:/ [0.0325 :usd] [1 :hash]]]
+  ["Coinbase" "Kraken" "Binance"])
+=>
+"Exchange Rates (USD per HASH)
+==============================
+Coinbase:  $0.032000
+Kraken:    $0.031500
+Binance:   $0.032500
+────────────────────────────
+Best:      $0.032500 (Binance)"
+```
+
+**Use Cases**:
+- Rate shopping (find best exchange)
+- Historical rate analysis
+- Arbitrage opportunity detection
+- Rate consistency verification
+
+#### 3. format-calculation-steps
+
+**Purpose**: Display intermediate calculation steps for debugging and learning.
+
+**Example**:
+```clojure
+(format-calculation-steps
+  [{:desc "Initial holdings" :value [1000 :hash]}
+   {:desc "Convert to USD" :value [32.0 :usd]}
+   {:desc "Add cash" :value [42.0 :usd]}])
+=>
+"Calculation Steps
+================
+1. Initial holdings:  1,000 HASH
+2. Convert to USD:    $32.00 USD
+3. Add cash:          $42.00 USD"
+```
+
+**Use Cases**:
+- Understanding portfolio calculations
+- Debugging conversion issues
+- Learning/educational demonstrations
+- Audit trail for transactions
+
+### Design Decisions
+
+#### Why Two Output Modes?
+
+**String Mode**:
+- ✅ Simple, direct answer to "format this"
+- ✅ Works in logs, reports, console output
+- ✅ Human-readable immediately
+
+**Component Map Mode**:
+- ✅ Flexibility for UI rendering
+- ✅ Reusable components (amt, symbol, unit)
+- ✅ Better for charts/tables
+- ✅ Allows custom styling per component
+
+**Decision**: Support both with `:components` flag for maximum flexibility.
+
+#### Why Auto-Decimals?
+
+**Alternative**: Always require explicit `:decimals` parameter
+
+**Problems with explicit**:
+- Users don't know best decimal places for each amount
+- Cluttered API - too many options
+- Inconsistent formatting across use cases
+
+**Benefits of auto**:
+- ✅ Smart defaults work for 95% of cases
+- ✅ Can override when needed (`:decimals` option)
+- ✅ Consistent formatting rules
+- ✅ Reduces cognitive load
+
+#### Why Currency Symbol Support?
+
+**Real-World Standard**: ISO 4217 currencies have standard symbols ($, €, £, etc.)
+
+**Benefits**:
+- ✅ More readable: "$1,234.56" vs "1,234.56 USD"
+- ✅ Space-efficient: Shorter formatted strings
+- ✅ International recognition: € is universally understood
+- ✅ Professional appearance: Matches financial reports
+
+**Trade-off**: Symbol registry needs maintenance for new currencies.
+
+**Mitigation**:
+- Registry is extensible
+- Missing symbols fall back to unit name
+- Can be disabled with `:symbol false`
+
+### Implementation Notes
+
+**Dependencies**:
+- Requires Phase 3B (token amounts) - uses `normalize-unit` and token tuple structure
+- Uses existing `round-to` function from calculator.clj
+- Uses existing `with-commas` function (or implements `format-with-separators`)
+
+**Integration Points**:
+1. Export in `token-conversion-fns` map
+2. Update MCP tool description
+3. Add to calculator tests
+4. Document in AI test scenarios
+
+**Edge Cases to Handle**:
+- Zero amounts: "0 USD" vs "$0.00 USD"
+- Negative amounts: "-$1,234.56 USD" (symbol positioning)
+- Very large amounts: 1E15 → "1,000,000,000,000,000"
+- Very small amounts: 1E-10 → "0.0000000001"
+- Infinity: ##Inf → "Infinity USD"
+- NaN: ##NaN → "NaN USD"
+
+### Benefits
+
+**For Users**:
+- ✅ No more scientific notation confusion
+- ✅ Readable calculation results
+- ✅ Professional-looking reports
+- ✅ Flexible output for different use cases
+
+**For Developers**:
+- ✅ Consistent formatting rules
+- ✅ Component reusability
+- ✅ Reduces custom formatting code
+- ✅ Helper functions for common patterns
+
+**For AI Agents**:
+- ✅ Clear function purpose
+- ✅ Examples show usage patterns
+- ✅ Options map is self-documenting
+- ✅ Component mode enables rich UIs
+
+### Related Documents
+
+- `docs/calculator-implementation-plan.md` - Phase 3E implementation tasks
+- `docs/calculator-ai-test-scenarios.md` - Will add formatting test scenarios
+
+### Future Enhancements
+
+**Phase 3F (if needed)**:
+- Localization support (i18n)
+- Custom number formatting patterns
+- Cryptocurrency-specific formatting (wei, gwei, etc.)
+- Historical rate formatting with timestamps
+- Multi-currency summary tables
+
+**Decision Criteria for Implementation**:
+- User feedback requests these features
+- Analytics show format-token is heavily used
+- Clear use cases emerge from production usage

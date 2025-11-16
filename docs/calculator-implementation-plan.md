@@ -2289,8 +2289,423 @@ The calculator tool implementation is **complete and successful**. All phases fi
 - Historical rate analysis required
 - Confidence scoring becomes important
 
+---
+
+## Phase 3E: Token Formatting Utilities (v3.4.0)
+
+**Goal**: Format token tuples and calculation results for human-readable presentation with flexible output options.
+
+**Motivation**: Real-world feedback revealed that calculation results like `[1.750000000000403E7 "hash"]` need better formatting:
+- Scientific notation is hard to read
+- Users want thousands separators for large numbers
+- Reports/UIs need formatted components for charting/tables
+- Currency symbols should appear when appropriate
+
+**Estimated Time**: 3-4 hours
+**Status**: 📋 **PLANNED**
+
+### Task 3E.1: format-token Function (PRIMARY)
+
+**File**: `src/nrepl_mcp_server/calculator.clj`
+
+**Function Signature**:
+```clojure
+(format-token token-tuple)
+(format-token token-tuple options)
+```
+
+**Subtasks**:
+- [ ] Implement `format-with-separators` helper (thousands + decimal separators)
+- [ ] Implement `auto-decimals` smart decimal place selection
+- [ ] Implement `currency-symbols` registry
+- [ ] Implement `format-token` with string output
+- [ ] Implement component map output (`:components true`)
+- [ ] Handle edge cases (zero, negative, very large/small numbers)
+- [ ] Export in `token-conversion-fns` map
+
+**Basic Formatting Examples** (String Output):
+```clojure
+;; Default formatting - smart decimals, thousands separators
+(format-token [1.750000000000403E7 "hash"])
+=> "17,500,000 HASH"
+
+(format-token [32.156789 :usd])
+=> "$32.16 USD"
+
+(format-token [0.00000123 :btc])
+=> "0.00000123 BTC"
+
+;; Control formatting with options
+(format-token [1234567.89 :usd] {:decimals 0})
+=> "$1,234,568 USD"
+
+(format-token [1234567.89 :usd] {:decimals 4})
+=> "$1,234,567.8900 USD"
+
+(format-token [1000000 :hash] {:symbol false})
+=> "1,000,000 HASH"
+
+(format-token [1000000 :hash] {:uppercase false})
+=> "1,000,000 hash"
+```
+
+**Component Map Output** (for charting/tables):
+```clojure
+;; Return structured components instead of formatted string
+(format-token [123456789.12 :usd] {:components true})
+=> {:amt "123,456,789.12"
+    :token-symbol "USD"
+    :token-char "$"
+    :formatted "$123,456,789.12 USD"
+    :raw-amount 123456789.12}
+
+(format-token [1750000000.0 :hash] {:components true})
+=> {:amt "1,750,000,000"
+    :token-symbol "HASH"
+    :token-char nil
+    :formatted "1,750,000,000 HASH"
+    :raw-amount 1750000000.0}
+
+;; Use components in table/chart rendering
+(let [{:keys [amt token-symbol token-char]} (format-token [42.6 :usd] {:components true})]
+  {:label token-symbol
+   :value amt
+   :prefix token-char})
+=> {:label "USD" :value "42.60" :prefix "$"}
+```
+
+**Options Map**:
+```clojure
+{:decimals nil         ; nil = auto (smart), or 0-8 for explicit
+ :symbol true          ; Show currency symbol ($, €, etc.) if available
+ :uppercase true       ; Uppercase token symbol (USD vs usd)
+ :thousands-sep ","    ; Thousands separator character
+ :decimal-sep "."      ; Decimal separator character
+ :components false}    ; Return component map instead of string
+```
+
+**Auto-Decimals Logic** (Smart Default):
+```clojure
+(defn- auto-decimals
+  "Smart decimal place selection based on amount size and unit type"
+  [amount unit]
+  (cond
+    ;; Tiny amounts (< 0.01) - show 8 decimals
+    (< amount 0.01) 8
+
+    ;; Small amounts (< 1) - show 6 decimals
+    (< amount 1) 6
+
+    ;; Medium amounts (< 1000) - show 2 decimals (standard currency)
+    (< amount 1000) 2
+
+    ;; Large amounts (>= 1000) - show 0-2 decimals based on fractional part
+    :else
+    (let [frac (- amount (long amount))]
+      (if (< frac 0.01) 0 2))))
+```
+
+**Currency Symbol Support**:
+```clojure
+(def currency-symbols
+  {:usd "$"
+   :eur "€"
+   :gbp "£"
+   :jpy "¥"
+   :cny "¥"
+   :btc "₿"
+   ;; Add more as needed
+   })
+```
+
+**Implementation Sketch**:
+```clojure
+(defn format-token
+  "Format token tuple for human-readable presentation.
+
+   Returns formatted string by default, or component map if :components true.
+
+   Examples:
+     (format-token [17500000 :hash])
+     => \"17,500,000 HASH\"
+
+     (format-token [32.156789 :usd])
+     => \"$32.16 USD\"
+
+     (format-token [123456.78 :usd] {:components true})
+     => {:amt \"123,456.78\" :token-symbol \"USD\" :token-char \"$\" :formatted \"$123,456.78 USD\"}
+
+   Options:
+     :decimals - Number of decimal places (nil = auto)
+     :symbol - Show currency symbol if available (default true)
+     :uppercase - Uppercase token symbol (default true)
+     :thousands-sep - Thousands separator (default \",\")
+     :decimal-sep - Decimal separator (default \".\")
+     :components - Return map of components (default false)"
+  ([token-tuple]
+   (format-token token-tuple {}))
+
+  ([token-tuple options]
+   (let [[amount unit] token-tuple
+         unit-norm (normalize-unit unit)
+         unit-str (if (:uppercase options true)
+                    (str/upper-case (name unit-norm))
+                    (name unit-norm))
+
+         ;; Determine decimal places
+         decimals (or (:decimals options)
+                      (auto-decimals amount unit-norm))
+
+         ;; Format number with thousands separators
+         thousands-sep (:thousands-sep options ",")
+         decimal-sep (:decimal-sep options ".")
+         formatted-num (-> amount
+                           (round-to decimals)
+                           (format-with-separators thousands-sep decimal-sep))
+
+         ;; Get currency symbol if applicable
+         symbol? (:symbol options true)
+         token-char (when symbol? (get currency-symbols unit-norm))
+
+         ;; Build formatted string
+         formatted-str (if token-char
+                         (str token-char formatted-num " " unit-str)
+                         (str formatted-num " " unit-str))]
+
+     (if (:components options false)
+       ;; Return component map
+       {:amt formatted-num
+        :token-symbol unit-str
+        :token-char token-char
+        :formatted formatted-str
+        :raw-amount amount}
+       ;; Return formatted string
+       formatted-str))))
+
+(defn- format-with-separators
+  "Format number with thousands and decimal separators"
+  [num thousands-sep decimal-sep]
+  (let [parts (str/split (str num) #"\.")
+        int-part (first parts)
+        dec-part (second parts)
+        formatted-int (str/join thousands-sep
+                                (reverse
+                                 (map str/join
+                                      (partition-all 3
+                                                     (reverse int-part)))))]
+    (if dec-part
+      (str formatted-int decimal-sep dec-part)
+      formatted-int)))
+```
+
+**Acceptance Criteria**:
+- [ ] Formats token tuples with thousands separators
+- [ ] Smart decimal place selection works correctly
+- [ ] Currency symbols appear for known currencies
+- [ ] Options map controls all formatting aspects
+- [ ] Component map output includes all fields
+- [ ] No scientific notation in output
+- [ ] Edge cases handled (zero, negative, very large/small)
+- [ ] Unit tests for all formatting scenarios
+- [ ] Exported in `token-conversion-fns` map
+
+### Task 3E.2: Helper Functions (SECONDARY)
+
+**File**: `src/nrepl_mcp_server/calculator.clj`
+
+**Subtasks**:
+- [ ] Implement `format-portfolio-summary` for portfolio tables
+- [ ] Implement `format-rate-comparison` for rate comparison tables
+- [ ] Implement `format-calculation-steps` for debugging/learning
+- [ ] Export all helpers in `token-conversion-fns` map
+- [ ] Unit tests for helper functions
+
+**Portfolio Summary Formatter**:
+```clojure
+(defn format-portfolio-summary
+  "Format portfolio holdings as a formatted summary table.
+
+   Example:
+     (format-portfolio-summary
+       [[1000 :hash] [5E7 :nhash] [10 :usd]]
+       :usd
+       [[:/ [0.032 :usd] [1 :hash]]])
+     =>
+     \"Portfolio Summary
+      ================
+      1,000 HASH       $32.00
+      50,000,000 NHASH  $1.60
+      10 USD           $10.00
+      ────────────────────────
+      Total:           $43.60\""
+  [holdings to-unit rates]
+  (let [converted (map #(token-convert % to-unit (find-rate % rates)) holdings)
+        total (portfolio-value holdings to-unit rates)
+        lines (map #(str (format-token %1) "  " (format-token %2))
+                   holdings converted)]
+    (str/join "\n"
+              (concat ["Portfolio Summary"
+                       "================"]
+                      lines
+                      ["────────────────────────"
+                       (str "Total: " (format-token total))]))))
+```
+
+**Rate Comparison Formatter**:
+```clojure
+(defn format-rate-comparison
+  "Format multiple rates for the same pair as comparison table.
+
+   Example:
+     (format-rate-comparison
+       [[:/ [0.032 :usd] [1 :hash]]
+        [:/ [0.0315 :usd] [1 :hash]]
+        [:/ [0.0325 :usd] [1 :hash]]]
+       [\"Coinbase\" \"Kraken\" \"Binance\"])
+     =>
+     \"Exchange Rates (USD per HASH)
+      ==============================
+      Coinbase:  $0.032000
+      Kraken:    $0.031500
+      Binance:   $0.032500
+      ────────────────────────────
+      Best:      $0.032500 (Binance)\""
+  [rates sources]
+  (let [num-amounts (map #(get-in % [1 0]) rates)
+        best-idx (.indexOf num-amounts (apply max num-amounts))
+        best-source (nth sources best-idx)
+        best-rate (nth rates best-idx)
+        [_ [num-amt num-unit] [_ denom-unit]] (first rates)
+        lines (map #(str %2 ":  " (format-token [%1 num-unit]))
+                   num-amounts sources)]
+    (str/join "\n"
+              (concat [(str "Exchange Rates (" (str/upper-case (name num-unit))
+                            " per " (str/upper-case (name denom-unit)) ")")
+                       "=============================="]
+                      lines
+                      ["────────────────────────────"
+                       (str "Best: " (format-token [(first (nth best-rate 1)) num-unit])
+                            " (" best-source ")")]))))
+```
+
+**Calculation Step Formatter**:
+```clojure
+(defn format-calculation-steps
+  "Format intermediate calculation steps for debugging/learning.
+
+   Example:
+     (format-calculation-steps
+       [{:desc \"Initial holdings\" :value [1000 :hash]}
+        {:desc \"Convert to USD\" :value [32.0 :usd]}
+        {:desc \"Add cash\" :value [42.0 :usd]}])
+     =>
+     \"Calculation Steps
+      ================
+      1. Initial holdings:  1,000 HASH
+      2. Convert to USD:    $32.00 USD
+      3. Add cash:          $42.00 USD\""
+  [steps]
+  (let [numbered (map-indexed
+                  (fn [idx {:keys [desc value]}]
+                    (str (inc idx) ". " desc ": " (format-token value)))
+                  steps)]
+    (str/join "\n"
+              (concat ["Calculation Steps"
+                       "================"]
+                      numbered))))
+```
+
+**Acceptance Criteria**:
+- [ ] `format-portfolio-summary` generates readable tables
+- [ ] `format-rate-comparison` compares rates clearly
+- [ ] `format-calculation-steps` formats step-by-step output
+- [ ] All helpers use `format-token` for consistency
+- [ ] Unit tests for all helpers
+- [ ] Exported in `token-conversion-fns` map
+
+### Task 3E.3: Documentation Updates
+
+**Files to Update**:
+- [ ] `src/nrepl_mcp_server/mcp_server/tools/calculate.clj` - Add format-token to function list and examples
+- [ ] `docs/calculator-ai-test-scenarios.md` - Add formatting test scenarios
+- [ ] Update MCP tool description with formatting examples
+
+**New Scenarios to Add** (calculator-ai-test-scenarios.md):
+```markdown
+### Scenario 71: Token Formatting - Scientific Notation Fix
+**Description**: Format large nhash amount without scientific notation
+**Expected AI Behavior**:
+1. Use calculate tool
+2. Call: (format-token [17500000000004030 :nhash])
+3. Verify result: "17,500,000,000,004,030 NHASH"
+
+**Expected Result**: "17,500,000,000,004,030 NHASH"
+**Pass Criteria**: No scientific notation, thousands separators, uppercase unit
+
+### Scenario 72: Token Formatting - Component Map
+**Description**: Get formatted components for charting
+**Expected AI Behavior**:
+1. Use calculate tool
+2. Call: (format-token [123456.78 :usd] {:components true})
+3. Verify result has keys: :amt, :token-symbol, :token-char, :formatted, :raw-amount
+
+**Expected Result**: Map with all component fields
+**Pass Criteria**: Component map contains correct values and formatting
+
+### Scenario 73: Portfolio Summary Formatting
+**Description**: Format portfolio holdings as readable table
+**Expected AI Behavior**:
+1. Use calculate tool
+2. Call: (format-portfolio-summary [[1000 :hash] [10 :usd]] :usd [[:/ [0.032 :usd] [1 :hash]]])
+3. Verify result contains formatted table with total
+
+**Expected Result**: Multi-line table with summary
+**Pass Criteria**: Table has headers, individual lines, separator, and total
+```
+
+**Acceptance Criteria**:
+- [ ] Tool description includes format-token and helpers
+- [ ] At least 3 new AI test scenarios added
+- [ ] MCP description shows component map usage
+- [ ] All documentation consistent
+
+### Implementation Timeline
+
+| Task | Estimated Time | Dependencies |
+|------|----------------|--------------|
+| 3E.1: format-token function | 2h | Phase 3B (token amounts) |
+| 3E.2: Helper functions | 1-1.5h | 3E.1 |
+| 3E.3: Documentation | 0.5-1h | 3E.1, 3E.2 |
+| **Total** | **3.5-4.5h** | |
+
+**Estimated Calendar Time**: 0.5-1 day focused work
+
+### Success Criteria
+
+**Technical Requirements**:
+- [ ] format-token eliminates scientific notation
+- [ ] Thousands separators work correctly
+- [ ] Auto-decimals logic is smart and useful
+- [ ] Component map has all required fields
+- [ ] Helper functions generate readable output
+- [ ] All unit tests passing
+- [ ] Code formatted and linted
+
+**User Experience Requirements**:
+- [ ] Output is human-readable
+- [ ] Currency symbols appear appropriately
+- [ ] Component maps work in tables/charts
+- [ ] Helper functions reduce boilerplate
+- [ ] AI test scenarios pass (>90%)
+
+**Code Quality Requirements**:
+- [ ] Code formatted with cljfmt
+- [ ] clj-kondo shows no warnings
+- [ ] Comprehensive test coverage (>90%)
+- [ ] Documentation complete and accurate
+
 ### Status
 
-**Current**: ✅ **PHASE 3C.1 COMPLETED** (2025-11-15)
-**Implementation**: portfolio-value with normalize + registry approach
-**Next**: Phase 3D.1 rate convenience constructor OR testing Phase 3C.1
+**Current**: ✅ **PHASE 3D.1 COMPLETED** (2025-11-15)
+**Implementation**: rate convenience constructor with natural syntax
+**Next**: Phase 3E token formatting utilities
