@@ -1524,61 +1524,99 @@ To improve ergonomics while keeping mathematical correctness, add a `rate` helpe
 3. **Debugging**: Understand intermediate calculation steps
 4. **Charting/Tables**: Structured components for visualization
 
-### Core Function: format-token
+### Core Functions
 
-**Function Signature**:
+**Primary API - Generic `format` Function**:
+```clojure
+;; Auto-detects token amounts vs exchange rates
+(format value)
+(format value options)
+```
+
+**Underlying Implementations**:
 ```clojure
 (format-token token-tuple)
 (format-token token-tuple options)
+
+(format-rate rate-tuple)
+(format-rate rate-tuple options)
 ```
 
 **Design Philosophy**:
+- **Auto-detection** - Generic `format` automatically detects type (token vs rate)
 - **Human-readable by default** - No scientific notation, appropriate decimals
 - **Flexible output** - String OR component map for different use cases
 - **Smart defaults** - Auto-decimals based on amount size and unit type
 - **Configurable** - Options map controls all formatting aspects
 
+**Type Detection**:
+- **2-element vector** `[amount unit]` → Token amount (uses `format-token`)
+- **3-element vector** `[:/ [num unit] [denom unit]]` → Exchange rate (uses `format-rate`)
+
 #### String Output (Default)
 
-**Basic Usage**:
+**Token Amounts**:
 ```clojure
-;; Scientific notation → thousands separators
-(format-token [1.750000000000403E7 "hash"])
+;; Generic format - auto-detects token amount
+(format [1.750000000000403E7 "hash"])
 => "17,500,000 HASH"
 
-;; Auto-decimals for currency
-(format-token [32.156789 :usd])
+(format [32.156789 :usd])
 => "$32.16 USD"
 
-;; Tiny amounts - show more precision
-(format-token [0.00000123 :btc])
+(format [0.00000123 :btc])
 => "0.00000123 BTC"
 
-;; Large whole numbers - no unnecessary decimals
-(format-token [1000000 :hash])
+(format [1000000 :hash])
 => "1,000,000 HASH"
+
+;; Can also call format-token directly
+(format-token [1000 :hash])
+=> "1,000 HASH"
 ```
 
-**Controlled Formatting**:
+**Exchange Rates**:
+```clojure
+;; Generic format - auto-detects rate
+(format [:/ [0.032 :usd] [1 :hash]])
+=> "$0.032 per HASH"
+
+(format [:/ [31.25 :hash] [1 :usd]])
+=> "31.25 HASH per USD"
+
+;; Non-normalized rates auto-normalize
+(format [:/ [0.064 :usd] [2 :hash]])
+=> "$0.032 per HASH"
+
+;; Can also call format-rate directly
+(format-rate [:/ [0.032 :usd] [1 :hash]])
+=> "$0.032 per HASH"
+```
+
+**Controlled Formatting** (works for both tokens and rates):
 ```clojure
 ;; Override decimal places
-(format-token [1234567.89 :usd] {:decimals 0})
+(format [1234567.89 :usd] {:decimals 0})
 => "$1,234,568 USD"
 
-(format-token [1234567.89 :usd] {:decimals 4})
+(format [1234567.89 :usd] {:decimals 4})
 => "$1,234,567.8900 USD"
 
 ;; Disable currency symbol
-(format-token [1000000 :usd] {:symbol false})
+(format [1000000 :usd] {:symbol false})
 => "1,000,000 USD"
 
 ;; Lowercase unit symbol
-(format-token [1000000 :hash] {:uppercase false})
+(format [1000000 :hash] {:uppercase false})
 => "1,000,000 hash"
 
 ;; Custom separators (European format)
-(format-token [1234.56 :eur] {:thousands-sep "." :decimal-sep ","})
+(format [1234.56 :eur] {:thousands-sep "." :decimal-sep ","})
 => "€1.234,56 EUR"
+
+;; Works for rates too
+(format [:/ [0.032 :usd] [1 :hash]] {:symbol false})
+=> "0.032 USD per HASH"
 ```
 
 #### Component Map Output (for Charts/Tables)
@@ -1604,6 +1642,7 @@ To improve ergonomics while keeping mathematical correctness, add a `rate` helpe
 ```
 
 **Benefits**:
+- **Type discrimination** - `:type` field identifies token vs rate
 - **Flexibility** - Components can be rearranged for UI needs
 - **Consistency** - All components use same formatting rules
 - **Reusability** - Components work in charts, tables, reports

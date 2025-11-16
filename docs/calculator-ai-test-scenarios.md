@@ -1039,6 +1039,156 @@ Failed Scenarios:
 
 ---
 
+## Phase 3B: Token Conversion Scenarios (Type-Safe Units)
+
+### Scenario 97: Basic Token Conversion with Keywords
+
+**User Request**: "Convert 1000 hash tokens to USD at a rate of 0.032 USD per hash"
+
+**Expected AI Behavior**:
+1. Recognize token conversion need
+2. Use `token-convert` with tuple-based amounts
+3. Use keyword syntax (no JSON escaping needed)
+4. Construct expression: `(token-convert [1000 :hash] :usd [/ [0.032 :usd] [1 :hash]])`
+
+**Pass Criteria**: Result is `[32.0 :usd]`
+
+**Notes**: Tests basic token conversion with keyword format
+
+### Scenario 98: Format Preservation - String Output
+
+**User Request**: "Convert 500 hash to USD using lowercase string format for the output"
+
+**Expected AI Behavior**:
+1. Use `token-convert` with string output format
+2. Construct expression: `(token-convert [500 :hash] "usd" [/ [0.032 :usd] [1 :hash]])`
+
+**Pass Criteria**: Result is `[16.0 "usd"]` (string, not keyword)
+
+**Notes**: Tests format preservation - output matches caller's format
+
+### Scenario 99: Format Preservation - Uppercase String Output
+
+**User Request**: "Convert 2000 hash to USD using uppercase formatting"
+
+**Expected AI Behavior**:
+1. Use uppercase string for output format
+2. Construct expression: `(token-convert [2000 :hash] "USD" [/ [0.032 :usd] [1 :hash]])`
+
+**Pass Criteria**: Result is `[64.0 "USD"]` (uppercase string preserved)
+
+**Notes**: Tests case preservation in output format
+
+### Scenario 100: Inferred Target Conversion (2-arity)
+
+**User Request**: "Convert 10 USD back to hash tokens using the same rate"
+
+**Expected AI Behavior**:
+1. Use 2-arity form to infer target from rate
+2. Construct expression: `(token-convert [10 :usd] [/ [0.032 :usd] [1 :hash]])`
+
+**Pass Criteria**: Result is `[312.5 :hash]` (inferred from rate)
+
+**Notes**: Tests 2-arity form with target inference
+
+### Scenario 101: Format Preservation from Rate (2-arity)
+
+**User Request**: "Convert 50 USD to hash, and I want the output in uppercase format"
+
+**Expected AI Behavior**:
+1. Use 2-arity form with uppercase in rate
+2. Construct expression: `(token-convert [50 :usd] [/ [0.032 :usd] [1 "HASH"]])`
+
+**Pass Criteria**: Result is `[1562.5 "HASH"]` (preserves rate's format)
+
+**Notes**: Tests format preservation in 2-arity form from rate's unit
+
+### Scenario 102: Case Insensitivity in Matching
+
+**User Request**: "Convert 100 hash to USD where the rate uses mixed case units"
+
+**Expected AI Behavior**:
+1. Use mixed case units in rate (should work due to normalization)
+2. Construct expression: `(token-convert [100 :hash] :usd [/ [0.032 "USD"] [1 "Hash"]])`
+
+**Pass Criteria**: Result is `[3.2 :usd]` (case doesn't matter for matching)
+
+**Notes**: Tests case-insensitive unit matching
+
+### Scenario 103: Rate Inversion
+
+**User Request**: "I have a rate of 0.032 USD per hash. What's the inverse rate?"
+
+**Expected AI Behavior**:
+1. Use `invert-rate` function
+2. Construct expression: `(invert-rate [/ [0.032 :usd] [1 :hash]])`
+
+**Pass Criteria**: Result is `[/ [31.25 :hash] [1 :usd]]`
+
+**Notes**: Tests rate inversion utility
+
+### Scenario 104: Multi-Hop Rate Composition
+
+**User Request**: "Compose a hash-to-USD rate and a USD-to-BTC rate to get hash-to-BTC"
+
+**Expected AI Behavior**:
+1. Use `compose-rates` function
+2. Construct expression: `(compose-rates [/ [0.032 :usd] [1 :hash]] [/ [0.00001 :btc] [1 :usd]])`
+
+**Pass Criteria**: Result is `[/ [0.00000032 :btc] [1 :hash]]`
+
+**Notes**: Tests rate composition for multi-hop conversions
+
+### Scenario 105: Token Amount Validation
+
+**User Request**: "Check if [1000 :hash] is a valid token amount"
+
+**Expected AI Behavior**:
+1. Use `token-amount?` predicate
+2. Construct expression: `(token-amount? [1000 :hash])`
+
+**Pass Criteria**: Result is `true`
+
+**Notes**: Tests token amount validation with keyword
+
+### Scenario 106: Token Amount Validation - String Unit
+
+**User Request**: "Verify that [500 \"btc\"] is a valid token amount"
+
+**Expected AI Behavior**:
+1. Use `token-amount?` with string unit
+2. Construct expression: `(token-amount? [500 "btc"])`
+
+**Pass Criteria**: Result is `true`
+
+**Notes**: Tests token amount validation with string unit
+
+### Scenario 107: Extract Unit from Token Amount
+
+**User Request**: "What's the unit of the token amount [1000 :hash]?"
+
+**Expected AI Behavior**:
+1. Use `get-unit` function
+2. Construct expression: `(get-unit [1000 :hash])`
+
+**Pass Criteria**: Result is `:hash` (normalized to keyword)
+
+**Notes**: Tests unit extraction (always returns normalized keyword internally)
+
+### Scenario 108: Extract Amount from Token Tuple
+
+**User Request**: "Extract just the numeric amount from [2500 :usd]"
+
+**Expected AI Behavior**:
+1. Use `get-amount` function
+2. Construct expression: `(get-amount [2500 :usd])`
+
+**Pass Criteria**: Result is `2500`
+
+**Notes**: Tests amount extraction from token tuple
+
+---
+
 ## Notes for Continuous Improvement
 
 As the calculator tool evolves:
@@ -1048,4 +1198,4 @@ As the calculator tool evolves:
 - Document any scenario-specific edge cases discovered
 - Use failure patterns to improve tool description
 
-**Last Updated**: 2025-11-15 (Phase 3A: Added 36 scenarios for new functions - formatting, financial, date/time, crypto, DeFi, enhanced errors)
+**Last Updated**: 2025-01-15 (Phase 3B: Added 12 scenarios for token conversion with format preservation - keywords, strings, case insensitivity, rate utilities)
