@@ -85,7 +85,10 @@
 - Solving geometry problems (areas, volumes, distances, angles)
 - Financial calculations (ROI, interest, percentages, market share)
 - DeFi operations (impermanent loss, slippage, staking, liquidation)
-- Cryptocurrency conversions (wei/ether, sats/btc, token units)
+- **Portfolio valuation** - Calculate total value of multiple token holdings in target currency
+- **Token conversions** - Convert between cryptocurrencies or tokens with exchange rates
+- **Exchange rate operations** - Invert rates, compose multi-hop conversions, normalize rates
+- Cryptocurrency unit conversions (wei/ether, sats/btc, hash/nhash, token units)
 - Date/time calculations (unix timestamps, days between, lock periods)
 - Number formatting (commas, rounding, scientific notation)
 - Physics/engineering formulas (forces, velocities, trajectories)
@@ -152,10 +155,33 @@
   - Internal normalization: :usd = \"usd\" = \"USD\" (all equivalent)
 
 **Exchange Rates (Division Notation):**
-  Rates use explicit division: [/ [numerator :unit1] [denominator :unit2]]
-  - [/ [0.032 :usd] [1 :hash]] means \"0.032 USD per 1 hash\"
-  - [/ [31.25 :hash] [1 :usd]] means \"31.25 hash per 1 USD\"
+  Rates use explicit division: [:/ [numerator :unit1] [denominator :unit2]]
+  - [:/ [0.032 :usd] [1 :hash]] means \"0.032 USD per 1 hash\"
+  - [:/ [31.25 :hash] [1 :usd]] means \"31.25 hash per 1 USD\"
+  - Use :/ keyword (no quoting!) or '/ (quoted) or \"/\" (string)
   - **Format preservation**: 3-arity returns caller's format, 2-arity returns rate's format
+
+**WHICH FUNCTION TO USE:**
+  - **rate()** - EASIEST: Create rates with natural syntax
+    → (rate 0.032 :usd :per :hash) instead of [:/ [0.032 :usd] [1 :hash]]
+
+  - **token-convert()** - Convert SINGLE amount between units
+    → Use when: Converting one token amount to another unit
+    → Example: \"How much is 1000 hash in USD?\"
+
+  - **portfolio-value()** - Convert MULTIPLE amounts to single currency
+    → Use when: Calculating total portfolio value across multiple holdings
+    → Example: \"What's my total USD value if I have 1000 hash, 5E7 nhash, and 10 USD?\"
+    → Features: Auto-matches rates, handles bidirectional conversion, uses compatible-units registry
+
+  - **invert-rate()** - Flip exchange rate direction
+    → Use when: Have USD→hash rate but need hash→USD
+
+  - **compose-rates()** - Chain rates for multi-hop conversion
+    → Use when: Need to convert through intermediate currency (hash→usd→btc)
+
+  - **normalize-rate()** - Convert rate to denominator = 1
+    → Use when: Need standard form for comparison or storage
 
 **Conversion Examples (keyword syntax - no escaping!):**
   ;; Convert 1000 hash to USD (keyword output)
