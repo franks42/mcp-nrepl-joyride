@@ -152,55 +152,76 @@
 
 (deftest token-conversion-from-denominator
   (testing "Convert FROM denominator TO numerator (multiply by rate)"
-    ;; [1000 "hash"] × [/ [0.032 "usd"] [1 "hash"]] → [32.0 :usd]
+    ;; [1000 "hash"] × [/ [0.032 "usd"] [1 "hash"]] → [32.0 "usd"]
     (let [result (calc/token-convert [1000 "hash"] "usd" ['/ [0.032 "usd"] [1 "hash"]])]
       (is (vector? result))
       (is (= 2 (count result)))
       (is (= 32.0 (first result)))
-      (is (= :usd (second result))))))  ; Returns keyword!
+      (is (= "usd" (second result))))))  ; Preserves target format!
 
-(deftest token-conversion-keyword-support
-  (testing "Conversion with keyword units (no escaping needed!)"
-    ;; [1000 :hash] × [/ [0.032 :usd] [1 :hash]] → [32.0 :usd]
-    (let [result (calc/token-convert [1000 :hash] :usd ['/ [0.032 :usd] [1 :hash]])]
+(deftest token-conversion-format-preservation
+  (testing "Output format matches caller's target format specification"
+    ;; Keyword target → keyword output
+    (let [result (calc/token-convert [1000 :hash] :usd ['/ [0.032 "usd"] [1 "hash"]])]
       (is (= 32.0 (first result)))
-      (is (= :usd (second result)))))
-
-  (testing "Mixed string/keyword inputs normalize to keywords"
-    ;; String input, keyword rate → keyword output
-    (let [result (calc/token-convert [1000 "hash"] :usd ['/ [0.032 :usd] [1 :hash]])]
       (is (= :usd (second result))))
 
-    ;; Keyword input, string rate → keyword output
-    (let [result (calc/token-convert [1000 :hash] "usd" ['/ [0.032 "usd"] [1 "hash"]])]
+    ;; Lowercase string target → lowercase string output
+    (let [result (calc/token-convert [1000 :hash] "usd" ['/ [0.032 :usd] [1 :hash]])]
+      (is (= 32.0 (first result)))
+      (is (= "usd" (second result))))
+
+    ;; Uppercase string target → uppercase string output
+    (let [result (calc/token-convert [1000 :hash] "USD" ['/ [0.032 :usd] [1 :hash]])]
+      (is (= 32.0 (first result)))
+      (is (= "USD" (second result)))))
+
+  (testing "2-arity form preserves format from rate"
+    ;; Rate has keyword → output is keyword
+    (let [result (calc/token-convert [1000 :hash] ['/ [0.032 :usd] [1 :hash]])]
       (is (= :usd (second result))))
 
-    ;; All strings → keyword output
-    (let [result (calc/token-convert [1000 "hash"] "usd" ['/ [0.032 "usd"] [1 "hash"]])]
-      (is (= :usd (second result))))))
+    ;; Rate has lowercase string → output is lowercase string
+    (let [result (calc/token-convert [1000 :hash] ['/ [0.032 "usd"] [1 :hash]])]
+      (is (= "usd" (second result))))
+
+    ;; Rate has uppercase string → output is uppercase string
+    (let [result (calc/token-convert [1000 :hash] ['/ [0.032 "USD"] [1 :hash]])]
+      (is (= "USD" (second result)))))
+
+  (testing "All format variations are equivalent (conversion = 1)"
+    ;; :usd and "usd" are the same unit
+    (let [r1 (calc/token-convert [1000 :hash] :usd ['/ [0.032 :usd] [1 :hash]])
+          r2 (calc/token-convert [1000 :hash] "usd" ['/ [0.032 "usd"] [1 :hash]])]
+      (is (= (first r1) (first r2))))  ; Same amount
+
+    ;; "usd" and "USD" are the same unit
+    (let [r1 (calc/token-convert [1000 :hash] "usd" ['/ [0.032 "usd"] [1 :hash]])
+          r2 (calc/token-convert [1000 :hash] "USD" ['/ [0.032 "USD"] [1 :hash]])]
+      (is (= (first r1) (first r2))))))
 
 (deftest token-conversion-from-numerator
   (testing "Convert FROM numerator TO denominator (divide by rate)"
-    ;; [10 "usd"] ÷ [/ [0.032 "usd"] [1 "hash"]] → [312.5 :hash]
+    ;; [10 "usd"] ÷ [/ [0.032 "usd"] [1 "hash"]] → [312.5 "hash"]
     (let [result (calc/token-convert [10 "usd"] "hash" ['/ [0.032 "usd"] [1 "hash"]])]
       (is (vector? result))
       (is (= 2 (count result)))
       (is (= 312.5 (first result)))
-      (is (= :hash (second result))))))
+      (is (= "hash" (second result))))))
 
 (deftest token-conversion-inferred-target
-  (testing "Infer target from rate (2-arity signature)"
-    ;; [1000 "hash"] with rate [/ [0.032 "usd"] [1 "hash"]] → infer :usd
+  (testing "Infer target from rate (2-arity signature) - preserves rate format"
+    ;; [1000 "hash"] with rate [/ [0.032 "usd"] [1 "hash"]] → infer "usd"
     (let [result (calc/token-convert [1000 "hash"] ['/ [0.032 "usd"] [1 "hash"]])]
       (is (vector? result))
       (is (= 32.0 (first result)))
-      (is (= :usd (second result))))
+      (is (= "usd" (second result))))
 
-    ;; [10 "usd"] with rate [/ [0.032 "usd"] [1 "hash"]] → infer :hash
+    ;; [10 "usd"] with rate [/ [0.032 "usd"] [1 "hash"]] → infer "hash"
     (let [result (calc/token-convert [10 "usd"] ['/ [0.032 "usd"] [1 "hash"]])]
       (is (vector? result))
       (is (= 312.5 (first result)))
-      (is (= :hash (second result))))))
+      (is (= "hash" (second result))))))
 
 (deftest token-conversion-error-handling
   (testing "Invalid rate throws error"
@@ -275,22 +296,22 @@
           usd-btc ['/ [0.00001 "btc"] [1 "usd"]]
           hash-btc (calc/compose-rates hash-usd usd-btc)
 
-          ;; Convert 1000 hash → btc
+          ;; Convert 1000 hash → btc (preserves format from composed rate)
           result (calc/token-convert [1000 "hash"] hash-btc)]
       (is (= 0.00032 (first result)))
-      (is (= :btc (second result))))))
+      (is (= "btc" (second result))))))  ; String from composed rate
 
 (deftest integration-bidirectional-conversion
   (testing "Conversion is reversible"
     (let [rate ['/ [0.032 "usd"] [1 "hash"]]
 
-          ;; hash → usd
+          ;; hash → usd (preserves format from rate)
           usd-result (calc/token-convert [1000 "hash"] rate)
 
-          ;; usd → hash (using inverted rate)
+          ;; usd → hash (using inverted rate, preserves format)
           hash-result (calc/token-convert usd-result (calc/invert-rate rate))]
       (is (= 1000.0 (first hash-result)))
-      (is (= :hash (second hash-result))))))
+      (is (= "hash" (second hash-result))))))
 
 ;;=============================================================================
 ;; Real-World Scenarios
@@ -303,21 +324,21 @@
     (let [nhash-hash ['/ [1 "hash"] [1000000000 "nhash"]]
           hash-usd ['/ [0.032 "usd"] [1 "hash"]]
 
-          ;; Step 1: nhash → hash
+          ;; Step 1: nhash → hash (preserves format from rate)
           hash-amount (calc/token-convert [17500000 "nhash"] nhash-hash)
 
-          ;; Step 2: hash → usd
+          ;; Step 2: hash → usd (preserves format from rate)
           usd-amount (calc/token-convert hash-amount hash-usd)]
       ;; Use approximate comparison due to floating point
       (is (< (Math/abs (- 0.00056 (first usd-amount))) 0.00001))
-      (is (= :usd (second usd-amount))))))
+      (is (= "usd" (second usd-amount))))))
 
 (deftest real-world-btc-sats-conversion
   (testing "Convert 1.5 BTC to satoshis"
     (let [btc-sats ['/ [100000000 "sats"] [1 "btc"]]
           result (calc/token-convert [1.5 "btc"] btc-sats)]
       (is (= 150000000.0 (first result)))
-      (is (= :sats (second result))))))
+      (is (= "sats" (second result))))))
 
 (deftest real-world-eth-wei-conversion
   (testing "Convert 2.5 ETH to wei"
@@ -325,4 +346,4 @@
           result (calc/token-convert [2.5 "eth"] eth-wei)]
       ;; Result is a double, check it's close to expected
       (is (< (Math/abs (- 2.5E18 (first result))) 1E10))
-      (is (= :wei (second result))))))
+      (is (= "wei" (second result))))))

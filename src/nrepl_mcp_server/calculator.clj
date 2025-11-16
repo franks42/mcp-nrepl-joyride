@@ -528,18 +528,21 @@
 ;; Unit Normalization
 
 (defn normalize-unit
-  "Convert string or keyword to keyword for consistent unit handling.
+  "Convert string or keyword to lowercase keyword for consistent unit handling.
    Accepts both for flexibility:
-   - Keywords: easier typing, no escaping (e.g., :usd, :hash, :btc)
-   - Strings: compatibility with external data (e.g., \"usd\", \"hash\", \"btc\")
+   - Keywords: easier typing, no escaping (e.g., :usd, :USD, :hash)
+   - Strings: compatibility with external data (e.g., \"usd\", \"USD\", \"hash\")
+   All normalized to lowercase keywords for comparison.
 
    Examples:
      (normalize-unit :usd)   => :usd
-     (normalize-unit \"usd\") => :usd"
+     (normalize-unit :USD)   => :usd
+     (normalize-unit \"usd\") => :usd
+     (normalize-unit \"USD\") => :usd"
   [unit]
   (cond
-    (keyword? unit) unit
-    (string? unit) (keyword unit)
+    (keyword? unit) (keyword (.toLowerCase (name unit)))
+    (string? unit) (keyword (.toLowerCase unit))
     :else (throw (ex-info "Unit must be string or keyword"
                           {:unit unit
                            :type (type unit)}))))
@@ -632,13 +635,15 @@
     (token-convert [10 'usd'] [/ [0.032 'usd'] [1 'hash']])
     => [312.5 'hash']"
 
-  ;; Two-arity: infer target from rate
+  ;; Two-arity: infer target from rate, preserve rate's unit format
   ([amount-tuple rate]
-   (let [[_ num denom] rate
-         from-unit (get-unit amount-tuple)
-         to-unit (if (= from-unit (get-unit denom))
-                   (get-unit num)
-                   (get-unit denom))]
+   (let [[_ [_ num-unit] [_ denom-unit]] rate
+         from-unit-norm (get-unit amount-tuple)
+         ;; Infer target AND preserve its original format from rate
+         target-unit (if (= from-unit-norm (normalize-unit denom-unit))
+                       num-unit    ; FROM denom → TO num (preserve num format)
+                       denom-unit) ; FROM num → TO denom (preserve denom format)
+         to-unit target-unit]
      (token-convert amount-tuple to-unit rate)))
 
   ;; Three-arity: explicit validation
@@ -652,7 +657,7 @@
      (when-not (:valid validation)
        (throw (ex-info "Invalid rate" validation))))
 
-   ;; Extract and normalize all components
+   ;; Extract and normalize all components for comparison
    (let [[amount from-unit] amount-tuple
          from-unit-norm (normalize-unit from-unit)
          [_ [num-amt num-unit] [denom-amt denom-unit]] rate
@@ -666,15 +671,15 @@
                        {:target to-unit-norm
                         :rate-units [num-unit-norm denom-unit-norm]})))
 
-     ;; Perform conversion (using normalized units for comparison and output)
+     ;; Perform conversion (normalized for comparison, preserve to-unit format in output)
      (cond
        ;; FROM denominator TO numerator: multiply by (num/denom)
        (and (= from-unit-norm denom-unit-norm) (= to-unit-norm num-unit-norm))
-       [(*' amount (/ num-amt denom-amt)) num-unit-norm]
+       [(*' amount (/ num-amt denom-amt)) to-unit]  ; Preserve caller's format!
 
        ;; FROM numerator TO denominator: divide by (num/denom)
        (and (= from-unit-norm num-unit-norm) (= to-unit-norm denom-unit-norm))
-       [(*' amount (/ denom-amt num-amt)) denom-unit-norm]
+       [(*' amount (/ denom-amt num-amt)) to-unit]  ; Preserve caller's format!
 
        :else
        (throw (ex-info "Units don't match rate"
