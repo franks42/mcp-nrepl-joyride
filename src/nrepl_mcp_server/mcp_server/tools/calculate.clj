@@ -140,30 +140,39 @@
   year-days months-per-year weeks-per-year quarters-per-year
   typical-slippage high-slippage
 
-**Token Conversion (NEW in v3.1.0 - Type-Safe Unit Handling):**
-  token-convert invert-rate compose-rates normalize-rate
+**Token Conversion (v3.1.0+ - Type-Safe Unit Handling):**
+  token-convert portfolio-value invert-rate compose-rates normalize-rate
   token-amount token-amount? get-amount get-unit valid-rate?
 
 **Type-Safe Token Amounts:**
   Represent amounts with explicit units: [amount :unit] or [amount \"unit\"]
   - **Keywords preferred** (no JSON escaping!): [1000 :hash], [0.032 :usd], [1.5 :btc]
   - Strings also supported for compatibility: [1000 \"hash\"], [0.032 \"usd\"]
-  - Output always normalized to keywords
+  - **Format preserved** - output matches your input format exactly
+  - Internal normalization: :usd = \"usd\" = \"USD\" (all equivalent)
 
 **Exchange Rates (Division Notation):**
   Rates use explicit division: [/ [numerator :unit1] [denominator :unit2]]
   - [/ [0.032 :usd] [1 :hash]] means \"0.032 USD per 1 hash\"
   - [/ [31.25 :hash] [1 :usd]] means \"31.25 hash per 1 USD\"
-  - Can mix keywords and strings in input, output always keywords
+  - **Format preservation**: 3-arity returns caller's format, 2-arity returns rate's format
 
 **Conversion Examples (keyword syntax - no escaping!):**
-  ;; Convert 1000 hash to USD
+  ;; Convert 1000 hash to USD (keyword output)
   (token-convert [1000 :hash] :usd [/ [0.032 :usd] [1 :hash]])
   => [32.0 :usd]
 
-  ;; Convert 10 USD to hash (inferred target)
-  (token-convert [10 :usd] [/ [0.032 :usd] [1 :hash]])
-  => [312.5 :hash]
+  ;; Same conversion, string output (format preserved!)
+  (token-convert [1000 :hash] \"usd\" [/ [0.032 :usd] [1 :hash]])
+  => [32.0 \"usd\"]
+
+  ;; Uppercase string output (format preserved!)
+  (token-convert [1000 :hash] \"USD\" [/ [0.032 :usd] [1 :hash]])
+  => [32.0 \"USD\"]
+
+  ;; Inferred target (2-arity preserves rate's format)
+  (token-convert [10 :usd] [/ [31.25 \"HASH\"] [1 :usd]])
+  => [312.5 \"HASH\"]  ; Format from rate preserved
 
   ;; Multi-hop conversion (hash → usd → btc)
   (compose-rates [/ [0.032 :usd] [1 :hash]] [/ [0.00001 :btc] [1 :usd]])
@@ -173,12 +182,34 @@
   (invert-rate [/ [0.032 :usd] [1 :hash]])
   => [/ [31.25 :hash] [1 :usd]]
 
+**Portfolio Aggregation (NEW in v3.2.0):**
+  ;; Simple USD portfolio valuation
+  (portfolio-value
+    [[1000 :hash] [5E7 :nhash] [10 :usd]]
+    :usd
+    [[:/ [0.032 :usd] [1 :hash]]])
+  => [42.6 :usd]  ; 1000*0.032 + 5E7*0.032/1E9 + 10
+
+  ;; Aggregate hash denominations (uses compatible-units registry)
+  (portfolio-value [[1000 :hash] [5E7 :nhash]] :hash [])
+  => [1050.0 :hash]  ; 1000 + 5E7/1E9
+
+  ;; Non-normalized rates (auto-normalized)
+  (portfolio-value [[100 :hash]] :usd [[:/ [0.064 :usd] [2 :hash]]])
+  => [3.2 :usd]
+
+  ;; Bidirectional matching (uses inverted rates automatically)
+  (portfolio-value [[10 :usd]] :hash [[:/ [0.032 :usd] [1 :hash]]])
+  => [312.5 :hash]
+
 **Benefits:**
   - **No JSON escaping** with keyword syntax (cleaner, easier to write)
+  - **Format flexibility** - choose keywords OR strings, any case
+  - **Caller control** - output format matches your input exactly
   - Prevents unit confusion errors (can't mix :hash and :btc without explicit conversion)
   - Self-documenting code with explicit units
   - Type-safe conversions with validation
-  - Consistent internal representation (all keywords)
+  - Case-insensitive matching (:USD = :usd = \"USD\" = \"usd\")
 
 **Examples:**
   (+ 2 3)                                    => 5

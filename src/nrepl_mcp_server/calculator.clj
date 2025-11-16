@@ -589,7 +589,9 @@
   "Validate exchange rate structure and values.
    Returns {:valid true} or {:valid false :error msg}
 
-   CRITICAL: Rejects same-unit rates (e.g., [/ [2 'hash'] [1 'hash']])
+   Accepts flexible division operators: :/ (keyword), '/ (symbol), or \"/\" (string)
+
+   CRITICAL: Rejects same-unit rates (e.g., [:/ [2 :hash] [1 :hash]])
    as they are semantically nonsensical - use plain multipliers instead."
   [rate]
   (if-not (and (vector? rate)
@@ -597,8 +599,8 @@
     {:valid false :error "Rate must be a 3-element vector"}
     (let [[op num denom] rate]
       (cond
-        (not= op '/)
-        {:valid false :error "Must use / operator for rates"}
+        (not (#{:/ '/ "/"} op))
+        {:valid false :error "Must use division operator (:/, '/, or \"/\") for rates"}
 
         (not (and (token-amount? num) (token-amount? denom)))
         {:valid false :error "Rate numerator and denominator must be token amounts"}
@@ -690,44 +692,171 @@
 ;; Rate Utility Functions
 
 (defn invert-rate
-  "Invert an exchange rate (swap numerator and denominator)
+  "Invert an exchange rate (swap numerator and denominator).
+   Returns rate with :/ keyword (canonical form).
+
+   Accepts any division operator (:/, '/, \"/\").
 
    Example:
-     (invert-rate [/ [0.032 'usd'] [1 'hash']])
-     => [/ [31.25 'hash'] [1 'usd']]"
+     (invert-rate [:/ [0.032 :usd] [1 :hash]])
+     => [:/ [31.25 :hash] [1 :usd]]"
   [[_ num denom]]
-  ['/ denom num])
+  [:/ denom num])
 
 (defn compose-rates
   "Compose two rates for multi-hop conversion.
+   Returns rate with :/ keyword (canonical form).
+
+   Accepts any division operator (:/, '/, \"/\").
 
    Example: hash→usd + usd→btc = hash→btc
      (compose-rates
-       [/ [0.032 'usd'] [1 'hash']]
-       [/ [0.00001 'btc'] [1 'usd']])
-     => [/ [0.00000032 'btc'] [1 'hash']]"
+       [:/ [0.032 :usd] [1 :hash]]
+       [:/ [0.00001 :btc] [1 :usd]])
+     => [:/ [0.00000032 :btc] [1 :hash]]"
   [[_ [num1 unit1] [denom1 unit1-denom]]
    [_ [num2 unit2] [denom2 unit2-denom]]]
   (when-not (= unit1 unit2-denom)
     (throw (ex-info "Cannot compose rates - units don't chain"
                     {:rate1-numerator unit1
                      :rate2-denominator unit2-denom})))
-  ['/ [(*' num1 num2) unit2] [(*' denom1 denom2) unit1-denom]])
+  [:/ [(*' num1 num2) unit2] [(*' denom1 denom2) unit1-denom]])
 
 (defn normalize-rate
-  "Normalize rate to have denominator = 1
+  "Normalize rate to have denominator = 1.
+   Returns rate with :/ keyword (canonical form).
+
+   Accepts any division operator (:/, '/, \"/\").
 
    Example:
-     (normalize-rate [/ [3.2 'usd'] [100 'hash']])
-     => [/ [0.032 'usd'] [1 'hash']]"
+     (normalize-rate [:/ [3.2 :usd] [100 :hash]])
+     => [:/ [0.032 :usd] [1 :hash]]"
   [[_ [num-amt num-unit] [denom-amt denom-unit]]]
   (if (= 1 denom-amt)
-    ['/ [num-amt num-unit] [denom-amt denom-unit]]
-    ['/ [(/ num-amt denom-amt) num-unit] [1 denom-unit]]))
+    [:/ [num-amt num-unit] [denom-amt denom-unit]]
+    [:/ [(/ num-amt denom-amt) num-unit] [1 denom-unit]]))
+
+;; Compatible Units Registry
+;; Defines which units can be converted between for same-token denominations
+(def compatible-units
+  "Registry of compatible unit conversions for same-token denominations.
+   Maps normalized unit pairs to conversion rates."
+  {#{:hash :nhash} [:/ [1 :hash] [1000000000 :nhash]]
+   #{:btc :sats}   [:/ [1 :btc] [100000000 :sats]]})
+
+(defn- find-compatible-rate
+  "Find conversion rate between compatible units (e.g., hash/nhash, btc/sats).
+   Returns normalized rate or nil if units are not compatible."
+  [from-unit to-unit]
+  (let [from-norm (normalize-unit from-unit)
+        to-norm (normalize-unit to-unit)
+        unit-set #{from-norm to-norm}]
+    (when-let [rate (get compatible-units unit-set)]
+      ;; Return rate in correct direction
+      (let [[_ [_ num-unit] [_ denom-unit]] rate
+            num-unit-norm (normalize-unit num-unit)
+            denom-unit-norm (normalize-unit denom-unit)]
+        (if (and (= from-norm denom-unit-norm) (= to-norm num-unit-norm))
+          rate  ; Already correct direction
+          (invert-rate rate)))))) ; Need to invert
+
+(defn portfolio-value
+  "Calculate total portfolio value by converting multiple token holdings to target currency.
+
+   Arguments:
+     holdings - Vector of token amounts: [[1000 :hash] [5E7 :nhash] [10 :usd]]
+     to-unit - Target unit for aggregation: :usd, \"USD\", etc.
+     rates - Vector of exchange rates (any format, any normalization)
+
+   Features:
+     - Auto-normalizes all rates to denominator = 1
+     - Generates inverted rates for bidirectional matching (doubles coverage)
+     - Handles non-normalized rates: [:/ [0.064 :usd] [2 :hash]]
+     - Skips holdings already in target currency
+     - Supports compatible-units registry for same-token denominations (hash/nhash, btc/sats)
+     - Preserves target unit format in final result
+
+   Examples:
+     ;; Simple USD portfolio valuation
+     (portfolio-value
+       [[1000 :hash] [5E7 :nhash] [10 :usd]]
+       :usd
+       [[:/ [0.032 :usd] [1 :hash]]])
+     => [42.6 :usd]  ; 1000*0.032 + 5E7*0.032/1E9 + 10
+
+     ;; Aggregate hash denominations
+     (portfolio-value
+       [[1000 :hash] [5E7 :nhash]]
+       :hash
+       [])
+     => [1050.0 :hash]  ; Uses compatible-units registry
+
+     ;; Non-normalized rates
+     (portfolio-value
+       [[100 :hash]]
+       :usd
+       [[:/ [0.064 :usd] [2 :hash]]])
+     => [3.2 :usd]  ; Normalizes to [:/ [0.032 :usd] [1 :hash]]"
+  [holdings to-unit rates]
+  ;; Validate inputs
+  (when-not (vector? holdings)
+    (throw (ex-info "Holdings must be a vector of token amounts"
+                    {:provided holdings})))
+  (when-not (every? token-amount? holdings)
+    (throw (ex-info "All holdings must be valid token amounts [amount unit]"
+                    {:invalid (remove token-amount? holdings)})))
+
+  ;; Prepare rates: normalize + create inverted versions
+  (let [to-unit-norm (normalize-unit to-unit)
+        ;; Normalize all incoming rates
+        normalized-rates (map normalize-rate rates)
+        ;; Generate inverted rates for bidirectional matching
+        inverted-rates (map invert-rate normalized-rates)
+        ;; Combine both for auto-matching (doubles coverage)
+        all-rates (concat normalized-rates inverted-rates)
+
+        ;; Convert each holding to target currency
+        converted-amounts
+        (for [[amount from-unit] holdings]
+          (let [from-unit-norm (normalize-unit from-unit)]
+            (cond
+              ;; Already in target currency - use as-is
+              (= from-unit-norm to-unit-norm)
+              amount
+
+              ;; Find matching rate from provided rates
+              :else
+              (if-let [matching-rate
+                       (first
+                        (filter
+                         (fn [[_ [_ num-unit] [_ denom-unit]]]
+                           (let [num-norm (normalize-unit num-unit)
+                                 denom-norm (normalize-unit denom-unit)]
+                             (or (and (= from-unit-norm denom-norm)
+                                      (= to-unit-norm num-norm))
+                                 (and (= from-unit-norm num-norm)
+                                      (= to-unit-norm denom-norm)))))
+                         all-rates))]
+                ;; Found matching rate - use token-convert
+                (first (token-convert [amount from-unit] to-unit matching-rate))
+
+                ;; Try compatible-units registry for same-token denominations
+                (if-let [compatible-rate (find-compatible-rate from-unit to-unit)]
+                  (first (token-convert [amount from-unit] to-unit compatible-rate))
+
+                  ;; No rate found
+                  (throw (ex-info "No conversion rate found for holding"
+                                  {:holding [amount from-unit]
+                                   :target to-unit-norm
+                                   :available-rates (vec all-rates)})))))))]
+
+    ;; Sum all converted amounts and preserve target unit format
+    [(reduce +' 0 converted-amounts) to-unit]))
 
 ;; Add token conversion functions to math-fns for use in expressions
 (def token-conversion-fns
   {'token-convert token-convert
+   'portfolio-value portfolio-value
    'valid-rate? valid-rate?
    'invert-rate invert-rate
    'compose-rates compose-rates

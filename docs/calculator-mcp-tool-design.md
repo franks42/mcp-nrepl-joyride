@@ -818,64 +818,87 @@ The key insight: **The tool description IS the interface**. Make it clear, compr
 
 ---
 
-## Phase 3B: Type-Safe Token Conversion System (v3.1.0 - PLANNED)
+## Phase 3B: Type-Safe Token Conversion System (v3.1.0 - ✅ IMPLEMENTED)
 
 ### Overview
 
-**Goal**: Eliminate catastrophic unit confusion errors by implementing tuple-based token amounts with division notation for exchange rates.
+**Goal**: Eliminate catastrophic unit confusion errors by implementing tuple-based token amounts with division notation for exchange rates, plus flexible format preservation for maximum usability.
 
 **Motivation**: Real-world feedback from Claude Desktop revealed the need for type-safe token conversions:
 - Token amounts should never be bare numbers that can be confused
 - Exchange rates need clear mathematical representation
 - Conversions should be bidirectional and explicit
 - System should prevent same-unit rate nonsense
+- **NEW**: Users need control over output format (keywords vs strings, case)
+
+**Status**: ✅ Core implementation complete (keyword support + format preservation)
 
 **Related Documents**:
 - `docs/calculator-implementation-plan.md` - Implementation tasks for Phase 3B
 
 ### Core Concepts
 
-#### 1. Tuple-Based Token Amounts
+#### 1. Tuple-Based Token Amounts with Format Flexibility
 
-**Principle**: Token amounts are ALWAYS represented as `[amount "unit"]` tuples, never as bare numbers.
+**Principle**: Token amounts are ALWAYS represented as `[amount unit]` tuples, never as bare numbers. Units can be keywords or strings, with automatic normalization for internal comparison.
 
 ```clojure
 ;; ❌ BAD: Bare numbers - units unknown, catastrophic errors possible
 17500000        ; Is this hash? nhash? btc? sats? WHO KNOWS?!
 
-;; ✅ GOOD: Self-documenting tuples
-[17500000 "nhash"]
-[1000 "hash"]
-[1.5 "btc"]
-[0.032 "usd"]
+;; ✅ GOOD: Self-documenting tuples (multiple formats supported)
+[17500000 :nhash]     ; Keyword (preferred - no JSON escaping!)
+[17500000 "nhash"]    ; Lowercase string
+[17500000 "NHASH"]    ; Uppercase string (all equivalent!)
+
+[1000 :hash]          ; Keywords are idiomatic Clojure
+[1.5 "btc"]           ; Strings for compatibility
+[0.032 "USD"]         ; Uppercase for presentation
 ```
+
+**Format Equivalence**: All formats represent the same unit (conversion = 1:1)
+- `:usd`, `"usd"`, `"USD"`, `:USD` → all treated as the same unit
+- Internal comparison uses normalized lowercase keywords
+- Output format controlled by caller's input
 
 **Benefits**:
 - **Type safety** - Units cannot be confused
 - **Self-documenting** - Code is readable without context
 - **Prevents errors** - Can't accidentally mix units
 - **Enables validation** - System can check unit compatibility
+- **Format flexibility** - Keywords (no escaping) OR strings (compatibility)
+- **Caller control** - Choose your output format (keyword vs string, case)
 
 **Real-World Precedents**:
 - **Stripe API** - Always pairs amounts with currency codes
 - **F# Units of Measure** - Type-checked dimensional analysis
 - **SQL Money types** - Amount + currency as atomic type
+- **ISO 4217** - Uppercase currency codes for presentation
 
 #### 2. Division Notation for Exchange Rates
 
-**Principle**: Exchange rates are represented as explicit fractions using division notation.
+**Principle**: Exchange rates are represented as explicit fractions using division notation. Units in rates can be keywords or strings.
 
-**Format**: `[/ [numerator-amount "num-unit"] [denominator-amount "denom-unit"]]`
+**Format**: `[/ [numerator-amount unit] [denominator-amount unit]]`
 
 ```clojure
-;; Exchange rate: "0.032 USD per 1 hash"
+;; Exchange rate: "0.032 USD per 1 hash" (keyword format - preferred)
+[/ [0.032 :usd] [1 :hash]]
+
+;; Same rate with strings (also valid)
 [/ [0.032 "usd"] [1 "hash"]]
 
+;; Uppercase strings for presentation
+[/ [0.032 "USD"] [1 "HASH"]]
+
 ;; Equivalent inverse: "31.25 hash per 1 USD"
-[/ [31.25 "hash"] [1 "usd"]]
+[/ [31.25 :hash] [1 :usd]]
 
 ;; Unit conversion: "1,000,000,000 nhash per 1 hash"
-[/ [1000000000 "nhash"] [1 "hash"]]
+[/ [1000000000 :nhash] [1 :hash]]
+
+;; Mixed formats work too!
+[/ [0.032 "USD"] [1 :hash]]  ; String + keyword → both valid
 ```
 
 **Why Division Notation is Brilliant**:
@@ -884,10 +907,11 @@ The key insight: **The tool description IS the interface**. Make it clear, compr
 - **Symmetric** - Can express either direction
 - **Type-safe** - Units flow through math naturally
 - **Clear semantics** - No ambiguity about which direction
+- **Format agnostic** - Works with keywords, strings, any case
 
 #### 3. Auto-Promotion in Arithmetic
 
-**Principle**: Arithmetic operations automatically promote plain numbers to tuples when mixed with tuple-based amounts.
+**Principle**: Arithmetic operations automatically promote plain numbers to tuples when mixed with tuple-based amounts. **Format is preserved from the tuple operand.**
 
 **Auto-Promotion Hierarchy**:
 
@@ -896,17 +920,23 @@ The key insight: **The tool description IS the interface**. Make it clear, compr
 (+ 1000 2000)
 ; → 3000
 
-;; Level 2: Tuple + number (auto-promote number to same unit)
+;; Level 2: Tuple + number (auto-promote number to same unit, preserve format)
+(+ [1000 :hash] 2000)
+; → [3000 :hash]  ; Keyword preserved
+
 (+ [1000 "hash"] 2000)
-; → [3000 "hash"]
+; → [3000 "hash"]  ; Lowercase string preserved
+
+(+ [1000 "HASH"] 2000)
+; → [3000 "HASH"]  ; Uppercase string preserved
 
 ;; Level 3: Tuple + compatible tuple (auto-convert if different but compatible units)
-(+ [1000 "hash"] [5000000000 "nhash"])
-; → [1005 "hash"]  ; 5B nhash = 5 hash
+(+ [1000 :hash] [5000000000 :nhash])
+; → [1005 :hash]  ; 5B nhash = 5 hash, first operand format preserved
 
 ;; Level 4: Tuple + incompatible (error - cannot convert without rate)
-(+ [1000 "hash"] [500 "btc"])
-; → Error: Cannot add incompatible units "hash" and "btc" without conversion rate
+(+ [1000 :hash] [500 :btc])
+; → Error: Cannot add incompatible units :hash and :btc without conversion rate
 ```
 
 **Design Philosophy**:
@@ -914,8 +944,9 @@ The key insight: **The tool description IS the interface**. Make it clear, compr
 - Ergonomic - don't force tuples everywhere
 - Safe - auto-promotion only when unambiguous
 - Explicit - incompatible operations require explicit conversion
+- **Format preserving** - output matches input format (keyword/string/case)
 
-#### 4. Token Conversion Function
+#### 4. Token Conversion Function with Format Preservation
 
 **Primary Function**: `token-convert`
 
@@ -924,30 +955,58 @@ The key insight: **The tool description IS the interface**. Make it clear, compr
 ```clojure
 ;; 1. Registry-based conversion (uses predefined rates)
 (token-convert [amount from-unit] to-unit)
-(token-convert [1000 "hash"] "usd")
-; → [32.0 "usd"]  ; Uses registry rate
+(token-convert [1000 :hash] :usd)
+; → [32.0 :usd]  ; Output format matches caller's to-unit (keyword)
 
-;; 2. Inferred target (rate determines destination)
+(token-convert [1000 :hash] "usd")
+; → [32.0 "usd"]  ; Output format matches caller's to-unit (lowercase string)
+
+(token-convert [1000 :hash] "USD")
+; → [32.0 "USD"]  ; Output format matches caller's to-unit (uppercase string)
+
+;; 2. Inferred target (rate determines destination, preserves rate's format)
 (token-convert [amount from-unit] rate)
-(token-convert [10 "usd"] [/ [31.25 "hash"] [1 "usd"]])
-; → [312.5 "hash"]  ; Target inferred from rate
+(token-convert [10 :usd] [/ [31.25 :hash] [1 :usd]])
+; → [312.5 :hash]  ; Format matches rate's target unit (keyword)
 
-;; 3. Explicit validation (target must match rate)
+(token-convert [10 :usd] [/ [31.25 "hash"] [1 :usd]])
+; → [312.5 "hash"]  ; Format matches rate's target unit (lowercase string)
+
+(token-convert [10 :usd] [/ [31.25 "HASH"] [1 :usd]])
+; → [312.5 "HASH"]  ; Format matches rate's target unit (uppercase string)
+
+;; 3. Explicit validation (target must match rate, preserves caller's format)
 (token-convert [amount from-unit] to-unit rate)
-(token-convert [10 "usd"] "hash" [/ [31.25 "hash"] [1 "usd"]])
-; → [312.5 "hash"]  ; Validates target matches rate
+(token-convert [10 :usd] :hash [/ [31.25 :hash] [1 :usd]])
+; → [312.5 :hash]  ; Format matches caller's to-unit (keyword)
+
+(token-convert [10 :usd] "HASH" [/ [31.25 :hash] [1 :usd]])
+; → [312.5 "HASH"]  ; Format matches caller's to-unit (uppercase string)
 ```
+
+**Format Preservation Rules**:
+1. **3-arity form**: Output format matches caller's `to-unit` parameter exactly
+2. **2-arity form**: Output format matches the target unit from the rate
+3. **All cases**: Units are normalized internally (`:usd` = `"usd"` = `"USD"`) for comparison
+4. **Caller control**: Choose your preferred output format in the result
 
 **Conversion Logic**:
 
 ```clojure
 ;; Converting FROM denominator TO numerator: multiply by (num/denom)
-[amount "hash"] × [/ [0.032 "usd"] [1 "hash"]]
-; → [amount × 0.032 "usd"]
+[amount :hash] × [/ [0.032 :usd] [1 :hash]]
+; → [amount × 0.032 :usd]  ; Format preserved from rate
 
 ;; Converting FROM numerator TO denominator: divide by (num/denom)
-[amount "usd"] ÷ [/ [0.032 "usd"] [1 "hash"]]
-; → [amount ÷ 0.032 "hash"]
+[amount :usd] ÷ [/ [0.032 :usd] [1 :hash]]
+; → [amount ÷ 0.032 :hash]  ; Format preserved from rate
+
+;; Format control examples:
+[1000 :hash] × [/ [0.032 "USD"] [1 :hash]]  ; 2-arity
+; → [32.0 "USD"]  ; Preserves uppercase string from rate
+
+[1000 :hash] :usd [/ [0.032 "USD"] [1 :hash]]  ; 3-arity
+; → [32.0 :usd]  ; Preserves keyword from caller's to-unit
 ```
 
 ### Rate Validation
@@ -1095,40 +1154,347 @@ The key insight: **The tool description IS the interface**. Make it clear, compr
 - ✅ Units cannot be confused or mixed accidentally
 - ✅ Compiler-enforced dimensional analysis
 - ✅ Runtime validation of unit compatibility
+- ✅ Format equivalence (`:usd` = `"usd"` = `"USD"`) prevents case/type errors
 
 **Clarity**:
 - ✅ Code is self-documenting with explicit units
 - ✅ Exchange rates read naturally as "X per Y"
 - ✅ No ambiguity about conversion direction
+- ✅ Output format matches caller's input for predictability
 
 **Correctness**:
 - ✅ Prevents catastrophic unit confusion errors
 - ✅ Invalid operations rejected at runtime
 - ✅ Same-unit rate nonsense prevented
+- ✅ Internal normalization ensures consistent comparisons
 
 **Ergonomics**:
 - ✅ Auto-promotion reduces boilerplate
 - ✅ Registry provides common conversions
 - ✅ Multiple signature convenience
+- ✅ **Format flexibility** - use keywords (no escaping) OR strings (compatibility)
+- ✅ **Caller control** - choose your preferred output format
+- ✅ **JSON-friendly** - keywords avoid escaping issues in AI agent tool calls
 
 ### Implementation Plan
 
 See `docs/calculator-implementation-plan.md` Phase 3B for detailed implementation tasks.
 
-**Estimated Effort**: 8-12 hours
-**Files Affected**:
-- `src/nrepl_mcp_server/calculator.clj` - Core implementation
-- `src/nrepl_mcp_server/token_registry.clj` - Registry (new file)
-- `test/nrepl_mcp_server/token_conversion_test.clj` - Tests (new file)
-- `docs/calculator-ai-test-scenarios.md` - Add token conversion scenarios
+**Status**: ✅ **COMPLETED** (2025-11-15)
+
+**Actual Effort**: ~6 hours (keyword support + format preservation)
+
+**Files Modified**:
+- ✅ `src/nrepl_mcp_server/calculator.clj` - Core implementation with `normalize-unit` and format preservation
+- ✅ `test/nrepl_mcp_server/token_conversion_test.clj` - Comprehensive tests (20 tests, 90 assertions)
+- ✅ `src/nrepl_mcp_server/mcp_server/tools/calculate.clj` - Updated tool description for keywords
+
+**Test Results**:
+- 20 tests passing
+- 90 assertions passing
+- 0 failures, 0 errors
+- Format preservation validated across keyword/string/uppercase/lowercase variations
+
+**Key Implementation Choices**:
+1. **Dual keyword/string support** - Keywords preferred, strings for compatibility
+2. **Internal normalization** - All units normalized to lowercase keywords for comparison
+3. **Format preservation** - Output format matches caller's input exactly
+4. **Case insensitivity** - `:USD` = `:usd` = `"USD"` = `"usd"` (all equivalent)
+
+---
+
+## Phase 3C: Portfolio Aggregation (v3.2.0)
+
+### Overview
+
+**Goal**: Aggregate multiple token holdings into a single target currency for portfolio valuation.
+
+**Status**: ✅ **PHASE 3C.1 COMPLETED** (2025-11-15)
+
+### Features
+
+**Auto-Matching Rates**:
+- Finds appropriate rate for each holding by comparing normalized units
+- Supports both direct and inverted rates automatically
+- Handles non-normalized rates (auto-normalizes to denominator = 1)
+
+**Bidirectional Coverage**:
+- Normalizes all incoming rates
+- Generates inverted rates from normalized rates
+- Combines both for auto-matching (doubles coverage)
+
+**Compatible-Units Registry**:
+- Handles same-token denominations (hash/nhash, btc/sats)
+- Fallback for conversions not in provided rates
+- Extensible registry design
+
+**Format Preservation**:
+- Output format matches caller's target unit format
+- Keyword, string, and case variations all supported
+
+### Core Function: portfolio-value
+
+```clojure
+(portfolio-value holdings to-unit rates)
+;; holdings - Vector of token amounts: [[1000 :hash] [5E7 :nhash] [10 :usd]]
+;; to-unit - Target unit for aggregation: :usd, "USD", etc.
+;; rates - Vector of exchange rates (any format, any normalization)
+```
+
+**Algorithm**:
+1. Validate all holdings are token amounts
+2. Normalize all incoming rates to denominator = 1
+3. Generate inverted rates for bidirectional matching
+4. For each holding:
+   - Skip if already in target currency
+   - Find matching rate by unit comparison
+   - Use `token-convert` for actual conversion (same algorithm!)
+   - Fallback to compatible-units registry if needed
+   - Throw error if no rate found
+5. Sum all converted amounts, preserve target format
+
+**Compatible-Units Registry**:
+```clojure
+(def compatible-units
+  {#{:hash :nhash} [:/ [1 :hash] [1000000000 :nhash]]
+   #{:btc :sats}   [:/ [1 :btc] [100000000 :sats]]})
+```
+
+### Examples
+
+**Simple USD Portfolio Valuation**:
+```clojure
+(portfolio-value
+  [[1000 :hash] [5E7 :nhash] [10 :usd]]
+  :usd
+  [[:/ [0.032 :usd] [1 :hash]]])
+=> [42.6 :usd]  ; 1000*0.032 + 5E7*0.032/1E9 + 10
+```
+
+**Aggregate Hash Denominations**:
+```clojure
+(portfolio-value
+  [[1000 :hash] [5E7 :nhash]]
+  :hash
+  [])
+=> [1050.0 :hash]  ; Uses compatible-units registry
+```
+
+**Non-Normalized Rates**:
+```clojure
+(portfolio-value
+  [[100 :hash]]
+  :usd
+  [[:/ [0.064 :usd] [2 :hash]]])
+=> [3.2 :usd]  ; Normalizes to [:/ [0.032 :usd] [1 :hash]]
+```
+
+**Format Preservation**:
+```clojure
+(portfolio-value
+  [[1000 :hash]]
+  "USD"
+  [[:/ [0.032 :usd] [1 :hash]]])
+=> [32.0 "USD"]  ; Uppercase string preserved
+```
+
+**Bidirectional Rate Matching**:
+```clojure
+(portfolio-value
+  [[10 :usd]]
+  :hash
+  [[:/ [0.032 :usd] [1 :hash]]])
+=> [312.5 :hash]  ; Uses inverted rate automatically
+```
+
+### Design Rationale
+
+**Why Option B (Normalize + Registry)?**
+1. **Simplicity** - 90% of use cases don't need graph search
+2. **Performance** - O(n) instead of O(n²) graph search
+3. **Predictability** - Clear error when rate is missing
+4. **Extensibility** - Registry can grow with user needs
+
+**Why Use token-convert?**
+- Ensures exact same algorithm and validation
+- Leverages all existing format preservation logic
+- Maintains consistency across all conversion operations
+- Reduces code duplication and test surface
+
+**Why Normalize + Invert?**
+- Doubles rate coverage without user duplication
+- User provides `[:/ [0.032 :usd] [1 :hash]]` once
+- System automatically handles both USD→hash and hash→USD
+- Eliminates need to provide bidirectional rates manually
+
+### Design Debate: Vector vs Map for Rate Representation
+
+During implementation, we considered two approaches for representing exchange rates:
+
+#### Option A: Vector with Division Operator (CHOSEN ✅)
+
+```clojure
+[:/ [0.032 :usd] [1 :hash]]
+```
+
+**Pros**:
+- ✅ **Mathematically correct** - Rates ARE fractions/ratios
+- ✅ **Visual metaphor** - Looks like a fraction, reads like math
+- ✅ **Intuitive operations** - Invert = flip fraction, compose = multiply fractions
+- ✅ **Compact syntax** - Minimal ceremony for interactive use
+- ✅ **No quoting issues** - `:/ ` keyword requires no quoting
+- ✅ **Position conveys meaning** - Numerator/denominator is obvious
+- ✅ **Already implemented** - All utilities work (normalize, invert, compose)
+
+**Cons**:
+- ❌ Position-dependent - Must remember numerator comes first
+- ❌ Less extensible - Hard to add metadata without wrapping
+- ❌ New users might not recognize `:/ ` as division initially
+
+**Key Insight - Mathematical Elegance**:
+```clojure
+;; Composition is obviously fraction multiplication!
+(compose-rates [:/ [0.032 :usd] [1 :hash]]
+               [:/ [0.00001 :btc] [1 :usd]])
+=> [:/ [0.00000032 :btc] [1 :hash]]
+
+;; Inversion is obviously flipping the fraction!
+(invert-rate [:/ [0.032 :usd] [1 :hash]])
+=> [:/ [31.25 :hash] [1 :usd]]
+```
+
+#### Option B: Map with Named Fields
+
+```clojure
+{:rate [0.032 :usd] :per :hash}
+;; or more verbose
+{:type :rate
+ :num {:amt 0.032 :unit :usd}
+ :denom {:amt 1 :unit :hash}}
+```
+
+**Pros**:
+- ✅ Self-documenting - Field names explain everything
+- ✅ No quoting issues - Just data
+- ✅ Extensible - Easy to add `:source`, `:timestamp`, `:confidence`
+- ✅ Order-independent - Keys can be in any order
+- ✅ Validation-friendly - Can use spec/schema
+
+**Cons**:
+- ❌ **Obscures mathematical meaning** - How does `{:rate X :per Y}` compose?
+- ❌ Verbose - 2-3x more syntax
+- ❌ Lost visual metaphor - Doesn't "look like" a rate
+- ❌ Operations feel arbitrary - Less intuitive why invert/compose work
+
+#### Decision: Vector Approach Wins
+
+**Rationale**:
+1. **Domain correctness trumps API convenience** - Rates ARE fractions mathematically
+2. **Operations become intuitive** - When structure matches semantics, code is self-documenting
+3. **Quoting problem solved** - `:/ ` keyword is clean and requires no quoting
+4. **Already working** - Don't fix what isn't broken
+
+**Future Extensibility - Hybrid Approach**:
+
+When metadata is needed (Phase 3D), wrap the vector in a map:
+
+```clojure
+{:rate [:/ [0.032 :usd] [1 :hash]]  ; Keep vector structure!
+ :source :coingecko
+ :timestamp 1737000000
+ :confidence :high
+ :bid-ask-spread 0.0001}
+```
+
+Best of both worlds - mathematical correctness + metadata when needed.
+
+### Convenience Constructor (Phase 3D.1)
+
+To improve ergonomics while keeping mathematical correctness, add a `rate` helper:
+
+```clojure
+(defn rate
+  "Convenient rate constructor.
+
+   Examples:
+     (rate 0.032 :usd :per :hash)      => [:/ [0.032 :usd] [1 :hash]]
+     (rate 31.25 :hash :per :usd)      => [:/ [31.25 :hash] [1 :usd]]
+     (rate 0.064 :usd :per [2 :hash])  => [:/ [0.064 :usd] [2 :hash]]"
+  ([num-amt num-unit per-kw per-unit]
+   {:pre [(= per-kw :per)
+          (or (keyword? per-unit) (string? per-unit))]}
+   [:/ [num-amt num-unit] [1 per-unit]])
+  ([num-amt num-unit per-kw [denom-amt denom-unit]]
+   {:pre [(= per-kw :per)]}
+   [:/ [num-amt num-unit] [denom-amt denom-unit]]))
+
+;; Usage examples
+(rate 0.032 :usd :per :hash)
+=> [:/ [0.032 :usd] [1 :hash]]
+
+(rate 0.064 :usd :per [2 :hash])  ; Non-normalized
+=> [:/ [0.064 :usd] [2 :hash]]
+
+;; Use in token-convert
+(token-convert [1000 :hash] :usd (rate 0.032 :usd :per :hash))
+=> [32.0 :usd]
+```
+
+**Benefits**:
+- Friendly front-door for new users
+- Reads naturally: "rate 0.032 USD per hash"
+- Validates `:per` keyword position
+- Returns canonical vector structure
+- Works seamlessly with all existing functions
+
+**Status**: 📋 **PLANNED** for Phase 3D.1
+
+### Files Modified
+
+- ✅ `src/nrepl_mcp_server/calculator.clj`:
+  - Added `portfolio-value` function
+  - Added `compatible-units` registry
+  - Added `find-compatible-rate` helper
+  - Exported `portfolio-value` in `token-conversion-fns`
+- ✅ `src/nrepl_mcp_server/mcp_server/tools/calculate.clj`:
+  - Updated tool description with portfolio-value examples
+- ✅ Code formatting and linting:
+  - cljfmt: ✅ Clean
+  - clj-kondo: ✅ 0 warnings, 0 errors
 
 ### Future Enhancements
 
-**Phase 3C (Optional)**:
+**Phase 3C.2: Graph Search for Multi-Hop Conversions**
+
+**Goal**: Enable multi-hop conversions through intermediary currencies (e.g., nhash → hash → usd)
+
+**Use Case**:
+```clojure
+;; User only provides: nhash→hash and hash→usd rates
+;; System automatically finds path: nhash → hash → usd
+(portfolio-value
+  [[5E7 :nhash]]
+  :usd
+  [[:/ [1 :hash] [1E9 :nhash]]      ; nhash → hash
+   [:/ [0.032 :usd] [1 :hash]]])    ; hash → usd
+=> [1.6 :usd]  ; Automatic multi-hop conversion
+```
+
+**Why Deferred**:
+- Phase 3C.1 (normalize + registry) handles 90% of real-world use cases
+- Graph search adds significant complexity
+- Most users provide direct rates or use compatible-units registry
+- Can add later if analytics show strong demand
+
+**Decision Criteria for Implementation**:
+- >10% of portfolio-value calls fail due to missing multi-hop path
+- User feedback specifically requests this feature
+- Clear use case patterns emerge that can't be handled by registry
+
+**Other Future Enhancements**:
 - Reader macros: `#hash 1000` → `[1000 "hash"]`
 - Smart error recovery: suggest similar units
-- Multi-currency portfolio calculations
 - Historical rate time-series
 - Automatic rate updates from oracles/APIs
 
-**Status**: 📋 **PLANNED** - Waiting for Phase 3A completion
+**Status**: 📋 **DOCUMENTED** - Awaiting usage analytics
