@@ -5,7 +5,7 @@
   (:require [nrepl-mcp-server.mcp-server.server :as mcp-server]
             [clojure.java.io :as io]))
 
-(def startup-file ".mcp-startup.clj")
+(def startup-file "mcp-startup.clj")
 
 (defn load-startup-file!
   "Load project-local startup file if it exists.
